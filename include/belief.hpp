@@ -14,18 +14,29 @@ namespace ow_bft{
 		}
 
 		static T compute_aggregation_at_fod(const powerset_btree<T>& m_focal_elements) {
-			return 1;
+			T sum = 0;
+			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.elements();
+			const set_N_value<T>* emptyset = m_focal_elements.sub_fod_of_size(0);
+
+			for (size_t i = 0; i < subsets.size(); ++i) {
+				if(subsets[i] != emptyset)
+					sum += subsets[i]->value;
+			}
+			return sum;
 		}
 
 		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& key) {
 			T sum = 0;
 			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.subsets_of(key);
 
-			if(subsets.size() == 1 && subsets[0] == m_focal_elements.sub_fod_of_size(0))
-				return compute_aggregation_at_emptyset(m_focal_elements);
+			//if(subsets.size() == 1 && subsets[0] == m_focal_elements.sub_fod_of_size(0))
+			//	return compute_aggregation_at_emptyset(m_focal_elements);
+
+			const set_N_value<T>* emptyset = m_focal_elements.sub_fod_of_size(0);
 
 			for (size_t i = 0; i < subsets.size(); ++i) {
-				sum += subsets[i]->value;
+				if(subsets[i] != emptyset)
+					sum += subsets[i]->value;
 			}
 			return sum;
 		}

@@ -88,10 +88,6 @@ namespace ow_bft{
 			return fusion(*this, q2);
 		}
 
-		/*static powerset_btree<T> to_mass_focal_elements(const powerset_btree<T>& q_tree){
-			return powerset_btree<T>(q_tree);
-		}*/
-
 		static void compute_values_for_mass_focal_elements(const powerset_btree<T>& m_focal_elements, powerset_btree<T>& special_elements) {
 			const std::vector<set_N_value<T>* >& elements = m_focal_elements.elements();
 			// pre-calculation for all focal elements
@@ -120,42 +116,6 @@ namespace ow_bft{
 				}
 			}
 		}
-
-/*
-	public:
-		void apply_changes(){
-			ow_bft::powerset_btree buffer = new ow_bft::powerset_btree(&this->fod);
-			std::vector<std::vector<set_N_value<T>* > > changed_q = this->changes.nodes_by_depth;
-			std::unordered_map<set_N_value<T>*, std::vector<set_N_value<T>* > > affected_masses;
-
-			for (int i = 0; i < changed_q.size(); ++i) {
-				for (int j = 0; j < changed_q[i].size(); ++j) {
-
-					boost::dynamic_bitset key = this->fod.to_set(changed_q[i][j]->fod_elements);
-					std::vector<set_N_value<T>* > masses_affected_by_q = this->fod.powerset.non_null_values_N_elements_of_subsets_of(key);
-
-					for (int k = 0; k < masses_affected_by_q.size(); ++k) {
-						std::vector<set_N_value<T>* > m = affected_masses[masses_affected_by_q[k]];
-						m.push_back(changed_q[i][j]);
-					}
-				}
-			}
-			for (std::pair<set_N_value<T>*, std::vector<set_N_value<T>* > > mass_N_qs : affected_masses){
-				T sum = 0;
-				for (int i = 0; i < mass_N_qs.second.size(); ++i) {
-					int card_diff = this->fod.set_minus(mass_N_qs.second[i]->fod_elements, mass_N_qs.first->fod_elements).size();
-					if(card_diff % 2 == 0){
-						sum += mass_N_qs.second[i]->value - this->before_changes[mass_N_qs.second[i]->fod_elements];
-					}else{
-						sum -= mass_N_qs.second[i]->value - this->before_changes[mass_N_qs.second[i]->fod_elements];
-					}
-				}
-				buffer.insert(mass_N_qs.first->fod_elements, mass_N_qs.first->value + sum);
-			}
-
-			this->fod.powerset = buffer;
-		}
-*/
 	};
 
 } // namespace ow_bft

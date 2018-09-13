@@ -10,47 +10,43 @@ namespace ow_bft{
 	class plausibility : public mass_aggregate<T> {
 	protected:
 
-		T compute_aggregation_at_emptyset() const {
+		static T compute_aggregation_at_emptyset(const powerset_btree<T>& m_focal_elements) {
 			return 0;
 		}
 
+		static T compute_aggregation_at_fod(const powerset_btree<T>& m_focal_elements) {
+			return belief<T>::compute_aggregation_at_fod(m_focal_elements);
+		}
+
+		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& key) {
+			return 1 - implicability<T>::compute_aggregation(m_focal_elements, m_focal_elements.fod->set_negate(key));
+		}
+
+		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const std::vector<fod_element*>& fod_elements) {
+			return compute_aggregation(m_focal_elements, m_focal_elements.fod->to_set(fod_elements));
+		}
+
+		T compute_aggregation_at_emptyset() const {
+			return compute_aggregation_at_emptyset(this->mass_equivalent.get_focal_elements());
+		}
+
 		T compute_aggregation_at_fod() const {
-			return 1;
+			return compute_aggregation_at_fod(this->mass_equivalent.get_focal_elements());
 		}
 
 		T compute_aggregation(const boost::dynamic_bitset<>& key) const {
-			/*
-			T sum = 0;
-			std::vector<set_N_value<T>* > elements = this->focal_elements.elements();
-			for (size_t i = 0; i < elements.size(); ++i) {
-					boost::dynamic_bitset new_key = this->fod->to_set(elements[i]->fod_elements);
-					if(!this->fod->are_disjoint(key, new_key))
-						sum += elements[i]->value;
-				}
-			}
-			return sum;
-			*/
-
-			/*
-			 *  plausibility<FOD, T> pl(bel);
-				std::reverse(pl.values().begin(), pl.values().end());
-				T conflict_mass = 1 - pl[0];
-				BOOST_FOREACH (T& v, pl.values()) {
-					v = 1 - v - conflict_mass;
-				}
-			 */
-			return 1 - implicability<T>::compute_aggregation(this->fod->set_negate(key));
+			return compute_aggregation(this->mass_equivalent.get_focal_elements(), key);
 		}
 
 		T compute_aggregation(const std::vector<fod_element*>& fod_elements) const {
-			return compute_aggregation(this->fod->to_set(fod_elements));
+			return compute_aggregation(this->mass_equivalent.get_focal_elements(), fod_elements);
 		}
 
 	public:
 
 		plausibility(const mass<T>& m) : mass_aggregate<T>(m)
 		{
-			this->set_values_for_special_elements();
+			//this->set_values_for_special_elements();
 		}
 
 		plausibility(const mass_aggregate<T>& ma) : plausibility(ma.get_mass_equivalent())
@@ -63,12 +59,12 @@ namespace ow_bft{
 
 		plausibility(const FOD& fod) : mass_aggregate<T>(fod)
 		{
-			this->set_values_for_special_elements();
+			//this->set_values_for_special_elements();
 		}
 
 		plausibility(const FOD& fod, const Special_case s_case) : mass_aggregate<T>(fod, s_case)
 		{
-			this->set_values_for_special_elements();
+			//this->set_values_for_special_elements();
 		}
 
 		template <class fusion_rule>
@@ -76,14 +72,18 @@ namespace ow_bft{
 			return fusion(*this, p2);
 		}
 
-		mass<T> to_mass(const powerset_btree<T>& f_elements) const {
+		static void compute_values_for_mass_focal_elements(const powerset_btree<T>& m_focal_elements, powerset_btree<T>& special_elements) {
+			const std::vector<set_N_value<T>* >& elements = m_focal_elements.elements();
+			// pre-calculation for all focal elements
+			for (size_t i = 0; i < elements.size(); ++i) {
+				special_elements.insert(elements[i]->fod_elements, compute_aggregation(m_focal_elements, elements[i]->fod_elements));
+			}
+		}
 
-			std::cerr << "\nUnimplemented method to_mass of plausibility. Impossible to infer masses from plausibility on focal elements only.\n";
-
-			// initialization
-			mass<T> m(f_elements.get_FOD());
-
-			return m;
+		static void to_mass_focal_elements(const powerset_btree<T>& pl_tree, powerset_btree<T>& m_tree) {
+			std::cerr << "\nUnimplemented method to_mass_focal_elements of plausibility. Impossible to infer masses from plausibility on focal elements only.\n"
+						<< "But you can create an implicability function based on this plausibility function that will allow you\n"
+						<< "to retrieve the corresponding mass function.\n";
 		}
 	};
 
