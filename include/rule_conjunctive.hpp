@@ -26,39 +26,44 @@ namespace ow_bft{
 		template <typename T>
 		powerset_btree<T> fusion_of_commonalities_to_mass_focal_elements(const commonality<T>& q1, const commonality<T>& q2, T precision) const {
 
+			const FOD& fod = q1.get_FOD();
+
 			// initialization
-			powerset_btree<T> m12_focal_elements(q1.get_FOD(), q1.block_size);
+			powerset_btree<T> m12_focal_elements(fod, q1.block_size);
 
 			// store the conjunction of q1 and q2 (i.e. q12(A) = q1(A).q2(A)) in m12
 
 			const std::vector<set_N_value<T>* >& elements1 = q1.get_special_elements().elements();
-			powerset_btree<T> q2_special_elements_copy(q2.get_special_elements());
+			const std::vector<set_N_value<T>* >& elements2 = q2.get_special_elements().elements();
 
 			for (size_t i = 0; i < elements1.size(); ++i) {
-				const std::vector<std::string>& labels = q1.get_FOD().to_labels(elements1[i]->fod_elements);
-				set_N_value<T>* q2_matching_element = q2_special_elements_copy[labels];
-				T q2_element_value;
-				if(q2_matching_element){
-					q2_element_value = q2_matching_element->value;
-					q2_special_elements_copy.nullify(q2_matching_element);
-				}else{
-					q2_element_value = q2[labels];
+				for (size_t ii = 0; ii < elements2.size(); ++ii) {
+					const boost::dynamic_bitset<>& m12_focal_element = fod.set_intersection(
+							fod.to_set(elements1[i]->fod_elements),
+							fod.to_set(q2.get_FOD().to_labels(elements2[i]->fod_elements))
+						);
+					const set_N_value<T>* m12_focal_element_node = m12_focal_elements[m12_focal_element];
+					if(!m12_focal_element_node)
+						m12_focal_elements.insert(m12_focal_element, q1.find(m12_focal_element) * q2[fod.to_labels(fod.to_elements(m12_focal_element))]);
 				}
-
-				m12_focal_elements.insert(elements1[i]->fod_elements, elements1[i]->value * q2_element_value);
-			}
-
-			const std::vector<set_N_value<T>* >& elements2 = q2_special_elements_copy.elements();
-
-			for (size_t i = 0; i < elements2.size(); ++i) {
-				const std::vector<std::string>& labels = q2.get_FOD().to_labels(elements2[i]->fod_elements);
-
-				m12_focal_elements.insert(labels, q1[labels] * elements2[i]->value);
 			}
 
 			// transform m12_focal_elements (which is q12 at this point) into focal elements of a mass function, i.e. into the actual m12 focal elements
 			commonality<T>::to_mass_focal_elements_without_initialization(m12_focal_elements);
 
+			/*
+			 * NE DEVRAIT PAS ÊTRE NÉCESSAIRE CAR S'IL Y A CONFLIT, L'INTERSECTION EMPTYSET A DÛ ÊTRE GÉNÉRÉE ET DONC AFFECTÉE DÉJÀ À EMPTYSET
+			const std::vector<set_N_value<T>* >& m12_elements = m12_focal_elements.elements();
+			T sum = 0;
+			for (size_t i = 0; i < m12_elements.size(); ++i) {
+				sum += m12_elements[i]->value;
+			}
+			set_N_value<T>* emptyset = m12_focal_elements.sub_fod_of_size(0);
+			if(emptyset)
+				sum -= emptyset->value;
+
+			m12_focal_elements.set_value_of_sub_fod_of_size(0, 1 - sum);
+			*/
 			return m12_focal_elements;
 		}
 /*

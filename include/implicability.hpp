@@ -1,12 +1,12 @@
 #ifndef OW_BFT_IMPLICABILITY_HPP
 #define OW_BFT_IMPLICABILITY_HPP
 
-#include <belief.hpp>
+#include <mass_aggregate.hpp>
 
 namespace ow_bft{
 
 	template <typename T = double>
-	class implicability : public belief<T> {
+	class implicability : public mass_aggregate<T> {
 	protected:
 
 		static T compute_aggregation_at_emptyset(const powerset_btree<T>& m_focal_elements) {
@@ -57,26 +57,34 @@ namespace ow_bft{
 
 		implicability(const mass<T>& m) : mass_aggregate<T>(m)
 		{
-			compute_values_for_special_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
+			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
+
+		implicability(const powerset_btree<T>& m_focal_elements) : mass_aggregate<T>(m_focal_elements)
+		{
+			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
+		}
+
+		implicability(const implicability<T>& b) : implicability(b.get_mass_equivalent().get_focal_elements(), b.get_special_elements())
+		{}
+
+		implicability(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& _special_elements) :
+			mass_aggregate<T>(m_focal_elements, _special_elements)
+		{}
 
 		implicability(const mass_aggregate<T>& ma) : implicability(ma.get_mass_equivalent())
 		{}
 
-		implicability(const implicability<T>& b) : mass_aggregate<T>(b.get_mass_equivalent())
-		{
-			this->special_elements.copy(b.get_special_elements());
-		}
-
 		implicability(const FOD& fod) : mass_aggregate<T>(fod)
 		{
-			compute_values_for_special_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
+			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
 		implicability(const FOD& fod, const Special_case s_case) : mass_aggregate<T>(fod, s_case)
 		{
-			compute_values_for_special_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
+			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
+
 
 		template <class fusion_rule>
 		implicability<T> apply(const fusion_rule fusion, const implicability<T>& i2) const {
@@ -92,7 +100,20 @@ namespace ow_bft{
 		}
 
 		static void to_mass_focal_elements(const powerset_btree<T>& bel_tree, powerset_btree<T>& m_tree) {
-			belief<T>::to_mass_focal_elements(bel_tree, m_tree);
+
+			m_tree.copy(bel_tree);
+
+			const std::vector<std::vector<set_N_value<T>* > >& elements_by_cardinality = m_tree().elements_by_set_cardinality();
+
+			// computation based on f_elements
+			for (size_t c = 0; c < elements_by_cardinality.size()-1; ++c) {
+				for (size_t i = 0; i < elements_by_cardinality[c].size(); ++i) {
+					const std::vector<set_N_value<T>* >& supersets = m_tree.strict_supersets_of(elements_by_cardinality[c][i]->fod_elements);
+					for (size_t k = 0; k < supersets.size(); ++k) {
+						supersets[k]->value -= elements_by_cardinality[c][i]->value;
+					}
+				}
+			}
 		}
 	};
 

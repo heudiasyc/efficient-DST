@@ -6,13 +6,14 @@
 namespace ow_bft{
 
 	template <class bft_function, class T = double>
-	class converter_to_mass_focal_elements : public converter<T> {
+	class converter_to_mass_focal_elements {
+	protected:
+		static bool is_equivalent_to_zero(const T& value, T precision) {
+			return ow_bft::detail::is_small(value, precision);
+		}
 	public:
 
-		converter_to_mass_focal_elements(const T& _precision) : converter<T>(_precision)
-		{}
-
-		powerset_btree<T> convert(const powerset_btree<T>& b_tree) const {
+		static powerset_btree<T> convert(const powerset_btree<T>& b_tree, T precision) {
 
 			// initialization
 			powerset_btree<T> m_tree(*(b_tree.fod), b_tree.block_size);
@@ -20,20 +21,20 @@ namespace ow_bft{
 			// conversion
 			bft_function::to_mass_focal_elements(b_tree, m_tree);
 
-			adjust_values_to_precision(m_tree);
+			adjust_values_to_precision(m_tree, precision);
 
 			return m_tree;
 		}
 
-		void convert_without_initialization(powerset_btree<T>& m_tree) const {
+		static void convert_without_initialization(powerset_btree<T>& m_tree, T precision) {
 
 			// conversion
 			bft_function::to_mass_focal_elements_without_initialization(m_tree);
 
-			adjust_values_to_precision(m_tree);
+			adjust_values_to_precision(m_tree, precision);
 		}
 
-		void adjust_values_to_precision(powerset_btree<T>& m_tree) const {
+		static void adjust_values_to_precision(powerset_btree<T>& m_tree, T precision) {
 
 			const std::vector<set_N_value<T>* >& elements = m_tree.elements();
 			T sum = 0;
@@ -41,10 +42,29 @@ namespace ow_bft{
 
 			for (size_t i = 0; i < elements.size(); ++i) {
 				val = elements[i]->value;
-				if(this->is_equivalent_to_zero(val)){
+				if(is_equivalent_to_zero(val, precision)){
 					m_tree.nullify(elements[i]);
 				}else{
 					sum += val;
+				}
+			}
+
+			normalize(m_tree, sum);
+		}
+
+		static void normalize(powerset_btree<T>& m_tree, T sum = 0) {
+
+			const std::vector<set_N_value<T>* >& elements = m_tree.elements();
+
+			if(sum == 0){
+				for (size_t i = 0; i < elements.size(); ++i) {
+					sum += elements[i]->value;
+				}
+				if(sum == 0){
+					std::cerr << "\nSum of mass values equal to 0."
+							<< "\nThis means that this mass function is either empty or contains as much positive values as negative values."
+							<< "\nEither way, this mass function cannot be normalized into a valid mass function.";
+					exit(1);
 				}
 			}
 

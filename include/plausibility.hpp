@@ -46,7 +46,7 @@ namespace ow_bft{
 
 		plausibility(const mass<T>& m) : mass_aggregate<T>(m)
 		{
-			//this->set_values_for_special_elements();
+			compute_values_for_negation_of_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
 		plausibility(const mass_aggregate<T>& ma) : plausibility(ma.get_mass_equivalent())
@@ -59,12 +59,12 @@ namespace ow_bft{
 
 		plausibility(const FOD& fod) : mass_aggregate<T>(fod)
 		{
-			//this->set_values_for_special_elements();
+			compute_values_for_negation_of_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
 		plausibility(const FOD& fod, const Special_case s_case) : mass_aggregate<T>(fod, s_case)
 		{
-			//this->set_values_for_special_elements();
+			compute_values_for_negation_of_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
 		template <class fusion_rule>
@@ -72,18 +72,38 @@ namespace ow_bft{
 			return fusion(*this, p2);
 		}
 
-		static void compute_values_for_mass_focal_elements(const powerset_btree<T>& m_focal_elements, powerset_btree<T>& special_elements) {
+		static void compute_values_for_negation_of_mass_focal_elements(const powerset_btree<T>& m_focal_elements, powerset_btree<T>& special_elements) {
 			const std::vector<set_N_value<T>* >& elements = m_focal_elements.elements();
 			// pre-calculation for all focal elements
 			for (size_t i = 0; i < elements.size(); ++i) {
-				special_elements.insert(elements[i]->fod_elements, compute_aggregation(m_focal_elements, elements[i]->fod_elements));
+				const boost::dynamic_bitset<>& focal_element = m_focal_elements.fod->to_set(
+						elements[i]->fod_elements
+				);
+				const boost::dynamic_bitset<>& focal_element_negation = m_focal_elements.fod->set_negate(
+						focal_element
+				);
+				special_elements.insert(focal_element_negation, 1 - implicability<T>::compute_aggregation(m_focal_elements, focal_element));
 			}
 		}
 
+		/*
+		 * pl_tree must feature the value associated to the NEGATION of every focal element
+		 */
 		static void to_mass_focal_elements(const powerset_btree<T>& pl_tree, powerset_btree<T>& m_tree) {
-			std::cerr << "\nUnimplemented method to_mass_focal_elements of plausibility. Impossible to infer masses from plausibility on focal elements only.\n"
-						<< "But you can create an implicability function based on this plausibility function that will allow you\n"
-						<< "to retrieve the corresponding mass function.\n";
+			const std::vector<set_N_value<T>* >& elements = pl_tree.elements();
+			powerset_btree<T> bel_tree(pl_tree.fod, pl_tree.block_size);
+
+			// pre-calculation for all focal elements
+			for (size_t i = 0; i < elements.size(); ++i) {
+				const boost::dynamic_bitset<>& focal_element
+					= pl_tree.fod->set_negate(
+							pl_tree.fod->to_set(
+								elements[i]->fod_elements
+						)
+					);
+				bel_tree.insert(focal_element, 1 - elements[i]->value);
+			}
+			implicability<T>::to_mass_focal_elements(bel_tree, m_tree);
 		}
 	};
 

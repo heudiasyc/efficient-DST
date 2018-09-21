@@ -2,6 +2,7 @@
 #define OW_BFT_BELIEF_HPP
 
 #include <mass_aggregate.hpp>
+#include <implicability.hpp>
 
 namespace ow_bft{
 
@@ -14,30 +15,22 @@ namespace ow_bft{
 		}
 
 		static T compute_aggregation_at_fod(const powerset_btree<T>& m_focal_elements) {
-			T sum = 0;
-			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.elements();
-			const set_N_value<T>* emptyset = m_focal_elements.sub_fod_of_size(0);
+			T sum = implicability<T>::compute_aggregation_at_fod(m_focal_elements);
 
-			for (size_t i = 0; i < subsets.size(); ++i) {
-				if(subsets[i] != emptyset)
-					sum += subsets[i]->value;
-			}
+			const set_N_value<T>* emptyset = m_focal_elements.sub_fod_of_size(0);
+			if(emptyset)
+				sum -= emptyset->value;
+
 			return sum;
 		}
 
 		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& key) {
-			T sum = 0;
-			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.subsets_of(key);
-
-			//if(subsets.size() == 1 && subsets[0] == m_focal_elements.sub_fod_of_size(0))
-			//	return compute_aggregation_at_emptyset(m_focal_elements);
+			T sum = implicability<T>::compute_aggregation(m_focal_elements, key);
 
 			const set_N_value<T>* emptyset = m_focal_elements.sub_fod_of_size(0);
+			if(emptyset)
+				sum -= emptyset->value;
 
-			for (size_t i = 0; i < subsets.size(); ++i) {
-				if(subsets[i] != emptyset)
-					sum += subsets[i]->value;
-			}
 			return sum;
 		}
 
@@ -93,8 +86,6 @@ namespace ow_bft{
 			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
-		virtual ~belief()
-		{}
 
 		template <class fusion_rule>
 		const belief<T> apply(const fusion_rule fusion, const belief<T>& b2) const {
@@ -110,20 +101,7 @@ namespace ow_bft{
 		}
 
 		static void to_mass_focal_elements(const powerset_btree<T>& bel_tree, powerset_btree<T>& m_tree) {
-
-			m_tree.copy(bel_tree);
-
-			const std::vector<std::vector<set_N_value<T>* > >& elements_by_cardinality = m_tree().elements_by_set_cardinality();
-
-			// computation based on f_elements
-			for (size_t c = 0; c < elements_by_cardinality.size()-1; ++c) {
-				for (size_t i = 0; i < elements_by_cardinality[c].size(); ++i) {
-					const std::vector<set_N_value<T>* >& supersets = m_tree.strict_supersets_of(elements_by_cardinality[c][i]->fod_elements);
-					for (size_t k = 0; k < supersets.size(); ++k) {
-						supersets[k]->value -= elements_by_cardinality[c][i]->value;
-					}
-				}
-			}
+			implicability<T>::to_mass_focal_elements(bel_tree, m_tree);
 		}
 	};
 
