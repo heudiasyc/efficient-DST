@@ -434,20 +434,13 @@ namespace ow_bft{
 			}
 		}
 
-		/*
-		 * TODO: add a small code to check if the smallest focal point supserset S of A is contained in all the others:
-		 * 			- If so, just apply: w(A) = q(A)^(-1) . q(S), and move on to the next weight computation
-		 * 			- If not, proceed as it already is
-		 */
 		static void compute_aggregations(
 				const commonality<T>& commonality_equivalent,
 				const powerset_btree<T>& used_commonalities,
 				const std::vector<std::vector<set_N_value<T>* > >& used_q_elements_by_cardinality,
 				powerset_btree<T>& special_elements){
 
-			powerset_btree<long> polarities(*used_commonalities.fod, used_commonalities.block_size);
 			T weight;
-			long polarity;
 
 
 			std::clog << "\nFocal points : \n";
@@ -455,8 +448,10 @@ namespace ow_bft{
 
 			std::clog << "\nBefore computing aggregations\n";
 
+			T q_FOD = used_q_elements_by_cardinality[used_commonalities.fod->size()][0]->value;
+
 			// for each cardinality except the one of FOD
-			for (size_t c = 0; c < used_commonalities.fod->size(); ++c) {
+			for (size_t c = used_commonalities.fod->size()-1; c > 0; --c) {
 
 				// for each element of used_q_elements_by_cardinality of cardinality c
 				for (size_t i = 0; i < used_q_elements_by_cardinality[c].size(); ++i) {
@@ -466,62 +461,165 @@ namespace ow_bft{
 					const std::vector<fod_element* >& current_set = used_q_elements_by_cardinality[c][i]->fod_elements;
 
 					// get supersets of used_q_elements_by_cardinality[c][i]
-					const std::vector<std::vector<set_N_value<T>* > >& supersets = used_commonalities
-																				.supersets_of_by_cardinality(
-																						current_set
-																				);
-
-					// initialize polarities for the computation of this current weight
-					for (size_t sc = c+1; sc < supersets.size(); ++sc) {
-						for (size_t si = 0; si < supersets[sc].size(); ++si) {
-							// By definition of the conjunctive decomposition, the polarity for this
-							// superset in the computation of this current weight is :
-							// ->  1 	if (sc - c) is odd
-							// -> -1 	if (sc - c) is even
-							if(((sc - c) & 1) > 0){	// check the first bit for parity check
-								polarities.insert(supersets[sc][si]->fod_elements, 1);
-							}else{
-								polarities.insert(supersets[sc][si]->fod_elements, -1);
-							}
-						}
-					}
+					const std::vector<set_N_value<T>* >& supersets = special_elements.strict_supersets_of(current_set);
 
 					// initialize its weight with the inverse of its own commonality
 
-					std::clog << "\nWeight computation for " << to_string(current_set) << ":\n-1\t <- " << to_string(current_set) << std::endl;
-					weight = 1/used_q_elements_by_cardinality[c][i]->value;
+					std::clog << "\nWeight computation for " << to_string(current_set) << ":\n";
+					std::clog << "Initialization with q_FOD/q_A, then division by:\n";
+					weight = q_FOD/used_q_elements_by_cardinality[c][i]->value;
 
-					for (size_t sc = c + 1; sc < supersets.size(); ++sc) {
-						for (size_t si = 0; si < supersets[sc].size(); ++si) {
+					for (size_t si = 0; si < supersets.size(); ++si) {
 
-							// all supersets have at least used_q_elements_by_cardinality[c][i]->fod_elements as subset,
-							// hence the 1 which stands for the polarity -1 of the weight initialization
-							polarity = 1;
+						std::clog << to_string<T>(*supersets[si]) << std::endl;
 
-							const std::vector<set_N_value<long>* >& subsets = polarities.strict_subsets_of(supersets[sc][si]->fod_elements);
-
-							// compensate for the plurality of all polarities corresponding to sets that are influenced by supersets[sc][si]
-							for (size_t i = 0; i < subsets.size(); ++i) {
-								polarity -= subsets[i]->value;
-							}
-							const set_N_value<long>* inserted_polarity = polarities.insert(supersets[sc][si]->fod_elements, polarity);
-							std::clog << to_string<long>(*inserted_polarity) << std::endl;
-
-							weight *= pow(
-									supersets[sc][si]->value,
-									polarity
-								);
-						}
+						weight /= supersets[si]->value;
 					}
 
 					// insert weight among special elements
-					special_elements.insert(used_q_elements_by_cardinality[c][i]->fod_elements, weight);
+					special_elements.insert(current_set, weight);
 
 					std::clog << "\n======================= WEIGHT INSERTED\n";
-
-					polarities.nullify();
 				}
 			}
+
+			//emptyset weight computation to avoid issues with size_t which can't hold negative values (i.e. avoid --c when c=0 which causes infinite loop)
+			if (used_q_elements_by_cardinality[0].size() > 0) {
+				std::clog << "\n======================= NEW WEIGHT\n";
+
+				const std::vector<fod_element* >& current_set = used_q_elements_by_cardinality[0][0]->fod_elements;
+
+				// get supersets of used_q_elements_by_cardinality[c][i]
+				const std::vector<set_N_value<T>* >& supersets = special_elements.strict_supersets_of(current_set);
+
+				// initialize its weight with the inverse of its own commonality
+
+				std::clog << "\nWeight computation for " << to_string(current_set) << ":\n";
+				std::clog << "Initialization with q_FOD/q_A, then division by:\n";
+				weight = q_FOD/used_q_elements_by_cardinality[0][0]->value;
+
+				for (size_t si = 0; si < supersets.size(); ++si) {
+
+					std::clog << to_string<T>(*supersets[si]) << std::endl;
+
+					weight /= supersets[si]->value;
+				}
+
+				// insert weight among special elements
+				special_elements.insert(current_set, weight);
+
+				std::clog << "\n======================= WEIGHT INSERTED\n";
+			}
+		}
+
+		/*
+		 * TODO: add a small code to check if the smallest focal point supserset S of A is contained in all the others:
+		 * 			- If so, just apply: w(A) = q(A)^(-1) . q(S), and move on to the next weight computation
+		 * 			- If not, proceed as it already is
+		 */
+		static void compute_focal_point_aggregation(
+				const commonality<T>& commonality_equivalent,
+				const powerset_btree<T>& used_commonalities,
+				//const std::vector<std::vector<set_N_value<T>* > >& used_q_elements_by_cardinality,
+				const set_N_value<T>* A,
+				powerset_btree<T>& special_elements){
+
+			powerset_btree<long> polarities(*used_commonalities.fod, used_commonalities.block_size);
+			T weight;
+			long polarity;
+
+			// for each cardinality except the one of FOD
+			//for (size_t c = 0; c < used_commonalities.fod->size(); ++c) {
+
+				// for each element of used_q_elements_by_cardinality of cardinality c
+				//for (size_t i = 0; i < used_q_elements_by_cardinality[c].size(); ++i) {
+
+			std::clog << "\n======================= NEW WEIGHT\n";
+
+			const std::vector<fod_element* >& current_set = A->fod_elements;
+
+			// get supersets of used_q_elements_by_cardinality[c][i]
+			const std::vector<std::vector<set_N_value<T>* > >& supersets = used_commonalities
+																		.supersets_of_by_cardinality(
+																				current_set
+																		);
+
+			if(supersets)
+			set_N_value<T>* S = nullptr;
+			size_t sc = current_set.size()+1;
+			bool found = false;
+			while (!found && sc < supersets.size()) {
+				for (size_t si = 0; si < supersets[sc].size(); ++si) {
+					S = supersets[sc][si];
+					found = true;
+					break;
+				}
+				++sc;
+			}
+			bool is_simple = true;
+			while (!found && sc < supersets.size()) {
+				for (size_t si = 0; si < supersets[sc].size(); ++si) {
+					S = supersets[sc][si];
+					found = true;
+					break;
+				}
+				++sc;
+			}
+
+			// initialize polarities for the computation of this current weight
+			for (size_t sc = current_set.size()+1; sc < supersets.size(); ++sc) {
+				for (size_t si = 0; si < supersets[sc].size(); ++si) {
+					// By definition of the conjunctive decomposition, the polarity for this
+					// superset in the computation of this current weight is :
+					// ->  1 	if (sc - c) is odd
+					// -> -1 	if (sc - c) is even
+					if(((sc - current_set.size()) & 1) > 0){	// check the first bit for parity check
+						polarities.insert(supersets[sc][si]->fod_elements, 1);
+					}else{
+						polarities.insert(supersets[sc][si]->fod_elements, -1);
+					}
+				}
+			}
+
+			std::clog << "\nFocal points : \n";
+			print<T>(std::clog, polarities);
+
+			// initialize its weight with the inverse of its own commonality
+
+			std::clog << "\nWeight computation for " << to_string(current_set) << ":\n-1\t <- " << to_string(current_set) << std::endl;
+			weight = 1/A->value;
+
+			for (size_t sc = current_set.size() + 1; sc < supersets.size(); ++sc) {
+				for (size_t si = 0; si < supersets[sc].size(); ++si) {
+
+					// all supersets have at least used_q_elements_by_cardinality[c][i]->fod_elements as subset,
+					// hence the 1 which stands for the polarity -1 of the weight initialization
+					polarity = 1;
+
+					const std::vector<set_N_value<long>* >& subsets = polarities.strict_subsets_of(supersets[sc][si]->fod_elements);
+
+					// compensate for the plurality of all polarities corresponding to sets that are influenced by supersets[sc][si]
+					for (size_t i = 0; i < subsets.size(); ++i) {
+						polarity -= subsets[i]->value;
+					}
+					const set_N_value<long>* inserted_polarity = polarities.insert(supersets[sc][si]->fod_elements, polarity);
+					std::clog << to_string<long>(*inserted_polarity) << std::endl;
+
+					weight *= pow(
+							supersets[sc][si]->value,
+							polarity
+						);
+				}
+			}
+
+			// insert weight among special elements
+			special_elements.insert(current_set, weight);
+
+			std::clog << "\n======================= WEIGHT INSERTED\n";
+
+			polarities.nullify();
+				//}
+			//}
 		}
 	};
 

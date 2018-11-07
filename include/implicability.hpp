@@ -9,34 +9,6 @@ namespace ow_bft{
 	class implicability : public mass_aggregate<T> {
 	protected:
 
-		static T compute_aggregation_at_emptyset(const powerset_btree<T>& m_focal_elements) {
-			return m_focal_elements.sub_fod_of_size(0)->value;
-		}
-
-		static T compute_aggregation_at_fod(const powerset_btree<T>& m_focal_elements) {
-			T sum = 0;
-			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.elements();
-
-			for (size_t i = 0; i < subsets.size(); ++i) {
-					sum += subsets[i]->value;
-			}
-			return sum;
-		}
-
-		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& key) {
-			T sum = 0;
-			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.subsets_of(key);
-
-			for (size_t i = 0; i < subsets.size(); ++i) {
-					sum += subsets[i]->value;
-			}
-			return sum;
-		}
-
-		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const std::vector<fod_element*>& fod_elements) {
-			return compute_aggregation(m_focal_elements, m_focal_elements.fod->to_set(fod_elements));
-		}
-
 		T compute_aggregation_at_emptyset() const {
 			return compute_aggregation_at_emptyset(this->mass_equivalent.get_focal_elements());
 		}
@@ -83,6 +55,35 @@ namespace ow_bft{
 		implicability(const FOD& fod, const Special_case s_case) : mass_aggregate<T>(fod, s_case)
 		{
 			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
+		}
+
+
+		static T compute_aggregation_at_emptyset(const powerset_btree<T>& m_focal_elements) {
+			return m_focal_elements.sub_fod_of_size(0)->value;
+		}
+
+		static T compute_aggregation_at_fod(const powerset_btree<T>& m_focal_elements) {
+			T sum = 0;
+			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.elements();
+
+			for (size_t i = 0; i < subsets.size(); ++i) {
+					sum += subsets[i]->value;
+			}
+			return sum;
+		}
+
+		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& key) {
+			T sum = 0;
+			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.subsets_of(key);
+
+			for (size_t i = 0; i < subsets.size(); ++i) {
+					sum += subsets[i]->value;
+			}
+			return sum;
+		}
+
+		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const std::vector<fod_element*>& fod_elements) {
+			return compute_aggregation(m_focal_elements, m_focal_elements.fod->to_set(fod_elements));
 		}
 
 

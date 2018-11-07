@@ -492,71 +492,6 @@ namespace ow_bft{
 
 		/////////////////////////////////////////
 
-		/*
-		 * Complexity between O(N + P) and O(2^N), where N = fod size and P = nodes in this->addresses_by_depth
-		std::vector<T&> values_ordered_by_set_cardinality(std::vector<fod_element*> fod_elements){
-			std::vector<T&> all_values;
-
-			if(this->emptyset->value != NULL)
-				all_values.push_back(this->emptyset->value);
-
-			std::list<int> depth_cursors;
-			std::list<std::vector<set_N_value<T> >& > nodes;
-
-			for (int i = 0; i < fod_elements.size(); ++i) {
-				if(this->nodes_by_depth[fod_elements[i]->position_in_fod].size() != 0){
-					// gather the vector reference of each non-empty depth
-					nodes.push_back(this->nodes_by_depth[fod_elements[i]->position_in_fod]);
-					// initialize its cursor to 0
-					depth_cursors.emplace_back(0);
-				}
-			}
-
-			int current_cardinality = nodes[0][0]->fod_elements.size();
-			int next_cardinality = this->fod->elements().size();		// fod size
-			for (int i = 1; i < nodes.size(); ++i) {
-				// search for the smallest set
-				if(nodes[i][0]->fod_elements.size() < current_cardinality)
-					current_cardinality = nodes[i][0]->fod_elements.size();
-			}
-			while(depth_cursors.size() > 0){
-				for (int i = 0; i < depth_cursors.size(); ++i) {
-					// push values of sets with cardinalities equal to the current_cardinality
-					while(depth_cursors[i] < nodes[i].size()
-							&& nodes[i][depth_cursors[i]]->fod_elements.size() == current_cardinality){
-
-						all_values.push_back(nodes[i][depth_cursors[i]]->value);
-						++depth_cursors[i];
-					}
-					if(depth_cursors[i] == nodes[i]){
-						// if there is no more values left in this vector, erase it from our list
-						depth_cursors.erase(depth_cursors.begin() + i);
-						nodes.erase(nodes.begin() + i);
-					}else{
-						// otherwise, look at the next set cardinality in it to search for the next smallest set
-						if(nodes[i][depth_cursors[i]]->fod_elements.size() < next_cardinality)
-							next_cardinality = nodes[i][depth_cursors[i]]->fod_elements.size();
-					}
-				}
-				current_cardinality = next_cardinality;
-				next_cardinality = this->fod->elements().size();		// fod size
-			}
-			return all_values;
-		}
-
-		std::vector<T&> values_ordered_by_set_cardinality(std::vector<std::string> labels){
-			std::vector<fod_element*> fod_elements = this->fod->to_fod_elements(labels);
-			if(fod_elements != NULL)
-				return values_ordered_by_set_cardinality(fod_elements);
-			else
-				return values_ordered_by_set_cardinality(this->emptyset->fod_elements);
-		}
-
-		std::vector<T&> values_ordered_by_set_cardinality(){
-			return values_ordered_by_set_cardinality(this->fod->to_fod_elements());
-		}
-		*/
-
 		void fill_with_union_of_powersets(
 				const powerset_btree<T>& powerset1,
 				const powerset_btree<T>& powerset2,
@@ -575,20 +510,28 @@ namespace ow_bft{
 				);
 		}
 
-		std::vector<std::vector<set_N_value<T>* > > elements_by_set_cardinality() const {
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_set_cardinality() const {
 
-			std::vector<std::vector<set_N_value<T>* > > all_values(this->fod->size()+1);
+			//std::vector<std::vector<set_N_value<T>* > > all_values(this->fod->size()+1);
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > all_values;
 			// very rough approximation of the number of slots that should be reserved for each cardinality
+			/*
 			float alloc_per_cardinality = ceil((float) this->node_pool.get_bock_size() / (this->fod->size()-1));
 			for (size_t i = 1; i < this->fod->size(); ++i) {
 				// always only one emptyset and one FOD
 				all_values[i].reserve(alloc_per_cardinality);
 			}
+			*/
+			if(!this->emptyset->is_null){
+				std::clog << "\nEMPTYSET : " << this->emptyset->value;
+				//all_values[0].emplace_back(this->emptyset);
+				all_values.emplace(0, {this->emptyset});
+			}
 
-			if(!this->emptyset->is_null)
-				all_values[0].emplace_back(this->emptyset);
+			std::clog << "\n" << "[" << 0 << "]\t" << "ROOT : ";
+			elements(this->root, all_values, add_to_values_by_cardinality);
+			std::clog << std::endl;
 
-			elements_by_set_cardinality(this->root, all_values);
 			return all_values;
 		}
 
@@ -601,229 +544,12 @@ namespace ow_bft{
 				all_values.emplace_back(this->emptyset);
 			}
 			std::clog << "\n" << "[" << 0 << "]\t" << "ROOT : ";
-			elements(this->root, all_values);
+			elements(this->root, all_values, add_to_values);
 			std::clog << std::endl;
 
 			return all_values;
 		}
 
-		/////////////////////////////////////////
-
-		/*
-		 * Complexity between O(N + P) and O(2^N), where N = fod size and P = nodes in this->nodes_by_depth
-		std::vector<set_N_value<T>* > values_N_elements_ordered_by_set_cardinality(std::vector<fod_element*> fod_elements){
-			std::vector<set_N_value<T>* > values_N_elements;
-
-			if(this->emptyset->value != NULL){
-				// set empty set as first element
-				values_N_elements.push_back(this->emptyset);
-			}
-
-			std::list<int> depth_cursors;
-			std::list<std::vector<node<T>* >& > nodes;
-
-			for (int i = 0; i < fod_elements.size(); ++i) {
-				if(this->nodes_by_depth[fod_elements[i]->position_in_fod].size() != 0){
-					// gather the vector reference of each non-empty depth
-					nodes.push_back(this->nodes_by_depth[fod_elements[i]->position_in_fod]);
-					// initialize its cursor to 0
-					depth_cursors.emplace_back(0);
-				}
-			}
-
-			int current_cardinality = nodes[0][0]->fod_elements.size();
-			int next_cardinality = this->fod->elements().size();		// fod size
-			for (int i = 1; i < nodes.size(); ++i) {
-				// search for the smallest set
-				if(nodes[i][0]->fod_elements.size() < current_cardinality)
-					current_cardinality = nodes[i][0]->fod_elements.size();
-			}
-			while(depth_cursors.size() > 0){
-				for (int i = 0; i < depth_cursors.size(); ++i) {
-					// push values of sets with cardinalities equal to the current_cardinality
-					while(depth_cursors[i] < nodes[i].size()
-							&& nodes[i][depth_cursors[i]]->fod_elements.size() == current_cardinality){
-
-
-						//set_N_value<T>* value_N_element = new set_N_value<T>*;
-						//value_N_element.value = nodes[i][depth_cursors[i]]->value;
-						//value_N_element.fod_elements = nodes[i][depth_cursors[i]]->fod_elements;
-
-						values_N_elements.push_back(nodes[i][depth_cursors[i]]);
-						++depth_cursors[i];
-					}
-					if(depth_cursors[i] == nodes[i]){
-						// if there is no more values left in this vector, erase it from our list
-						depth_cursors.erase(depth_cursors.begin() + i);
-						nodes.erase(nodes.begin() + i);
-					}else{
-						// otherwise, look at the next set cardinality in it to search for the next smallest set
-						if(nodes[i][depth_cursors[i]].fod_elements.size() < next_cardinality)
-							next_cardinality = nodes[i][depth_cursors[i]]->fod_elements.size();
-					}
-				}
-				current_cardinality = next_cardinality;
-				next_cardinality = this->fod->elements().size();		// fod size
-			}
-			return values_N_elements;
-		}
-
-		std::vector<set_N_value<T>* > values_N_elements_ordered_by_set_cardinality(std::vector<std::string> labels){
-			std::vector<fod_element*> fod_elements = this->fod->to_fod_elements(labels);
-			if(fod_elements != NULL)
-				return values_N_elements_ordered_by_set_cardinality(fod_elements);
-			else{
-				return values_N_elements_ordered_by_set_cardinality(this->emptyset->fod_elements);
-			}
-		}
-
-		std::vector<set_N_value<T>* > values_N_elements_ordered_by_set_cardinality(){
-			return values_N_elements_ordered_by_set_cardinality(this->fod->to_fod_elements());
-		}
-		*/
-		/////////////////////////////////////////
-
-		/*
-		 * Complexity O(P), where P = nodes in this->addresses_by_depth
-		std::vector<T&> values(std::vector<fod_element*> fod_elements){
-			std::vector<T&> all_values;
-			if(this->emptyset->value != NULL){
-				all_values.push_back(this->emptyset->value);
-			}
-
-			for (int i = 0; i < fod_elements.size(); ++i) {
-				for (int j = 0; j < this->nodes_by_depth[fod_elements[i]->position_in_fod].size(); ++j) {
-					all_values.push_back(this->nodes_by_depth[fod_elements[i]->position_in_fod][j]->value);
-				}
-			}
-			return all_values;
-		}
-
-		std::vector<T&> values(std::vector<std::string> labels){
-			std::vector<fod_element*> fod_elements = this->fod->to_fod_elements(labels);
-			if(fod_elements != NULL)
-				return values(fod_elements);
-			else{
-				return values(this->emptyset->fod_elements);
-			}
-		}
-
-		std::vector<T&> values(){
-			return values(this->fod->to_fod_elements());
-		}
-
-		/////////////////////////////////////////
-
-		std::vector<std::vector<set_N_value<T>* > > values_N_elements_by_cardinality(std::vector<std::string> labels){
-			std::vector<fod_element*> fod_elements = this->fod->to_fod_elements(labels);
-			if(fod_elements != NULL)
-				return values_N_elements_by_cardinality(fod_elements);
-			else{
-				return values_N_elements_by_cardinality(this->emptyset->fod_elements);
-			}
-		}
-		*/
-		/*
-		 * Complexity O(P), where P = nodes in this->addresses_by_depth
-		 * Parameters are elements corresponding to the wanted depths
-		std::vector<std::vector<set_N_value<T>* > > values_N_elements_by_cardinality(std::vector<fod_element*> fod_elements){
-			std::vector<set_N_value<T>* > zero_card;
-			if(this->emptyset->value != NULL)
-				zero_card.push_back(this->emptyset);
-
-			std::vector<std::vector<set_N_value<T>* > > values_N_elements_by_card{zero_card};
-
-			for (int i = 0; i < fod_elements.size(); ++i) {
-				std::vector<set_N_value<T>* > values_N_elements = new std::vector<set_N_value<T>* >;
-
-				for (int j = 0; j < this->nodes_by_depth[fod_elements[i]->position_in_fod].size(); ++j) {
-
-					//set_N_value<T>* value_N_element = new set_N_value<T>*;
-					//value_N_element.value = this->nodes_by_depth[fod_elements[i]->position_in_fod][j]->value;
-					//value_N_element.fod_elements = this->nodes_by_depth[fod_elements[i]->position_in_fod][j]->fod_elements;
-
-					values_N_elements.push_back(this->nodes_by_depth[fod_elements[i]->position_in_fod][j]);
-				}
-				values_N_elements_by_card.push_back(values_N_elements);
-			}
-
-			return values_N_elements_by_card;
-		}
-
-		std::vector<std::vector<set_N_value<T>* > > values_N_elements_by_cardinality(){
-			return values_N_elements_by_cardinality(this->fod->to_fod_elements());
-		}
-		*/
-
-		/////////////////////////////////////////
-
-		/*
-		 * Complexity O(P), where P = nodes in this->nodes_by_depth
-		std::vector<set_N_value<T>* > values_N_elements(std::vector<fod_element*> fod_elements){
-			std::vector<set_N_value<T>* > values_N_elements;
-
-			if(this->emptyset->value != NULL){
-				values_N_elements.push_back(this->emptyset);
-			}
-
-			for (int i = 0; i < fod_elements.size(); ++i) {
-
-				for (int j = 0; j < this->nodes_by_depth[fod_elements[i]->position_in_fod].size(); ++j) {
-
-					//set_N_value<T>* value_N_element = new set_N_value<T>*;
-					//value_N_element.value = this->nodes_by_depth[fod_elements[i]->position_in_fod][j]->value;
-					//value_N_element.fod_elements = this->nodes_by_depth[fod_elements[i]->position_in_fod][j]->fod_elements;
-
-					values_N_elements.push_back(this->nodes_by_depth[fod_elements[i]->position_in_fod][j]);
-				}
-			}
-			return values_N_elements;
-		}
-
-		std::vector<set_N_value<T>* > values_N_elements(std::vector<std::string> labels){
-			std::vector<fod_element*> fod_elements = this->fod->to_fod_elements(labels);
-			if(fod_elements != NULL)
-				return values_N_elements(fod_elements);
-			else
-				return values_N_elements_by_cardinality(this->emptyset->fod_elements);
-		}
-
-		std::vector<set_N_value<T>* > values_N_elements(){
-			return values_N_elements(this->fod->to_fod_elements());
-		}
-		*/
-		/////////////////////////////////////////
-
-		/*
-		 * Complexity O(P), where P = nodes in this->nodes_by_depth
-		 * Return nodes (with non null value) of depth equal to the position of given fod elements in fod,
-		 * For element e at position i in fod, nodes of depth i are nodes corresponding to subsets of fod
-		 * containing element e and fod elements of positions from 0 to i.
-		 * These subsets are the ones that one has to add to the powerset of
-		 * the fod containing fod elements of positions from 0 to i-1 to transform it into
-		 * the powerset of the fod containing fod elements of positions from 0 to i.
-		std::vector<std::vector<fod_element*>& > elements(std::vector<fod_element*> fod_elements){
-			std::vector<std::vector<fod_element*> > powerset_elements{new std::vector<fod_element*>};
-			for (int i = 0; i < fod_elements.size(); ++i) {
-				for (int j = 0; j < this->nodes_by_depth[fod_elements[i]->position_in_fod].size(); ++j) {
-					powerset_elements.push_back(this->nodes_by_depth[fod_elements[i]->position_in_fod][j].fod_elements);
-				}
-			}
-			return powerset_elements;
-		}
-
-		std::vector<std::vector<fod_element*>& > elements(std::vector<std::string> labels){
-			std::vector<fod_element*> fod_elements = this->fod->to_fod_elements(labels);
-			if(fod_elements != NULL)
-				return elements(fod_elements);
-			else
-				return elements(this->emptyset->fod_elements);
-		}
-
-		std::vector<std::vector<fod_element*>& > elements(){
-			return elements(this->fod->to_fod_elements());
-		}
-		*/
 		/////////////////////////////////////////
 
 		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& key) const {
@@ -850,7 +576,7 @@ namespace ow_bft{
 			return strict_subsets_of(this->fod->to_elements(labels));
 		}
 
-		std::vector<std::vector<set_N_value<T>* > > strict_subsets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_subsets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
 			const boost::dynamic_bitset<>& key = this->fod->to_set(fod_elements);
 			return subsets_of_by_cardinality(key, get_final_element_number(key), true);
 		}
@@ -869,7 +595,7 @@ namespace ow_bft{
 			return supersets_of(this->fod->to_elements(labels));
 		}
 
-		std::vector<std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
 			const boost::dynamic_bitset<>& key = this->fod->to_set(fod_elements);
 			return supersets_of_by_cardinality(key, get_final_element_number(key), false);
 		}
@@ -886,7 +612,7 @@ namespace ow_bft{
 			return strict_supersets_of(this->fod->to_elements(labels));
 		}
 
-		std::vector<std::vector<set_N_value<T>* > > strict_supersets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_supersets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
 			const boost::dynamic_bitset<>& key = this->fod->to_set(fod_elements);
 			return supersets_of_by_cardinality(key, get_final_element_number(key), true);
 		}
@@ -1293,10 +1019,23 @@ namespace ow_bft{
 
 		/////////////////////////////////////////
 
+		static void add_to_values(std::vector<set_N_value<T>* >& values, node<T>* leaf){
+			values.emplace_back(leaf);
+		}
+
+		static void add_to_values_by_cardinality(std::unordered_map<size_t, std::vector<set_N_value<T>* > >& values, node<T>* leaf){
+			if(values.find(leaf->fod_elements.size()) != values.end()){
+				values[leaf->fod_elements.size()].emplace_back(leaf);
+			}else{
+				values.emplace(leaf->fod_elements.size(), {leaf});
+			}
+		}
+
 		/*
 		 * Complexity O(P), where P = number of nodes assigned by user
 		 */
-		void elements(node<T>* leaf, std::vector<set_N_value<T>* >& all_values) const {
+		template<typename return_type>
+		void elements(node<T>* leaf, return_type& all_values, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
 			/*if(!leaf){
 				std::clog << "null";
 				return;
@@ -1304,7 +1043,7 @@ namespace ow_bft{
 
 			if(!leaf->is_null){
 				std::clog << leaf->value;
-				all_values.emplace_back(leaf);
+				add_to_values_func(all_values, leaf);
 			}else{
 				std::clog << "null";
 			}
@@ -1322,7 +1061,7 @@ namespace ow_bft{
 					tab += ".";
 				}
 				std::clog << "\n" << "[" << leaf->left->depth << "]\t" << tab << " : ";
-				elements(leaf->left, all_values);
+				elements(leaf->left, all_values, add_to_values_func);
 			}
 
 			if(leaf->right){
@@ -1337,14 +1076,13 @@ namespace ow_bft{
 					tab += ".";
 				}
 				std::clog << "\n" << "[" << leaf->right->depth << "]\t" << tab << " : ";
-				elements(leaf->right, all_values);
+				elements(leaf->right, all_values, add_to_values_func);
 			}
 		}
 
 		/*
 		 * Complexity O(P), where P = number of nodes assigned by user
-		 */
-		void elements_by_set_cardinality(node<T>* leaf, std::vector<std::vector<set_N_value<T>* > >& all_values) const {
+		void elements_by_set_cardinality(node<T>* leaf, std::unordered_map<size_t, std::vector<set_N_value<T>* > >& all_values) const {
 			if(!leaf)
 				return;
 
@@ -1353,191 +1091,18 @@ namespace ow_bft{
 			}
 			elements_by_set_cardinality(leaf->left, all_values);
 			elements_by_set_cardinality(leaf->right, all_values);
-		}
-
-		/*
-		 * Complexity O(P), where P = number of nodes assigned by user
-		void fill_with_one_powerset(node<T>* leaf, T (*f)(T, T)){
-			if(!leaf)
-				return;
-
-			T val = (*f)(leaf->value, null);
-			if(val > 0)
-				insert(leaf->fod_elements, val);
-
-			fill_with_one_powerset(leaf->left, f);
-			fill_with_one_powerset(leaf->right, f);
-		}
-
-		void fill_with_one_powerset(node<T>* leaf, T (*f)(T, T), const FOD*& fod){
-			if(!leaf)
-				return;
-
-			T val = (*f)(leaf->value, null);
-			if(val > 0)
-				insert(fod->to_labels(leaf->fod_elements), val);
-
-			fill_with_one_powerset(leaf->left, f, fod);
-			fill_with_one_powerset(leaf->right, f, fod);
-		}
-		*/
-		/*
-		 * Complexity O(P1 + P2), where P1 = number of nodes assigned by user in powerset1, P2 = number of nodes assigned by user in powerset2
-		void fill_with_union_of_powersets(node<T>* leaf1, node<T>* leaf2, T (*f)(T, T), const FOD* fod2, size_t depth){
-
-			if(leaf1){
-				if(leaf2){
-					// if both leaf1 and leaf2 are not equal to nullptr
-					if(leaf1->depth == leaf2->depth){
-						//if(leaf1->value != null || leaf2->value != null){
-						T val = (*f)(leaf1->value, leaf2->value);
-						if(val > 0)
-							insert(leaf1->fod_elements, val);
-						//}
-						++depth;
-						fill_with_union_of_powersets(leaf1->left, leaf2->left, f, fod2, depth);
-						fill_with_union_of_powersets(leaf1->right, leaf2->right, f, fod2, depth);
-					}else{
-						const size_t final_depth = std::min(leaf1->depth, leaf2->depth);
-
-						if(depth < final_depth){
-							// take skipped depths into account
-							const boost::dynamic_bitset<>& next_set1 = this->fod->to_set(leaf1->fod_elements);
-							const boost::dynamic_bitset<>& next_set2 = fod2->to_set(leaf2->fod_elements);
-							while(depth < final_depth){
-								if(next_set1[depth] != next_set2[depth]){
-									// if there is a disjunction between next_set1 and next_set2 for the element at *depth in fod
-									// then next_set1 and next_set2 are on different branches, each one being absent from the other tree
-									fill_with_one_powerset(leaf1, f);
-									fill_with_one_powerset(leaf2, f, fod2);
-									return;
-								}
-								++depth;
-							}
-							node<T>* first_node;
-							node<T>* last_node;
-							bool leaf1_has_the_closest_final_depth;
-							if(final_depth == leaf1->depth){
-								leaf1_has_the_closest_final_depth = true;
-								first_node = leaf1;
-								last_node = leaf2;
-							}else{
-								leaf1_has_the_closest_final_depth = false;
-								first_node = leaf2;
-								last_node = leaf1;
-							}
-							if(leaf1->depth != leaf2->depth){
-								//if(first_node->value != null){
-								T val = (*f)(first_node->value, null);
-								if(val > 0){
-									if(leaf1_has_the_closest_final_depth)
-										insert(first_node->fod_elements, val);
-									else
-										insert(this->fod->to_elements(fod2->to_labels(first_node->fod_elements)), val);
-								}
-								//}
-								if((leaf1_has_the_closest_final_depth && next_set2[depth]) || (!leaf1_has_the_closest_final_depth && next_set1[depth])){
-									++depth;
-									fill_with_union_of_powersets(first_node->right, last_node, f, fod2, depth);
-									if(first_node == leaf1)
-										fill_with_one_powerset(first_node->left, f);
-									else
-										fill_with_one_powerset(first_node->left, f, fod2);
-								}else{
-									++depth;
-									fill_with_union_of_powersets(first_node->left, last_node, f, fod2, depth);
-									if(first_node == leaf1)
-										fill_with_one_powerset(first_node->right, f);
-									else
-										fill_with_one_powerset(first_node->right, f, fod2);
-								}
-							}else{
-								// if leaf1->depth == leaf2->depth
-								if(leaf1->value != null || leaf2->value != null){
-									T val = (*f)(leaf1->value, leaf2->value);
-									if(val > 0)
-										insert(leaf1->fod_elements, val);
-								}
-								++depth;
-								fill_with_union_of_powersets(leaf1->left, leaf2->left, f, fod2, depth);
-								fill_with_union_of_powersets(leaf1->right, leaf2->right, f, fod2, depth);
-							}
-						}
-					}
-				}else{
-					// if leaf1 is not equal to nullptr but leaf2 is
-					fill_with_one_powerset(leaf1, f);
-				}
-			}else if(leaf2){
-				// if leaf2 is not equal to nullptr but leaf1 is
-				fill_with_one_powerset(leaf2, f, fod2);
-			}//else{
-				// if both leaf1 and leaf2 are equal to nullptr
-			//	return;
-			//}
-		}
-		*/
-		/////////////////////////////////////////
-
-		/*
-		 * Complexity O(S), where S is the number of subsets of the set defined by key
-		 * All subsets of key are of depth <= final_depth and don't contain any other elements than the ones of key
-		void non_null_values_of_subsets_of(boost::dynamic_bitset<> key, int *final_depth, std::vector<T&>& subset_values, int depth, node<T> *leaf){
-			// if leaf->depth > *final_depth, then leaf has other elements than the ones of key
-			if(leaf->depth > *final_depth){
-				return;
-			}
-			if(depth < leaf->depth){
-				// take skipped depths into account
-				boost::dynamic_bitset<> next_set = this->fod->to_set(leaf->fod_elements);
-				while(depth < leaf->depth){
-					if(!key[depth] && next_set[depth]){
-						// if next_set has an element that key doesn't
-						return;
-					}
-					++depth;
-				}
-			}
-			depth = leaf->depth;
-			if(key[depth]){
-				if(leaf->value != NULL)
-					subset_values.push_back(leaf->value);
-				if(depth != *final_depth){
-					++depth;
-					if(leaf->right != NULL){
-						non_null_values_of_subsets_of(key, final_depth, subset_values, depth, leaf->right);
-					}
-					if(leaf->left != NULL){
-						non_null_values_of_subsets_of(key, final_depth, subset_values, depth, leaf->left);
-					}
-				}
-			}else {
-				if(leaf->left != NULL){
-					++depth;
-					non_null_values_of_subsets_of(key, final_depth, subset_values, depth, leaf->left);
-				}
-			}
-		}
-		*/
-
-		static void add_to_values(std::vector<set_N_value<T>* >& values, node<T>* leaf){
-			values.emplace_back(leaf);
-		}
-
-		static void add_to_values_by_cardinality(std::vector<std::vector<set_N_value<T>* > >& values, node<T>* leaf){
-			values[leaf->fod_elements.size()].emplace_back(leaf);
-		}
+		}*/
 
 		/*
 		 * Complexity O(S), where S is the number of subsets assigned by user of the set defined by key
 		 * All subsets of key are of depth <= final_depth and don't contain any other elements than the ones of key
 		 */
 		template<typename return_type>
-		void subsets_of(const boost::dynamic_bitset<>& key, const size_t *final_depth,
-				return_type& subset_values, size_t depth, node<T> *leaf, const bool strict, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
+		void subsets_of(const boost::dynamic_bitset<>& key, const size_t& final_depth,
+				return_type& subset_values, size_t depth, node<T> *leaf, const bool& is_key, const bool& strict, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
 
 			// if leaf->depth > *final_depth, then leaf has other elements than the ones of key
-			if(leaf->depth > *final_depth){
+			if(leaf->depth > final_depth){
 				return;
 			}
 			if(depth < leaf->depth){
@@ -1553,19 +1118,19 @@ namespace ow_bft{
 			}
 			//depth = leaf->depth;
 			if(key[depth]){
-				if(depth != *final_depth){
+				if(depth != final_depth){
 					// get value only if leaf doesn't correspond to key (only strict subsets)
 					if(!leaf->is_null){
 						add_to_values_func(subset_values, leaf);
 					}
 					++depth;
-					if(leaf->right){
-						subsets_of(key, final_depth, subset_values, depth, leaf->right, strict, add_to_values_func);
-					}
 					if(leaf->left){
-						subsets_of(key, final_depth, subset_values, depth, leaf->left, strict, add_to_values_func);
+						subsets_of(key, final_depth, subset_values, depth, leaf->left, false, strict, add_to_values_func);
 					}
-				}else if(!strict || this->fod->is_subset_of(this->fod->to_set(leaf->fod_elements), key)){
+					if(leaf->right){
+						subsets_of(key, final_depth, subset_values, depth, leaf->right, is_key, strict, add_to_values_func);
+					}
+				}else if(!(strict && is_key)){//this->fod->is_subset_of(this->fod->to_set(leaf->fod_elements), key)){
 					// get value if you don't only want strict subsets
 					// OR if this set is a *strict* subset of key
 					if(!leaf->is_null){
@@ -1575,7 +1140,7 @@ namespace ow_bft{
 			}else {
 				if(leaf->left){
 					++depth;
-					subsets_of(key, final_depth, subset_values, depth, leaf->left, strict, add_to_values_func);
+					subsets_of(key, final_depth, subset_values, depth, leaf->left, is_key, strict, add_to_values_func);
 				}
 			}
 		}
@@ -1588,94 +1153,57 @@ namespace ow_bft{
 			return subset_values;
 		}
 		*/
-		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& key, size_t final_depth, const bool strict) const {
+		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& key, size_t final_depth, const bool& strict) const {
 			std::vector<set_N_value<T>* > subset_values;
 			subset_values.reserve(this->size());
 
-			if(!this->emptyset->is_null){
-				subset_values.emplace_back(this->emptyset);
-			}
 			if(final_depth > 0){
+				if(!this->emptyset->is_null){
+					subset_values.emplace_back(this->emptyset);
+				}
+
 				--final_depth;
 				size_t depth = 0;
 				subsets_of<std::vector<set_N_value<T>* > >(
-						key, &final_depth, subset_values, depth, this->root, strict, add_to_values);
+						key, final_depth, subset_values, depth, this->root, true, strict, add_to_values);
+			}else{
+				if(!this->emptyset->is_null && !strict){
+					subset_values.emplace_back(this->emptyset);
+				}
 			}
 			return subset_values;
 		}
 
-		std::vector<std::vector<set_N_value<T>* > > subsets_of_by_cardinality(
-				const boost::dynamic_bitset<>& key, size_t final_depth, const bool strict) const {
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > subsets_of_by_cardinality(
+				const boost::dynamic_bitset<>& key, size_t final_depth, const bool& strict) const {
 
-			std::vector<std::vector<set_N_value<T>* > > subset_values(this->fod->size()+1);
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > subset_values;
+
+			//std::vector<std::vector<set_N_value<T>* > > subset_values(this->fod->size()+1);
 			// very rough approximation of the number of slots that should be reserved for each cardinality
-			float alloc_per_cardinality = ceil((float) this->node_pool.block_size / (this->fod->size()-1));
+			//float alloc_per_cardinality = ceil((float) this->size() / (this->fod->size()-1));
+			/*
 			for (int i = 1; i < key.count(); ++i) {
 				// always only one emptyset and one FOD,
 				// and no set of cardinality greater than key.count() could be a subset of it
 				subset_values[i].reserve(alloc_per_cardinality);
-			}
+			}*/
 
 			if(!this->emptyset->is_null){
-				subset_values[0].emplace_back(this->emptyset);
+				//subset_values[0].emplace_back(this->emptyset);
+				subset_values.emplace(0, {this->emptyset});
 			}
 			if(final_depth > 0){
 				--final_depth;
 				size_t depth = 0;
-				subsets_of<std::vector<std::vector<set_N_value<T>* > > >(
-						key, &final_depth, subset_values, depth, this->root, strict, add_to_values_by_cardinality);
+				subsets_of<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(
+						key, final_depth, subset_values, depth, this->root, true, strict, add_to_values_by_cardinality);
 			}
 			return subset_values;
 		}
 
 		/////////////////////////////////////////
 
-		/*
-		 * Complexity O(S), where S is the number of supsets of the set defined by key
-		 * All supsets of key are of depth >= final_depth and contain every element of key
-		void non_null_values_of_supersets_of(boost::dynamic_bitset<> key, int *final_depth, std::vector<T&>& supset_values, int depth, node<T> *leaf){
-			if(depth < leaf->depth){
-				// take skipped depths into account
-				boost::dynamic_bitset<> next_set = this->fod->to_set(leaf->fod_elements);
-				while(depth < leaf->depth){
-					if(key[depth] && !next_set[depth]){
-						// if key has an element that next_set doesn't
-						return;
-					}
-					++depth;
-				}
-			}
-			depth = leaf->depth;
-			if(depth < *final_depth){
-				if(key[depth++]){
-					// if key has an element at depth, so its supersets
-					if(leaf->right != NULL){
-						non_null_values_of_supersets_of(key, final_depth, supset_values, depth, leaf->right);
-					}
-				}else{
-					// if key has no element at depth, its supersets have one or not
-					if(leaf->left != NULL){
-						non_null_values_of_supersets_of(key, final_depth, supset_values, depth, leaf->left);
-					}
-					if(leaf->right != NULL){
-						non_null_values_of_supersets_of(key, final_depth, supset_values, depth, leaf->right);
-					}
-				}
-			}else{
-				// if depth >= *final_depth, then we are visiting supersets of key
-				if(leaf->value != NULL)
-					supset_values.push_back(leaf->value);
-				++depth;
-				// Now, no matter what additional elements they have, they are all supersets of key
-				if(leaf->left != NULL){
-					non_null_values_of_supersets_of(key, final_depth, supset_values, depth, leaf->left);
-				}
-				if(leaf->right != NULL){
-					non_null_values_of_supersets_of(key, final_depth, supset_values, depth, leaf->right);
-				}
-			}
-		}
-		*/
 		/*
 		 * Complexity O(S), where S is the number of supersets assigned by user of the set defined by key
 		 * All supersets of key are of depth >= final_depth and contain every element of key
@@ -1740,20 +1268,10 @@ namespace ow_bft{
 				}
 			}
 		}
-		/*
-		std::vector<T&> non_null_values_of_supersets_of(boost::dynamic_bitset<> key, int final_depth){
-			std::vector<T&> supset_values;
-			int depth = 0;
-			if(final_depth < 0)
-				supset_values.push_back(this->emptyset->value);
-			non_null_values_of_supersets_of(key, &final_depth, supset_values, depth, this->root);
-			return supset_values;
-		}
-		*/
+
 		std::vector<set_N_value<T>* > supersets_of(const boost::dynamic_bitset<>& key, size_t final_depth, const bool strict) const {
 
 			if(final_depth == 0){
-				return this->elements();
 				std::vector<set_N_value<T>* > superset_values = this->elements();
 				if(strict){
 					superset_values.erase(superset_values.begin());
@@ -1772,12 +1290,12 @@ namespace ow_bft{
 			}
 		}
 
-		std::vector<std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const boost::dynamic_bitset<>& key, size_t final_depth, const bool strict) const {
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const boost::dynamic_bitset<>& key, size_t final_depth, const bool strict) const {
 
 			if(final_depth == 0){
-				std::vector<std::vector<set_N_value<T>* > > superset_values = this->elements_by_set_cardinality();
+				std::unordered_map<size_t, std::vector<set_N_value<T>* > > superset_values = this->elements_by_set_cardinality();
 				if(strict){
-					superset_values[0].clear();
+					superset_values.erase(0);
 				}
 				return superset_values;
 			}else{
