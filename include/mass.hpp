@@ -228,69 +228,49 @@ namespace ow_bft{
 		/// whose elements are
 		/// included in the next larger set and so on.
 		bool is_consonant() const {
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_cardinality = this->focal_elements.elements_by_set_cardinality();
 
-			const std::vector<std::vector<set_N_value<T>* > >& elements_by_cardinality = this->focal_elements.elements_by_set_cardinality();
-
-			for (size_t i = 0; i < elements_by_cardinality.size(); ++i) {
-				if(elements_by_cardinality[i].size() > 1)
+			for(auto kv : elements_by_cardinality) {
+				if(kv.second.size() > 1)
 					// if there is more than one element of same cardinality, the structure isn't nested
 					return false;
 			}
 			// at this point, the structure has at most one element per cardinality
 
-			// get smallest set
+			// sort indices in ascending order to check if each focal set is contained in all bigger focal sets
+			const std::vector<std::vector<set_N_value<T>* >* >& ordered_vector = this->focal_elements.get_vector_of_vectors_ordered_by_cardinality(elements_by_cardinality);
 			size_t i = 0;
-			while(i < elements_by_cardinality.size() && elements_by_cardinality[i].size() == 0){
-				++i;
-			}
-			// get next smallest set
-			size_t j = i + 1;
-			while(j < elements_by_cardinality.size() && elements_by_cardinality[j].size() == 0){
-				++j;
-			}
-			while (j < elements_by_cardinality.size()) {
+			while(i < ordered_vector.size()-1){
 				if (!this->fod.is_or_is_subset_of(
-						elements_by_cardinality[i][0]->fod_elements,
-						elements_by_cardinality[j][0]->fod_elements)) {
+						elements_by_cardinality[(*ordered_vector[i])][0]->fod_elements,
+						elements_by_cardinality[(*ordered_vector[i+1])][0]->fod_elements)) {
 					return false;
 				}
-				i = j;
-				// get next smallest set
-				++j;
-				while(j < elements_by_cardinality.size() && elements_by_cardinality[j].size() == 0){
-					++j;
-				}
+				++i;
 			}
+
 			return true;
 		}
 
-		/// Mass function is consistent when there is at least one set that is
-		/// common to all
-		/// focal sets.
+		/// Mass function is consistent when there is at least one focal set that is
+		/// common to all focal sets.
 		bool is_consistent() const {
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_cardinality = this->focal_elements.elements_by_set_cardinality();
+			// sort indices in ascending order to check if the smallest focal set is contained in all bigger focal sets
+			const std::vector<std::vector<set_N_value<T>* >* >& ordered_vector = this->focal_elements.get_vector_of_vectors_ordered_by_cardinality(elements_by_cardinality);
 
-			const std::vector<set_N_value<T>* >& elements_by_cardinality = this->focal_elements.elements_by_set_cardinality();
-			size_t i = 0;
-			// get smallest cardinality
-			while(i < elements_by_cardinality.size() && elements_by_cardinality[i].size() == 0){
-				++i;
-			}
-			if(i == elements_by_cardinality.size())
-				// if this is true, then there is no focal set...
-				// ...so it's inconsistent but in another way
-				return false;
-			if(elements_by_cardinality[i].size() > 1)
+			if(ordered_vector[0]->size() > 1)
 				// if there is more than one element of smallest cardinality, it is
 				// inconsistent since two sets of same cardinality cannot contain each other
 				return false;
 
 			// at this point, there is only one set that has the smallest cardinality
 
-			for (size_t j = i + 1; j < elements_by_cardinality.size(); ++j) {
-				for (size_t k = 0; k < elements_by_cardinality.size(); ++k) {
+			for (size_t c = 1; c < ordered_vector.size(); ++c) {
+				for (size_t i = 0; i < ordered_vector.size(); ++i) {
 					if (!this->fod.is_or_is_subset_of(
-							elements_by_cardinality[i][0]->fod_elements,
-							elements_by_cardinality[j][k]->fod_elements)) {
+							(*ordered_vector[0])[0]->fod_elements,
+							(*ordered_vector[c])[i]->fod_elements)) {
 						return false;
 					}
 				}
@@ -299,73 +279,66 @@ namespace ow_bft{
 		}
 
 		/// Arbitrary evidence corresponds to the situation where there is no
-		/// element common to
-		/// all focal sets, though some sets may have elements in common.
-		/// In other words, the intersection of all focal elements is empty
+		/// focal set common to all focal sets, though some focal sets may have elements in common.
+		/// This is the opposite of a consistent structure.
 		bool is_arbitrary() const {
-
-			const std::vector<set_N_value<T>* >& elements = this->focal_elements.elements();
-			const boost::dynamic_bitset<>& seti = this->fod.to_set(elements[0]->fod_elements);
-
-			for (size_t j = 1; j < elements.size(); ++j) {
-				const boost::dynamic_bitset<>& setj = this->fod.to_set(elements[j]->fod_elements);
-				seti = this->fod.set_intersection(seti, setj);
-				if (this->fod.is_emptyset(seti)){
-					// if the intersection of the j+1 first focal elements is already empty
-					// then the intersection with the rest of the focal elements will be empty
-					return true;
-				}
-			}
-			return false;
+			return !is_consistent();
 		}
 
-		/// Disjoint evidence implies that any two focal elements have no elements in
-		/// common with any
-		/// other focal element.
-		/// In other words, the intersection of each focal element with the union of other elements is empty
+		/// Disjoint evidence implies that any two focal sets have no element in common.
+		/// In other words, the intersection of each focal set with the union of other focal sets is empty.
 		bool is_disjoint() const {
 
 			const std::vector<set_N_value<T>* >& elements = this->focal_elements.elements();
-			const boost::dynamic_bitset<>& focals_union = this->fod.to_set(elements[0]->fod_elements);
+			const boost::dynamic_bitset<>& U = this->fod.to_set(elements[0]->fod_elements);
 
 			for (size_t j = 1; j < elements.size(); ++j) {
 				const boost::dynamic_bitset<>& setj = this->fod.to_set(elements[j]->fod_elements);
-				if (!this->fod.are_disjoint(setj, focals_union)) {
+				if (!this->fod.are_disjoint(setj, U)) {
 					return false;
 				}
-				focals_union = this->fod.set_union(setj, focals_union);
+				U = this->fod.set_union(setj, U);
 			}
 			return true;
 		}
 
 		/// Focal sets of a partitioned mass function do not intersect and their
-		/// union is equal to the frame of discernment \f$ \Omega \f$.
-		/// In other words, the union of all focal elements is omega,
-		/// and the intersection of each focal element with the union of other elements is empty
+		/// union is equal to the frame of discernment (FOD).
+		/// In other words, the union of all focal elements is the FOD,
+		/// and the intersection of each focal set with the union of other focal sets is empty.
 		bool is_partitioned() const {
 			const std::vector<set_N_value<T>* >& elements = this->focal_elements.elements();
-			const boost::dynamic_bitset<>& focals_union = this->fod.to_set(elements[0]->fod_elements);
+			const boost::dynamic_bitset<>& U = this->fod.to_set(elements[0]->fod_elements);
 
 			for (size_t j = 1; j < elements.size(); ++j) {
 				const boost::dynamic_bitset<>& setj = this->fod.to_set(elements[j]->fod_elements);
-				if (!this->fod.are_disjoint(setj, focals_union)) {
+				if (!this->fod.are_disjoint(setj, U)) {
 					return false;
 				}
-				focals_union = this->fod.set_union(setj, focals_union);
+				U = this->fod.set_union(setj, U);
 			}
-			return focals_union.count() == this->fod.size();
+			return U.count() == this->fod.size();
 		}
 
 		/// Mass function without internal conflict is a one where all pairs of
 		/// focal elements have a non-empty intersection.
 		/// \f[
-		/// \forall A, B \subseteq \Omega, m(A) > 0, m(B) > 0 : A \cap B \neq
-		/// \emptyset
+		/// \forall A, B \subseteq \Omega, m(A) > 0, m(B) > 0 : A \cap B \neq \emptyset
 		/// \f]
-		/// Therefore, there is internal conflict when there is at least one empty intersection between pairs,
-		/// i.e. when the intersection of every focal elements is empty
+		/// Therefore, there is internal conflict when there is at least one empty intersection between pairs of focal sets,
+		/// i.e. when the intersection of all focal elements is empty.
 		bool has_internal_conflict() const {
-			return is_arbitrary();
+			const std::vector<set_N_value<T>* >& elements = this->focal_elements.elements();
+			const boost::dynamic_bitset<>& I = this->fod.to_set(elements[0]->fod_elements);
+
+			for (size_t j = 1; j < elements.size(); ++j) {
+				const boost::dynamic_bitset<>& setj = this->fod.to_set(elements[j]->fod_elements);
+				I = this->fod.set_intersection(I, setj);
+				if (this->fod.is_emptyset(I)){
+					return true;
+				}
+			}
+			return false;
 		}
 	};
 

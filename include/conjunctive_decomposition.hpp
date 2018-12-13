@@ -139,32 +139,53 @@ namespace ow_bft{
 		}
 */
 
-		static void compute_values_for_special_elements(const commonality<T>& commonality_equivalent, powerset_btree<T>& special_elements) {
+		static void compute_values_for_special_elements(const commonality<T>& commonality_equivalent, powerset_btree<T>& w_special_elements) {
 			if(commonality_equivalent.get_mass_equivalent().is_dogmatic()){
 				std::cerr << "\nThe conjunctive decomposition is not defined for a dogmatic BBA.";
 				exit(EXIT_FAILURE);
 			}
 
-			if(&commonality_equivalent.get_FOD() != special_elements.fod){
+			if(&commonality_equivalent.get_FOD() != w_special_elements.fod){
 				std::cerr << "\nTrying to compute values of a conjunctive decomposition from a commonality function\n"
 						  << "with given special elements that refer to FOD elements different from the ones of this commonality function.\n";
 				exit(1);
 			}
 
-			// Initialize used_commonalities
-			// (commonality value for elements with value of conjunctive weight different from 1)
-			// with all focal elements as defined on masses.
-			powerset_btree<T> used_commonalities(commonality_equivalent.get_special_elements());
+			// Initialize commonalities on focal points with the ones on all focal sets
+			powerset_btree<T> q_on_focal_points(commonality_equivalent.get_special_elements());
 
-			std::vector<std::vector<set_N_value<T>* > > used_q_elements_by_cardinality = used_commonalities.elements_by_set_cardinality();
+			// Initialize implicabilities on negative focal points with the ones on all negative focal sets
+			powerset_btree<T> neg_b_on_neg_focal_points(*q_on_focal_points.fod, q_on_focal_points.block_size);
+			powerset_btree<T>::reverse_powerset_from_to(q_on_focal_points, neg_b_on_neg_focal_points);
 
-			std::clog << "\nused commonalities copied\n";
+			powerset_btree<T> neg_b_on_neg_focal_sets(neg_b_on_neg_focal_points);
 
-			compute_focal_points(commonality_equivalent, used_commonalities, used_q_elements_by_cardinality);
-			std::clog << "\nfocal points computed\n";
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > q_on_focal_points_map = q_on_focal_points.elements_by_set_cardinality();
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > neg_b_on_neg_focal_points_map = neg_b_on_neg_focal_points.elements_by_set_cardinality();
 
-			compute_aggregations(commonality_equivalent, used_commonalities, used_q_elements_by_cardinality, special_elements);
-			std::clog << "\naggregations computed\n";
+			std::clog << "\nFocal points initialized with focal sets\n";
+
+			compute_focal_points(
+				commonality_equivalent, neg_b_on_neg_focal_sets,
+				q_on_focal_points, neg_b_on_neg_focal_points,
+				q_on_focal_points_map, neg_b_on_neg_focal_points_map
+			);
+
+			std::clog << "\nFocal points found: \n";
+			print<T>(std::clog, q_on_focal_points);
+
+			powerset_btree<T> neg_v_special_elements(*q_on_focal_points.fod, q_on_focal_points.block_size);
+
+			compute_neg_v_special_elements(
+				neg_b_on_neg_focal_points,
+				neg_b_on_neg_focal_points_map,
+				neg_v_special_elements,
+				false
+			);
+
+			powerset_btree<T>::reverse_powerset_from_to(neg_v_special_elements, w_special_elements);
+
+			std::clog << "\nWeights on focal points computed\n";
 		}
 
 		static void to_commonality_special_elements(const powerset_btree<T>& w_tree, powerset_btree<T>& q_tree) {
@@ -174,7 +195,9 @@ namespace ow_bft{
 				exit(1);
 			}
 
-			to_commonality_special_elements(w_tree, w_tree.elements_by_set_cardinality(), q_tree);
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_set_cardinality = w_tree.elements_by_set_cardinality();
+
+			to_commonality_special_elements(w_tree, elements_by_set_cardinality, q_tree);
 		}
 
 		static void to_commonality_special_elements(const powerset_btree<T>& w_tree, const powerset_btree<T>& m_tree, powerset_btree<T>& q_tree) {
@@ -189,7 +212,9 @@ namespace ow_bft{
 				exit(1);
 			}
 
-			to_commonality_special_elements(w_tree, m_tree.elements_by_set_cardinality(), q_tree);
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_set_cardinality = m_tree.elements_by_set_cardinality();
+
+			to_commonality_special_elements(w_tree, elements_by_set_cardinality, q_tree);
 		}
 
 		static void to_mass_focal_elements(const powerset_btree<T>& w_tree, powerset_btree<T>& m_tree) {
@@ -239,9 +264,12 @@ namespace ow_bft{
 
 	protected:
 
-		static void to_commonality_special_elements(const powerset_btree<T>& w_tree, const std::vector<std::vector<set_N_value<T>* > >& f_elements, powerset_btree<T>& q_tree) {
+		static void to_commonality_special_elements(const powerset_btree<T>& w_tree, std::unordered_map<size_t, std::vector<set_N_value<T>* > >& f_elements, powerset_btree<T>& q_tree) {
 
 			const std::vector<set_N_value<T>* >& w_elements = w_tree.elements();
+
+			std::clog << "\nFocal points : \n";
+			print<T>(std::clog, w_tree);
 
 			T w_product = 1;
 			for (size_t i = 0; i < w_elements.size(); ++i) {
@@ -250,20 +278,21 @@ namespace ow_bft{
 
 			// set FOD to w_product
 			q_tree.set_value_of_sub_fod_of_size(q_tree.fod->size(), w_product);
-			// set emptyset to 1
-			q_tree.set_value_of_sub_fod_of_size(0, 1);
 
-			for (size_t c = 1; c < f_elements.size()-1; ++c) {
-				for (size_t i = 0; i < f_elements[c].size(); ++i) {
+			const std::vector<std::vector<set_N_value<T>* >* >& ordered_vector = w_tree
+								.get_vector_of_vectors_ordered_by_cardinality(f_elements);
 
-					const std::vector<set_N_value<T>* >& w_i_supersets = w_tree.supersets_of(f_elements[c][i]->fod_elements);
+			for (size_t c = 0; c < ordered_vector.size(); ++c) {
+				for (size_t i = 0; i < ordered_vector[c]->size(); ++i) {
+
+					const std::vector<set_N_value<T>* >& w_i_supersets = w_tree.supersets_of((*ordered_vector[c])[i]->fod_elements);
 					T q_i_val = w_product;
 
 					for (size_t ii = 0; ii < w_i_supersets.size(); ++ii) {
 						q_i_val /= w_i_supersets[ii]->value;
 					}
 
-					q_tree.insert(f_elements[c][i]->fod_elements, q_i_val);
+					q_tree.insert((*ordered_vector[c])[i]->fod_elements, q_i_val);
 				}
 			}
 
@@ -303,104 +332,51 @@ namespace ow_bft{
 			return 1;
 		}
 
-		static void compute_focal_point_and_add_it_to_used_commonalities(
-				const commonality<T>& commonality_equivalent,
-				const boost::dynamic_bitset<>& setA,
-				const boost::dynamic_bitset<>& setB,
-				powerset_btree<T>& used_commonalities,
-				std::vector<std::vector<set_N_value<T>* > >& used_q_elements_by_cardinality
+		static set_N_value<T>* insert_neg_focal_point(
+				const boost::dynamic_bitset<>& neg_focal_point,
+				T value,
+				powerset_btree<T>& neg_b_on_neg_focal_points,
+				std::unordered_map<size_t, std::vector<set_N_value<T>* > >& neg_b_on_neg_focal_points_map
 				) {
 
-			// compute their focal point
-			const boost::dynamic_bitset<>& focal_point = used_commonalities.fod->set_intersection(setA, setB);
+			std::clog << "\nNEW INSERTED NEGATIVE FOCAL POINT :\n";
+			std::clog << "\nnegative focal point : " << neg_focal_point << std::endl;
 
-			std::clog << "\nsetA : " << setA << std::endl;
-			std::clog << "\nsetB : " << setB << std::endl;
+			set_N_value<T>* inserted_neg_focal_point = neg_b_on_neg_focal_points.insert(
+					neg_focal_point,
+					value
+			);
+			std::clog << inserted_neg_focal_point->fod_elements << std::endl;
+
+			size_t c = inserted_neg_focal_point->fod_elements.size();
+
+			neg_b_on_neg_focal_points_map[c].push_back(
+					inserted_neg_focal_point
+			);
+			return inserted_neg_focal_point;
+		}
+
+		static set_N_value<T>* insert_focal_point(
+				const boost::dynamic_bitset<>& focal_point,
+				const commonality<T>& commonality_equivalent,
+				powerset_btree<T>& q_on_focal_points,
+				std::unordered_map<size_t, std::vector<set_N_value<T>* > >& q_on_focal_points_map
+				) {
+
+			std::clog << "\nNEW INSERTED FOCAL POINT :\n";
 			std::clog << "\nfocal point : " << focal_point << std::endl;
 
-			// and add it to used_commonalities if it wasn't already there
-			if(!used_commonalities[focal_point]){
-				std::clog << "\nNEW INSERTED FOCAL POINT :\n";
-				set_N_value<T>* inserted_focal_point = used_commonalities.insert(
-						focal_point,
-						commonality_equivalent.find(focal_point)
-				);
-				std::clog << inserted_focal_point->fod_elements << std::endl;
-				used_q_elements_by_cardinality[inserted_focal_point->fod_elements.size()].push_back(
-						inserted_focal_point
-				);
-			}
+			set_N_value<T>* inserted_focal_point = q_on_focal_points.insert(
+					focal_point,
+					commonality_equivalent.find(focal_point)
+			);
+			std::clog << inserted_focal_point->fod_elements << std::endl;
+
+			q_on_focal_points_map[inserted_focal_point->fod_elements.size()].push_back(
+					inserted_focal_point
+			);
+			return inserted_focal_point;
 		}
-
-		static void compute_focal_points_from_focal_points(
-				const commonality<T>& commonality_equivalent,
-				powerset_btree<T>& used_commonalities,
-				std::vector<std::vector<set_N_value<T>* > >& used_q_elements_by_cardinality,
-				size_t c
-				//const std::vector<std::vector<set_N_value<T>* > >& focal_q_elements_by_cardinality
-				) {
-
-			// for each set of cardinality c
-			for (size_t i = 0; i < used_q_elements_by_cardinality[c].size(); ++i) {
-
-				const boost::dynamic_bitset<>& setA = used_commonalities.fod->to_set(used_q_elements_by_cardinality[c][i]->fod_elements);
-
-				// for each other set of cardinality c (that makes a unique pair with it, no matter the order)
-				for (size_t ii = i+1; ii < used_q_elements_by_cardinality[c].size(); ++ii) {
-
-					compute_focal_point_and_add_it_to_used_commonalities(
-						commonality_equivalent,
-						setA,
-						used_commonalities.fod->to_set(used_q_elements_by_cardinality[c][ii]->fod_elements),
-						used_commonalities,
-						used_q_elements_by_cardinality
-					);
-				}
-
-				// for each cardinality cc > c
-				// (Don't evaluate intersections with FOD as it will simply result in the set other than FOD
-				// (these results were already considered with the copy of this->commonality_equivalent.focal_elements))
-				for (size_t cc = c+1; cc < used_commonalities.fod->size(); ++cc) {
-
-					// for each set of cardinality cc
-					for (size_t ii = 0; ii < used_q_elements_by_cardinality[cc].size(); ++ii) {
-
-						compute_focal_point_and_add_it_to_used_commonalities(
-							commonality_equivalent,
-							setA,
-							used_commonalities.fod->to_set(used_q_elements_by_cardinality[cc][ii]->fod_elements),
-							used_commonalities,
-							used_q_elements_by_cardinality
-						);
-					}
-				}
-			}
-		}
-/*
-		static void compute_focal_points_from_focal_points(
-				const commonality<T>& commonality_equivalent,
-				powerset_btree<T>& used_commonalities,
-				std::vector<std::vector<set_N_value<T>* > >& used_q_elements_by_cardinality,
-				size_t& c) {
-
-			// for each set of cardinality c
-			for (size_t i = 0; i < used_q_elements_by_cardinality[c].size(); ++i) {
-
-				const boost::dynamic_bitset<>& setA = used_commonalities.fod->to_set(used_q_elements_by_cardinality[c][i]->fod_elements);
-
-				// for each other set of cardinality c (that makes a unique pair with it, no matter the order)
-				for (size_t ii = i+1; ii < used_q_elements_by_cardinality[c].size(); ++ii) {
-
-					compute_focal_point_and_add_it_to_used_commonalities(
-						commonality_equivalent,
-						setA,
-						used_commonalities.fod->to_set(used_q_elements_by_cardinality[c][ii]->fod_elements),
-						used_commonalities,
-						used_q_elements_by_cardinality
-					);
-				}
-			}
-		}*/
 
 		/*
 		 * I use here a notion which I called "focal point" which is the intersection of two focal sets.
@@ -416,210 +392,316 @@ namespace ow_bft{
 		 */
 		static void compute_focal_points(
 				const commonality<T>& commonality_equivalent,
-				powerset_btree<T>& used_commonalities,
-				std::vector<std::vector<set_N_value<T>* > >& used_q_elements_by_cardinality
-			) {
+				powerset_btree<T>& neg_b_on_neg_focal_sets,
+				powerset_btree<T>& q_on_focal_points,
+				powerset_btree<T>& neg_b_on_neg_focal_points,
+				std::unordered_map<size_t, std::vector<set_N_value<T>* > >& q_on_focal_points_map,
+				std::unordered_map<size_t, std::vector<set_N_value<T>* > >& neg_b_on_neg_focal_points_map
+				) {
 
-			// if there is only 1 or 0 element in FOD, then there can be no focal point other than the FOD
-			if(used_commonalities.fod->size() < 2){
-				return;
-			}
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > q_on_focal_sets_map = q_on_focal_points_map;
+			const std::vector<std::vector<set_N_value<T>* >* >& q_on_focal_sets_ordered_vector = q_on_focal_points
+																			.get_vector_of_vectors_ordered_by_cardinality(q_on_focal_sets_map);
+			std::vector<set_N_value<T>* > q_on_pure_focal_points;
 
-			// for each cardinality
-			for (size_t c = used_commonalities.fod->size()-1; c > 0 ; --c) {
-				std::clog << "\n-> c = " << c << std::endl;
+			// for each cardinality of focal set, from the smallest to the biggest, except FOD
+			for (size_t c = 0; c < q_on_focal_sets_ordered_vector.size()-1; ++c) {
+				for (size_t i = 0; i < q_on_focal_sets_ordered_vector[c]->size(); ++i) {
 
-				compute_focal_points_from_focal_points(
-						commonality_equivalent, used_commonalities, used_q_elements_by_cardinality, c);
-			}
-		}
+					const boost::dynamic_bitset<>& setA = q_on_focal_points.fod->to_set((*q_on_focal_sets_ordered_vector[c])[i]->fod_elements);
 
-		static void compute_aggregations(
-				const commonality<T>& commonality_equivalent,
-				const powerset_btree<T>& used_commonalities,
-				const std::vector<std::vector<set_N_value<T>* > >& used_q_elements_by_cardinality,
-				powerset_btree<T>& special_elements){
+					// search for sets of same cardinality
+					for (size_t ii = i+1; ii < q_on_focal_sets_ordered_vector[c]->size(); ++ii) {
 
-			T weight;
+						const boost::dynamic_bitset<>& setB = q_on_focal_points.fod->to_set((*q_on_focal_sets_ordered_vector[c])[ii]->fod_elements);
 
+						// compute their focal point
+						const boost::dynamic_bitset<>& focal_point = q_on_focal_points.fod->set_intersection(setA, setB);
 
-			std::clog << "\nFocal points : \n";
-			print<T>(std::clog, used_commonalities);
+						// add it to q_on_focal_points if it wasn't already there
+						if(!q_on_focal_points[focal_point]){
+							set_N_value<T>* inserted_focal_point = insert_focal_point(
+								focal_point,
+								commonality_equivalent,
+								q_on_focal_points,
+								q_on_focal_points_map
+							);
+							insert_neg_focal_point(
+								q_on_focal_points.fod->set_negate(focal_point),
+								inserted_focal_point->value,
+								neg_b_on_neg_focal_points,
+								neg_b_on_neg_focal_points_map
+							);
 
-			std::clog << "\nBefore computing aggregations\n";
-
-			T q_FOD = used_q_elements_by_cardinality[used_commonalities.fod->size()][0]->value;
-
-			// for each cardinality except the one of FOD
-			for (size_t c = used_commonalities.fod->size()-1; c > 0; --c) {
-
-				// for each element of used_q_elements_by_cardinality of cardinality c
-				for (size_t i = 0; i < used_q_elements_by_cardinality[c].size(); ++i) {
-
-					std::clog << "\n======================= NEW WEIGHT\n";
-
-					const std::vector<fod_element* >& current_set = used_q_elements_by_cardinality[c][i]->fod_elements;
-
-					// get supersets of used_q_elements_by_cardinality[c][i]
-					const std::vector<set_N_value<T>* >& supersets = special_elements.strict_supersets_of(current_set);
-
-					// initialize its weight with the inverse of its own commonality
-
-					std::clog << "\nWeight computation for " << to_string(current_set) << ":\n";
-					std::clog << "Initialization with q_FOD/q_A, then division by:\n";
-					weight = q_FOD/used_q_elements_by_cardinality[c][i]->value;
-
-					for (size_t si = 0; si < supersets.size(); ++si) {
-
-						std::clog << to_string<T>(*supersets[si]) << std::endl;
-
-						weight /= supersets[si]->value;
+							q_on_pure_focal_points.push_back(inserted_focal_point);
+						}
 					}
 
-					// insert weight among special elements
-					special_elements.insert(current_set, weight);
+					const std::vector<boost::dynamic_bitset<> >& unions_of_not_subsets_of_smaller_than = neg_b_on_neg_focal_sets
+													.unions_of_not_subsets_of_smaller_than(
+														q_on_focal_points.fod->set_negate(setA),
+														q_on_focal_points.fod->size() - (*q_on_focal_sets_ordered_vector[c])[i]->fod_elements.size()-1
+													);
+					// search for sets of higher cardinality that are not supersets of the current set
+					for (size_t ii = 0; ii < unions_of_not_subsets_of_smaller_than.size(); ++ii) {
 
-					std::clog << "\n======================= WEIGHT INSERTED\n";
+						const boost::dynamic_bitset<>& neg_focal_point = unions_of_not_subsets_of_smaller_than[ii];
+
+						// add it to q_on_focal_points if it wasn't already there
+						if(!neg_b_on_neg_focal_points[neg_focal_point]){
+							const boost::dynamic_bitset<>& focal_point = q_on_focal_points.fod->set_negate(unions_of_not_subsets_of_smaller_than[ii]);
+
+							set_N_value<T>* inserted_focal_point = insert_focal_point(
+								focal_point,
+								commonality_equivalent,
+								q_on_focal_points,
+								q_on_focal_points_map
+							);
+							insert_neg_focal_point(
+								q_on_focal_points.fod->set_negate(focal_point),
+								inserted_focal_point->value,
+								neg_b_on_neg_focal_points,
+								neg_b_on_neg_focal_points_map
+							);
+
+							q_on_pure_focal_points.push_back(inserted_focal_point);
+						}
+					}
 				}
 			}
 
-			//emptyset weight computation to avoid issues with size_t which can't hold negative values (i.e. avoid --c when c=0 which causes infinite loop)
-			if (used_q_elements_by_cardinality[0].size() > 0) {
-				std::clog << "\n======================= NEW WEIGHT\n";
+			// for each pure focal point (focal point that is not a focal set)
+			for (size_t i = 0; i < q_on_pure_focal_points.size(); ++i) {
 
-				const std::vector<fod_element* >& current_set = used_q_elements_by_cardinality[0][0]->fod_elements;
+				const boost::dynamic_bitset<>& setA = q_on_focal_points.fod->to_set(q_on_pure_focal_points[i]->fod_elements);
 
-				// get supersets of used_q_elements_by_cardinality[c][i]
-				const std::vector<set_N_value<T>* >& supersets = special_elements.strict_supersets_of(current_set);
+				const std::vector<boost::dynamic_bitset<> >& intersections_of_not_subsets_of_smaller_than = commonality_equivalent
+												.get_special_elements()
+												.intersections_of_not_subsets_of_smaller_than(
+													setA,
+													q_on_pure_focal_points[i]->fod_elements.size()-1
+												);
+				// search for sets of lower cardinality that are not subsets of the current set
+				for (size_t ii = 0; ii < intersections_of_not_subsets_of_smaller_than.size(); ++ii) {
 
-				// initialize its weight with the inverse of its own commonality
+					const boost::dynamic_bitset<>& focal_point = intersections_of_not_subsets_of_smaller_than[ii];
 
-				std::clog << "\nWeight computation for " << to_string(current_set) << ":\n";
-				std::clog << "Initialization with q_FOD/q_A, then division by:\n";
-				weight = q_FOD/used_q_elements_by_cardinality[0][0]->value;
+					// add it to q_on_focal_points if it wasn't already there
+					if(!q_on_focal_points[focal_point]){
 
-				for (size_t si = 0; si < supersets.size(); ++si) {
+						set_N_value<T>* inserted_focal_point = insert_focal_point(
+							focal_point,
+							commonality_equivalent,
+							q_on_focal_points,
+							q_on_focal_points_map
+						);
+						insert_neg_focal_point(
+							q_on_focal_points.fod->set_negate(focal_point),
+							inserted_focal_point->value,
+							neg_b_on_neg_focal_points,
+							neg_b_on_neg_focal_points_map
+						);
 
-					std::clog << to_string<T>(*supersets[si]) << std::endl;
-
-					weight /= supersets[si]->value;
+						q_on_pure_focal_points.push_back(inserted_focal_point);
+					}
 				}
 
-				// insert weight among special elements
-				special_elements.insert(current_set, weight);
+				const std::vector<boost::dynamic_bitset<> >& unions_of_not_subsets_of_smaller_than = neg_b_on_neg_focal_sets
+												.unions_of_not_subsets_of_smaller_than(
+													q_on_focal_points.fod->set_negate(setA),
+													q_on_focal_points.fod->size() - q_on_pure_focal_points[i]->fod_elements.size()-1
+												);
+				// search for sets of higher cardinality that are not supersets of the current set
+				for (size_t ii = 0; ii < unions_of_not_subsets_of_smaller_than.size(); ++ii) {
 
-				std::clog << "\n======================= WEIGHT INSERTED\n";
+					const boost::dynamic_bitset<>& neg_focal_point = unions_of_not_subsets_of_smaller_than[ii];
+
+					// add it to q_on_focal_points if it wasn't already there
+					if(!neg_b_on_neg_focal_points[neg_focal_point]){
+						const boost::dynamic_bitset<>& focal_point = q_on_focal_points.fod->set_negate(unions_of_not_subsets_of_smaller_than[ii]);
+
+						set_N_value<T>* inserted_focal_point = insert_focal_point(
+							focal_point,
+							commonality_equivalent,
+							q_on_focal_points,
+							q_on_focal_points_map
+						);
+						insert_neg_focal_point(
+							q_on_focal_points.fod->set_negate(focal_point),
+							inserted_focal_point->value,
+							neg_b_on_neg_focal_points,
+							neg_b_on_neg_focal_points_map
+						);
+
+						q_on_pure_focal_points.push_back(inserted_focal_point);
+					}
+				}
 			}
 		}
 
 		/*
-		 * TODO: add a small code to check if the smallest focal point supserset S of A is contained in all the others:
-		 * 			- If so, just apply: w(A) = q(A)^(-1) . q(S), and move on to the next weight computation
-		 * 			- If not, proceed as it already is
+		 * Principle: Recursively compute all weights on focal points
 		 */
-		static void compute_focal_point_aggregation(
+		static void compute_neg_v_special_elements(
+				const powerset_btree<T>& neg_b_on_neg_focal_points,
+				std::unordered_map<size_t, std::vector<set_N_value<T>* > >& neg_b_on_neg_focal_points_map,
+				powerset_btree<T>& neg_v_special_elements,
+				bool is_consonant){
+
+			std::clog << "\nNegative focal points : \n";
+			print<T>(std::clog, neg_b_on_neg_focal_points);
+
+			std::clog << "\nBefore computing aggregations\n";
+
+			const std::vector<std::vector<set_N_value<T>* >* >& ordered_vector = neg_b_on_neg_focal_points
+																.get_vector_of_vectors_ordered_by_cardinality(neg_b_on_neg_focal_points_map);
+
+			if(is_consonant){
+				// when the structure is consonant, there is at most one focal set per cardinality
+				for (size_t c = 1; c < ordered_vector.size(); ++c) {
+					//std::clog << "\n======================= NEW WEIGHT\n";
+					neg_v_special_elements.insert(
+						(*ordered_vector[c])[0]->fod_elements,
+						(*ordered_vector[c-1])[0]->value / (*ordered_vector[c])[0]->value
+					);
+					//std::clog << "\n======================= WEIGHT INSERTED\n";
+				}
+			}else{
+				T val;
+				for (size_t c = 1; c < ordered_vector.size(); ++c) {
+					for (size_t i = 0; i < ordered_vector[c]->size(); ++i) {
+
+						std::clog << "\n======================= NEW WEIGHT\n";
+						std::clog << "\nWeight computation for " << to_string((*ordered_vector[c])[i]->fod_elements) << ":\n";
+						std::clog << "Initialization with b_emptyset/b_A = " << (*ordered_vector[0])[0]->value << "/" << (*ordered_vector[c])[i]->value
+								<< "\nThen, division by weights:\n";
+
+						val = (*ordered_vector[0])[0]->value / (*ordered_vector[c])[i]->value;	// (*ordered_vector[0])[0] is the emptyset node
+
+						const std::vector<set_N_value<T>* >& neg_v_subsets = neg_v_special_elements
+																		.strict_subsets_of(
+																			(*ordered_vector[c])[i]->fod_elements
+																		);
+						for (size_t ii = 0; ii < neg_v_subsets.size(); ++ii) {
+							std::clog << to_string<T>(*neg_v_subsets[ii]) << std::endl;
+
+							val /= neg_v_subsets[ii]->value;	// (*ordered_vector[0])[0] is the emptyset node
+						}
+						// insert weight among neg_v_special elements
+						neg_v_special_elements.insert(
+							(*ordered_vector[c])[i]->fod_elements,
+							val
+						);
+						std::clog << "\n======================= WEIGHT INSERTED\n";
+					}
+
+				}
+			}
+		}
+
+		/*
+		 * Principle: check if there is a focal point supserset S of A contained in all the others.
+		 * 			- If so, just apply: w(A) = q(A)^(-1) . q(S), and move on to the next weight computation
+		 * 			- If not, proceed compute focal points exponents recursively
+		 */
+		static T compute_focal_point_aggregation(
 				const commonality<T>& commonality_equivalent,
 				const powerset_btree<T>& used_commonalities,
 				//const std::vector<std::vector<set_N_value<T>* > >& used_q_elements_by_cardinality,
 				const set_N_value<T>* A,
 				powerset_btree<T>& special_elements){
 
-			powerset_btree<long> polarities(*used_commonalities.fod, used_commonalities.block_size);
-			T weight;
-			long polarity;
-
-			// for each cardinality except the one of FOD
-			//for (size_t c = 0; c < used_commonalities.fod->size(); ++c) {
-
-				// for each element of used_q_elements_by_cardinality of cardinality c
-				//for (size_t i = 0; i < used_q_elements_by_cardinality[c].size(); ++i) {
-
 			std::clog << "\n======================= NEW WEIGHT\n";
 
 			const std::vector<fod_element* >& current_set = A->fod_elements;
 
-			// get supersets of used_q_elements_by_cardinality[c][i]
-			const std::vector<std::vector<set_N_value<T>* > >& supersets = used_commonalities
-																		.supersets_of_by_cardinality(
-																				current_set
-																		);
+			// initialize its weight with the inverse of its own commonality
+			std::clog << "\nWeight computation for " << to_string(current_set) << ":\n-1\t <- " << to_string(current_set) << std::endl;
+			T weight = 1/A->value;
 
-			if(supersets)
-			set_N_value<T>* S = nullptr;
-			size_t sc = current_set.size()+1;
-			bool found = false;
-			while (!found && sc < supersets.size()) {
-				for (size_t si = 0; si < supersets[sc].size(); ++si) {
-					S = supersets[sc][si];
-					found = true;
+			// check if there is a focal set in supersets contained in every focal set in supersets...
+
+			// get supersets of current_set
+			const std::vector<set_N_value<T>* >& supersets = used_commonalities
+															.strict_supersets_of(
+																	current_set
+															);
+			boost::dynamic_bitset<> I = supersets[0]->fod_elements;
+			const boost::dynamic_bitset<> emptyset(used_commonalities.fod->size(), 0);
+			size_t i = 1;
+			for (; i < supersets.size(); ++i) {
+				if (I != emptyset){
+					I = I & used_commonalities.fod->to_set(supersets[i]->fod_elements);
+				}else{
 					break;
 				}
-				++sc;
 			}
-			bool is_simple = true;
-			while (!found && sc < supersets.size()) {
-				for (size_t si = 0; si < supersets[sc].size(); ++si) {
-					S = supersets[sc][si];
-					found = true;
-					break;
+			for (i = 0; i < supersets.size(); ++i) {
+				if (used_commonalities.fod->is_or_is_subset_of(used_commonalities.fod->to_set(supersets[i]->fod_elements), I)){
+					return weight*supersets[i]->value;
 				}
-				++sc;
 			}
 
-			// initialize polarities for the computation of this current weight
-			for (size_t sc = current_set.size()+1; sc < supersets.size(); ++sc) {
-				for (size_t si = 0; si < supersets[sc].size(); ++si) {
-					// By definition of the conjunctive decomposition, the polarity for this
-					// superset in the computation of this current weight is :
-					// ->  1 	if (sc - c) is odd
-					// -> -1 	if (sc - c) is even
-					if(((sc - current_set.size()) & 1) > 0){	// check the first bit for parity check
-						polarities.insert(supersets[sc][si]->fod_elements, 1);
-					}else{
-						polarities.insert(supersets[sc][si]->fod_elements, -1);
-					}
+			// ...if there is none, execute the general procedure
+
+			//std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_by_cardinality = used_commonalities
+			//																					.strict_supersets_of_by_cardinality(
+			//																						current_set
+			//																					);
+			//const std::vector<std::vector<set_N_value<T>* >* >& ordered_vector = used_commonalities
+					//.get_vector_of_vectors_ordered_by_cardinality(supersets_by_cardinality);
+
+			powerset_btree<size_t> polarities(*used_commonalities.fod, used_commonalities.block_size);
+			size_t polarity;
+
+			for (i = 0; i < supersets.size(); ++i) {
+				// By definition of the conjunctive decomposition, the polarity for this
+				// superset in the computation of this current weight is :
+				// ->  1 	if (sc - c) is odd
+				// -> -1 	if (sc - c) is even
+				if(((supersets[i]->fod_elements.size() - current_set.size()) & 1) > 0){	// check the first bit for parity check
+					polarity = 1;
+				}else{
+					polarity = -1;
 				}
+				polarities.insert(supersets[i]->fod_elements, polarity);
 			}
 
 			std::clog << "\nFocal points : \n";
 			print<T>(std::clog, polarities);
 
-			// initialize its weight with the inverse of its own commonality
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > polarities_by_cardinality = polarities
+																								.strict_supersets_of_by_cardinality(
+																									current_set
+																								);
+			const std::vector<std::vector<set_N_value<T>* >* >& ordered_vector = polarities
+								.get_vector_of_vectors_ordered_by_cardinality(polarities_by_cardinality);
 
-			std::clog << "\nWeight computation for " << to_string(current_set) << ":\n-1\t <- " << to_string(current_set) << std::endl;
-			weight = 1/A->value;
-
-			for (size_t sc = current_set.size() + 1; sc < supersets.size(); ++sc) {
-				for (size_t si = 0; si < supersets[sc].size(); ++si) {
-
-					// all supersets have at least used_q_elements_by_cardinality[c][i]->fod_elements as subset,
-					// hence the 1 which stands for the polarity -1 of the weight initialization
-					polarity = 1;
-
-					const std::vector<set_N_value<long>* >& subsets = polarities.strict_subsets_of(supersets[sc][si]->fod_elements);
-
-					// compensate for the plurality of all polarities corresponding to sets that are influenced by supersets[sc][si]
-					for (size_t i = 0; i < subsets.size(); ++i) {
-						polarity -= subsets[i]->value;
+			size_t s;
+			for (size_t c = 0; c < ordered_vector.size(); ++c) {
+				for (size_t i = 0; i < ordered_vector[c]->size(); ++i) {
+					s = -1;
+					const std::vector<set_N_value<T>* >& polarities_supersets = polarities
+																	.strict_subsets_of(
+																			(*ordered_vector[c])[i]->fod_elements
+																	);
+					for (size_t ii = 0; ii < polarities_supersets.size(); ++ii) {
+						s += polarities_supersets[ii];
 					}
-					const set_N_value<long>* inserted_polarity = polarities.insert(supersets[sc][si]->fod_elements, polarity);
-					std::clog << to_string<long>(*inserted_polarity) << std::endl;
+					set_N_value<size_t>* inserted_polarity = polarities.insert((*ordered_vector[c])[i]->fod_elements, -s);
+					std::clog << to_string<size_t>(*inserted_polarity) << std::endl;
 
 					weight *= pow(
-							supersets[sc][si]->value,
-							polarity
-						);
+								used_commonalities[(*ordered_vector[c])[i]->fod_elements],
+								-s
+							);
 				}
 			}
 
 			// insert weight among special elements
 			special_elements.insert(current_set, weight);
-
 			std::clog << "\n======================= WEIGHT INSERTED\n";
-
-			polarities.nullify();
-				//}
-			//}
+			return weight;
 		}
 	};
 

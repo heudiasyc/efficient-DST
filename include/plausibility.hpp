@@ -15,7 +15,7 @@ namespace ow_bft{
 		}
 
 		static T compute_aggregation_at_fod(const powerset_btree<T>& m_focal_elements) {
-			return belief<T>::compute_aggregation_at_fod(m_focal_elements);
+			return implicability<T>::compute_aggregation_at_fod(m_focal_elements);
 		}
 
 		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& key) {

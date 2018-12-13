@@ -104,14 +104,15 @@ namespace ow_bft{
 
 		static void to_mass_focal_elements_without_initialization(powerset_btree<T>& m_tree) {
 
-			const std::vector<std::vector<set_N_value<T>* > >& elements_by_cardinality = m_tree.elements_by_set_cardinality();
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_cardinality = m_tree.elements_by_set_cardinality();
+			const std::vector<std::vector<set_N_value<T>* >* >& ordered_vector = m_tree.get_vector_of_vectors_ordered_by_cardinality(elements_by_cardinality);
 
 			// computation based on f_elements
-			for (size_t c = elements_by_cardinality.size()-1; c > 0; --c) {
-				for (size_t i = 0; i < elements_by_cardinality[c].size(); ++i) {
-					const std::vector<set_N_value<T>* >& subsets = m_tree.strict_subsets_of(elements_by_cardinality[c][i]->fod_elements);
+			for (size_t c = ordered_vector.size()-1; c > 0; --c) {
+				for (size_t i = 0; i < ordered_vector[c]->size(); ++i) {
+					const std::vector<set_N_value<T>* >& subsets = m_tree.strict_subsets_of((*ordered_vector[c])[i]->fod_elements);
 					for (size_t k = 0; k < subsets.size(); ++k) {
-						subsets[k]->value -= elements_by_cardinality[c][i]->value;
+						subsets[k]->value -= (*ordered_vector[c])[i]->value;
 					}
 				}
 			}
