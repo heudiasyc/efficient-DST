@@ -805,10 +805,10 @@ namespace ow_bft{
 
 		void erase_nodes_containing_element_at(node<T>* leaf, const size_t& final_depth){
 			if(!leaf){
-				std::clog << "null";
+				//std::clog << "null";
 				return;
 			}
-
+			/*
 			std::string tab = "";
 			for (size_t i = 0; i < leaf->depth; ++i) {
 				tab += "\t->";
@@ -816,7 +816,7 @@ namespace ow_bft{
 
 			if(!leaf->is_null){
 				std::clog << "\n" << tab << " " << leaf->value;
-			}
+			}*/
 
 			if(leaf->depth > final_depth){
 				// take skipped depths into account
@@ -830,9 +830,9 @@ namespace ow_bft{
 				return;
 			}
 			if(leaf->depth != final_depth){
-				std::clog << "\n" << tab << " left : ";
+				//std::clog << "\n" << tab << " left : ";
 				erase_nodes_containing_element_at(leaf->left, final_depth);
-				std::clog << "\n" << tab << " right : ";
+				//std::clog << "\n" << tab << " right : ";
 				erase_nodes_containing_element_at(leaf->right, final_depth);
 			}else{
 				erase_node_because_of_its_depth(leaf, final_depth);
@@ -1382,15 +1382,7 @@ namespace ow_bft{
 			}else{
 				--final_depth;
 				size_t depth = 0;
-				std::vector<std::vector<set_N_value<T>* > > superset_values(this->fod->size()+1);
-				// very rough approximation of the number of slots that should be reserved for each cardinality
-				/*
-				float alloc_per_cardinality = ceil((float) this->node_pool.get_bock_size() / (this->fod->size()-1));
-				for (size_t i = key.count()+1; i < this->fod->size(); ++i) {
-					// always only one emptyset and one FOD,
-					// and no set of cardinality less than key.count() could be a superset of it
-					superset_values[i].reserve(alloc_per_cardinality);
-				}*/
+				std::unordered_map<size_t, std::vector<set_N_value<T>* > > superset_values;
 
 				supersets_of<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(
 						key, final_depth, superset_values, depth, this->root, true, strict, add_to_values_by_cardinality);
