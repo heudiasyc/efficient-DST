@@ -17,19 +17,19 @@ namespace ow_bft{
 	class set_N_value{
 	public:
 		bool is_null;
+		boost::dynamic_bitset<> set;
 		T value;
-		std::vector<fod_element*> fod_elements;	// store fod_elements instead of dynamic_bitset because the btree structure is dynamic
 
-		set_N_value(T _value, std::vector<fod_element*> _fod_elements) :
+		set_N_value(boost::dynamic_bitset<> _set, T _value) :
 			is_null(false),
-			value(_value),
-			fod_elements(_fod_elements)
+			set(_set),
+			value(_value)
 		{}
 
-		set_N_value(std::vector<fod_element*> _fod_elements) :
+		set_N_value(boost::dynamic_bitset<> _set) :
 			is_null(true),
-			value(0),
-			fod_elements(_fod_elements)
+			set(_set),
+			value(0)
 		{}
 	};
 
@@ -43,43 +43,41 @@ namespace ow_bft{
 		node<T>* left;
 		node<T>* right;
 
-		node(T _value, std::vector<fod_element*> _fod_elements) :
-			set_N_value<T>(_value, _fod_elements),
+		node(boost::dynamic_bitset<>& _set, T _value) :
+			set_N_value<T>(_set, _value),
 			depth(0),
 			parent(nullptr),
 			left(nullptr),
 			right(nullptr)
 		{}
 
-		node(
+		node(	boost::dynamic_bitset<>& _set,
 				T _value,
 				size_t _depth,
 				node<T>* _parent_node,
 				node<T>* _left_node,
-				node<T>* _right_node,
-				std::vector<fod_element*> _fod_elements) :
-			set_N_value<T>(_value, _fod_elements),
+				node<T>* _right_node) :
+			set_N_value<T>(_set, _value),
 			depth(_depth),
 			parent(_parent_node),
 			left(_left_node),
 			right(_right_node)
 		{}
 
-		node(std::vector<fod_element*> _fod_elements) :
-			set_N_value<T>(_fod_elements),
+		node(boost::dynamic_bitset<>& _set) :
+			set_N_value<T>(_set),
 			depth(0),
 			parent(nullptr),
 			left(nullptr),
 			right(nullptr)
 		{}
 
-		node(
+		node(	boost::dynamic_bitset<>& _set,
 				size_t _depth,
 				node<T>* _parent_node,
 				node<T>* _left_node,
-				node<T>* _right_node,
-				std::vector<fod_element*> _fod_elements) :
-			set_N_value<T>(_fod_elements),
+				node<T>* _right_node) :
+			set_N_value<T>(_set),
 			depth(_depth),
 			parent(_parent_node),
 			left(_left_node),
@@ -143,10 +141,10 @@ namespace ow_bft{
 			fod(&_fod),
 			block_size(_block_size)
 		{
-			this->root = create_disjunction_node(0, nullptr, nullptr, nullptr, {this->fod->elements()[0]});
+			this->root = create_disjunction_node(0, nullptr, nullptr, nullptr, boost::dynamic_bitset<>(this->fod.size(), 1));
 
-			std::vector<fod_element*> empty_fod_elements;
-			this->emptyset = this->node_pool.emplace(empty_fod_elements);
+			//std::vector<fod_element*> empty_fod_elements;
+			this->emptyset = this->node_pool.emplace(boost::dynamic_bitset<>(this->fod.size()));
 		}
 
 		powerset_btree(const powerset_btree<T>& p) : // @suppress("Class members should be properly initialized")
@@ -168,12 +166,12 @@ namespace ow_bft{
 			if(p.fod != this->fod){
 				std::vector<set_N_value<T>* > elem = p.elements();
 				for (size_t i = 0; i < elem.size(); ++i) {
-					insert(this->fod->to_labels(elem[i]->fod_elements), elem[i]->value);
+					insert(this->fod->to_labels(elem[i]->set), elem[i]->value);
 				}
 			}else{
 				std::vector<set_N_value<T>* > elem = p.elements();
 				for (size_t i = 0; i < elem.size(); ++i) {
-					insert(elem[i]->fod_elements, elem[i]->value);
+					insert(elem[i]->set, elem[i]->value);
 				}
 			}
 		}
@@ -267,9 +265,10 @@ namespace ow_bft{
 
 		/////////////////////////////////////////
 
-		set_N_value<T>* set_value_of_singleton_of_fod_element(const size_t final_depth, T value){
-			std::vector<fod_element*> fod_elements{this->fod->elements()[final_depth]};
-			return insert(fod_elements, value);
+		set_N_value<T>* set_value_of_singleton_of_index(const size_t final_depth, T value){
+			boost::dynamic_bitset<> set(this->fod->size());
+			set.set(final_depth);
+			return insert(set, value);
 		}
 
 		set_N_value<T>* set_value_of_sub_fod_of_size(const size_t cardinality, T value){
@@ -282,11 +281,11 @@ namespace ow_bft{
 				this->emptyset->value = value;
 				return this->emptyset;
 			}else{
-				std::vector<fod_element*> fod_elements;
+				boost::dynamic_bitset<> set(this->fod->size());
 				for (size_t j = 0; j < cardinality; ++j) {
-					fod_elements.emplace_back(this->fod->elements()[j]);
+					set.set(j);
 				}
-				return insert(fod_elements, value);
+				return insert(set, value);
 			}
 		}
 
@@ -297,19 +296,15 @@ namespace ow_bft{
 		}
 
 		set_N_value<T>* insert(const std::vector<fod_element*>& fod_elements, T value){
-			return insert(this->fod->to_set(fod_elements), fod_elements, value);
+			return insert(this->fod->to_set(fod_elements), value);
 		}
 
-		set_N_value<T>* insert(const boost::dynamic_bitset<>& key, T value){
-			return insert(key, this->fod->to_elements(key), value);
-		}
-
-		set_N_value<T>* insert(const boost::dynamic_bitset<>& key, const std::vector<fod_element*>& fod_elements, T value){
+		set_N_value<T>* insert(const boost::dynamic_bitset<>& set, T value){
 			size_t depth = 0;
-			size_t final_depth = get_final_element_number(key);
+			size_t final_depth = get_final_element_number(set);
 			if(final_depth > 0){
 				--final_depth;
-				return insert(key, fod_elements, final_depth, value, depth, nullptr, this->root);
+				return insert(set, value, final_depth, nullptr, this->root, depth);
 			}else{
 				if(this->emptyset->is_null){
 					this->emptyset->is_null = false;
@@ -330,8 +325,8 @@ namespace ow_bft{
 			return operator[](this->fod->to_set(fod_elements));
 		}
 
-		set_N_value<T>* operator[](const boost::dynamic_bitset<>& key) const {
-			return find(key, get_final_element_number(key));
+		set_N_value<T>* operator[](const boost::dynamic_bitset<>& set) const {
+			return find(set, get_final_element_number(set));
 		}
 
 		/////////////////////////////////////////
@@ -344,20 +339,16 @@ namespace ow_bft{
 					//return this->default_value_copy();
 					return nullptr;
 				}
-				if(depth < cursor->depth){
-					// take skipped depths into account
-					const boost::dynamic_bitset<>& set = this->fod->to_set(cursor->fod_elements);
-					while(depth < cursor->depth){
-						if(set[depth]){
-							// if set has the element at depth (which isn't final_depth)
-							// then there is no non null value for the singleton containing the element at final_deph in fod
-							return nullptr;
-							//return this->default_value_copy();
-						}
-						++depth;
+				// take skipped depths into account
+				while(depth < cursor->depth){
+					if(cursor->set[depth]){
+						// if set has the element at depth (which isn't final_depth)
+						// then there is no non null value for the singleton containing the element at final_deph in fod
+						return nullptr;
+						//return this->default_value_copy();
 					}
+					++depth;
 				}
-				//depth = cursor->depth;
 				if(depth != final_depth){
 					if(cursor->left){
 						cursor = cursor->left;
@@ -391,20 +382,16 @@ namespace ow_bft{
 					return nullptr;
 					//return this->default_value_copy();
 				}
-				if(depth < cursor->depth){
-					// take skipped depths into account
-					const boost::dynamic_bitset<>& set = this->fod->to_set(cursor->fod_elements);
-					while(depth < cursor->depth){
-						if(!set[depth]){
-							// if set hasn't the element at depth
-							// then there is no non null value for a fod of size superior to depth
-							return nullptr;
-							//return this->default_value_copy();
-						}
-						++depth;
+				// take skipped depths into account
+				while(depth < cursor->depth){
+					if(!cursor->set[depth]){
+						// if set hasn't the element at depth
+						// then there is no non null value for a fod of size superior to depth
+						return nullptr;
+						//return this->default_value_copy();
 					}
+					++depth;
 				}
-				//depth = cursor->depth;
 				if(depth != final_depth){
 					if(cursor->right){
 						cursor = cursor->right;
@@ -431,19 +418,15 @@ namespace ow_bft{
 
 			size_t depth = 0;
 			while (true) {
-				if(depth < cursor->depth){
-					// take skipped depths into account
-					const boost::dynamic_bitset<>& set = this->fod->to_set(cursor->fod_elements);
-					while(depth < cursor->depth){
-						if(set[depth]){
-							// if set has the element at depth (which isn't its final_depth)
-							// then there is no non null value for the singleton containing the element at final_deph in fod
-							return singletons;
-						}
-						++depth;
+				// take skipped depths into account
+				while(depth < cursor->depth){
+					if(cursor->set[depth]){
+						// if set has the element at depth (which isn't its final_depth)
+						// then there is no non null value for the singleton containing the element at final_deph in fod
+						return singletons;
 					}
+					++depth;
 				}
-				//depth = cursor->depth;
 				if(!cursor->is_null)
 					singletons.emplace_back(cursor);
 				if(cursor->left){
@@ -466,19 +449,15 @@ namespace ow_bft{
 
 			size_t depth = 0;
 			while (true) {
-				if(depth < cursor->depth){
-					// take skipped depths into account
-					const boost::dynamic_bitset<>& set = this->fod->to_set(cursor->fod_elements);
-					while(depth < cursor->depth){
-						if(!set[depth]){
-							// if set hasn't the element at depth
-							// then there is no non null value for a fod of size superior to depth
-							return fods;
-						}
-						++depth;
+				// take skipped depths into account
+				while(depth < cursor->depth){
+					if(!cursor->set[depth]){
+						// if set hasn't the element at depth
+						// then there is no non null value for a fod of size superior to depth
+						return fods;
 					}
+					++depth;
 				}
-				//depth = cursor->depth;
 				if(!cursor->is_null)
 					fods.emplace_back(cursor);
 				if(cursor->right){
@@ -553,8 +532,8 @@ namespace ow_bft{
 
 		/////////////////////////////////////////
 
-		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& key) const {
-			return subsets_of(key, get_final_element_number(key), false);
+		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& set) const {
+			return subsets_of(set, get_final_element_number(set), false);
 		}
 
 		std::vector<set_N_value<T>* > subsets_of(const std::vector<fod_element*>& fod_elements) const {
@@ -565,8 +544,8 @@ namespace ow_bft{
 			return subsets_of(this->fod->to_elements(labels));
 		}
 
-		std::vector<set_N_value<T>* > strict_subsets_of(const boost::dynamic_bitset<>& key) const {
-			return subsets_of(key, get_final_element_number(key), true);
+		std::vector<set_N_value<T>* > strict_subsets_of(const boost::dynamic_bitset<>& set) const {
+			return subsets_of(set, get_final_element_number(set), true);
 		}
 
 		std::vector<set_N_value<T>* > strict_subsets_of(const std::vector<fod_element*>& fod_elements) const {
@@ -577,15 +556,18 @@ namespace ow_bft{
 			return strict_subsets_of(this->fod->to_elements(labels));
 		}
 
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_subsets_of_by_cardinality(const boost::dynamic_bitset<>& set) const {
+			return subsets_of_by_cardinality(set, get_final_element_number(set), true);
+		}
+
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_subsets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
-			const boost::dynamic_bitset<>& key = this->fod->to_set(fod_elements);
-			return subsets_of_by_cardinality(key, get_final_element_number(key), true);
+			return strict_subsets_of_by_cardinality(this->fod->to_set(fod_elements));
 		}
 
 		/////////////////////////////////////////
 
-		std::vector<set_N_value<T>* > supersets_of(const boost::dynamic_bitset<>& key) const {
-			return supersets_of(key, get_final_element_number(key), false);
+		std::vector<set_N_value<T>* > supersets_of(const boost::dynamic_bitset<>& set) const {
+			return supersets_of(set, get_final_element_number(set), false);
 		}
 
 		std::vector<set_N_value<T>* > supersets_of(const std::vector<fod_element*>& fod_elements) const {
@@ -596,9 +578,12 @@ namespace ow_bft{
 			return supersets_of(this->fod->to_elements(labels));
 		}
 
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const boost::dynamic_bitset<>& set) const {
+			return supersets_of_by_cardinality(set, get_final_element_number(set), false);
+		}
+
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
-			const boost::dynamic_bitset<>& key = this->fod->to_set(fod_elements);
-			return supersets_of_by_cardinality(key, get_final_element_number(key), false);
+			return supersets_of_by_cardinality(this->fod->to_set(fod_elements));
 		}
 
 		std::vector<set_N_value<T>* > strict_supersets_of(const boost::dynamic_bitset<>& key) const {
@@ -613,9 +598,12 @@ namespace ow_bft{
 			return strict_supersets_of(this->fod->to_elements(labels));
 		}
 
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_supersets_of_by_cardinality(const boost::dynamic_bitset<>& set) const {
+			return supersets_of_by_cardinality(set, get_final_element_number(set), true);
+		}
+
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_supersets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
-			const boost::dynamic_bitset<>& key = this->fod->to_set(fod_elements);
-			return supersets_of_by_cardinality(key, get_final_element_number(key), true);
+			return strict_supersets_of_by_cardinality(this->fod->to_set(fod_elements));
 		}
 
 		/////////////////////////////////////////
@@ -650,24 +638,24 @@ namespace ow_bft{
 
 		/////////////////////////////////////////
 
-		std::vector<boost::dynamic_bitset<> > unions_of_not_subsets_of_smaller_than(const boost::dynamic_bitset<>& key, size_t c_max) const {
-			size_t nb_of_extra_elem = this->fod->size() - key.count();
+		std::vector<boost::dynamic_bitset<> > unions_of_not_subsets_of_smaller_than(const boost::dynamic_bitset<>& set, size_t c_max) const {
+			size_t nb_of_extra_elem = this->fod->size() - set.count();
 			std::vector<boost::dynamic_bitset<> > unions;
-			boost::dynamic_bitset<> A = key;
+			boost::dynamic_bitset<> A = set;
 
 			if (nb_of_extra_elem > 0 && c_max > 0) {
-				not_subsets_of_smaller_than(key, A, 1, c_max, this->root, true, nb_of_extra_elem, 0, true, unions);
+				not_subsets_of_smaller_than(set, A, 1, c_max, this->root, true, nb_of_extra_elem, 0, true, unions);
 			}
 			return unions;
 		}
 
-		std::vector<boost::dynamic_bitset<> > intersections_of_not_subsets_of_smaller_than(const boost::dynamic_bitset<>& key, size_t c_max) const {
-			size_t nb_of_extra_elem = this->fod->size() - key.count();
+		std::vector<boost::dynamic_bitset<> > intersections_of_not_subsets_of_smaller_than(const boost::dynamic_bitset<>& set, size_t c_max) const {
+			size_t nb_of_extra_elem = this->fod->size() - set.count();
 			std::vector<boost::dynamic_bitset<> > intersections;
 			boost::dynamic_bitset<> emptyset(this->fod->size());
 
 			if (nb_of_extra_elem > 0 && c_max > 0) {
-				not_subsets_of_smaller_than(key, emptyset, 1, c_max, this->root, true, nb_of_extra_elem, 0, false, intersections);
+				not_subsets_of_smaller_than(set, emptyset, 1, c_max, this->root, true, nb_of_extra_elem, 0, false, intersections);
 			}
 			return intersections;
 		}
@@ -680,9 +668,7 @@ namespace ow_bft{
 			for (size_t i = 0; i < powerset1_list.size(); ++i) {
 				powerset2.insert(
 						powerset1.fod->set_negate(
-								powerset1.fod->to_set(
-									powerset1_list[i]->fod_elements
-						)
+								powerset1_list[i]->set
 					),
 					powerset1_list[i]->value
 				);
@@ -706,19 +692,6 @@ namespace ow_bft{
 				this->node_pool.erase(leaf);
 			}
 		}
-
-		/*
-		void erase_node_from_non_null_nodes(node<T>* null_node){
-			std::vector<set_N_value<T>* >& nodes_of_same_depth = this->non_null_nodes_by_depth[null_node->depth];
-			auto it = std::find(nodes_of_same_depth.begin(), nodes_of_same_depth.end(), null_node);
-			nodes_of_same_depth.erase(it);
-		}
-
-		void erase_nodes_of_depth_from_non_null_nodes(int depth){
-			this->non_null_nodes_by_depth[depth].clear();
-			this->non_null_nodes_by_depth.erase(this->non_null_nodes_by_depth.begin() + depth + 1);
-		}
-		*/
 
 		void replace_node_with(node<T>* sentenced_node, node<T>* chosen_one, bool keep_root=true){
 			node<T>* parent = sentenced_node->parent;
@@ -748,7 +721,7 @@ namespace ow_bft{
 			}
 		}
 
-		void erase_node_without_child(node<T> *sentenced_node, const size_t root_element_position=0){
+		void erase_node_without_child(node<T> *sentenced_node){
 			node<T>* parent = sentenced_node->parent;
 
 			if(!parent){
@@ -757,8 +730,7 @@ namespace ow_bft{
 					sentenced_node->is_null = true;
 					--this->number_of_non_null_values;
 				}
-
-				sentenced_node->fod_elements = {this->fod->elements()[root_element_position]};
+				//sentenced_node->set = boost::dynamic_bitset<>(this->fod.size(), 1);
 				return;
 			}
 
@@ -784,7 +756,7 @@ namespace ow_bft{
 			}
 		}
 
-		void erase_node_because_of_its_depth(node<T> *sentenced_node, const size_t root_element_position=0) {
+		void erase_node_because_of_its_depth(node<T> *sentenced_node) {
 			// first node of a branch that doesn't contain the element at sentenced_node->depth in fod
 			node<T> *left_child = sentenced_node->left;
 
@@ -799,7 +771,7 @@ namespace ow_bft{
 			}else{
 				std::clog << "with nullptr ";
 				// if left_child doesn't exists
-				erase_node_without_child(sentenced_node, root_element_position);
+				erase_node_without_child(sentenced_node);
 			}
 		}
 
@@ -820,16 +792,14 @@ namespace ow_bft{
 
 			if(leaf->depth > final_depth){
 				// take skipped depths into account
-				const boost::dynamic_bitset<>& next_set = this->fod->to_set(leaf->fod_elements);
-				if(next_set[final_depth]){
+				if(leaf->set[final_depth]){
 					// if next_set contains the element at depth in fod
 					destroy_tree(leaf->left);
 					destroy_tree(leaf->right);
-					erase_node_without_child(leaf, final_depth);
+					erase_node_without_child(leaf);
 				}
 				return;
-			}
-			if(leaf->depth != final_depth){
+			}else if(leaf->depth != final_depth){
 				//std::clog << "\n" << tab << " left : ";
 				erase_nodes_containing_element_at(leaf->left, final_depth);
 				//std::clog << "\n" << tab << " right : ";
@@ -841,17 +811,17 @@ namespace ow_bft{
 
 		/////////////////////////////////////////
 
-		static size_t get_final_element_number(const boost::dynamic_bitset<>& key){
+		static size_t get_final_element_number(const boost::dynamic_bitset<>& set){
 			size_t final_element_number = 0;
-			size_t i = key.size()-1;
+			size_t i = set.size()-1;
 			for(; i > 0; --i){
-				if(key[i]){
+				if(set[i]){
 					final_element_number = i + 1;
 					break;
 				}
 			}
 			// out of loop because -1 converted to size_t (which is unsigned) gives a positive number which causes an infinite loop
-			if(i == 0 && key[i]){
+			if(i == 0 && set[i]){
 				final_element_number = 1;
 			}
 			return final_element_number;
@@ -869,119 +839,70 @@ namespace ow_bft{
 
 		/////////////////////////////////////////
 
-		node<T>* create_node(T value, size_t depth, node<T>* parent_node, node<T>* left_node, node<T>* right_node, const std::vector<fod_element*>& fod_elements){
-			node<T>* new_node = this->node_pool.emplace(value, depth, parent_node, left_node, right_node, fod_elements);
+		node<T>* create_node(const boost::dynamic_bitset<>& set, T value, size_t depth, node<T>* parent_node, node<T>* left_node, node<T>* right_node){
+			node<T>* new_node = this->node_pool.emplace(set, value, depth, parent_node, left_node, right_node);
 			//insert_node(new_node);
 			++this->number_of_non_null_values;
 			//this->non_null_nodes_by_depth[depth+1].push_back(new_node);
 			return new_node;
 		}
-		/*
-		void insert_node(node<T>* new_node){
 
-			//int missing_floors = new_node->depth + 1 - this->nodes_by_depth.size();
-			//while(missing_floors > 0){
-			//	this->nodes_by_depth.emplace_back();
-			//	missing_floors -= 1;
-			//}
-
-			// ordered insertion to keep the powerset elements ordered by set cardinalities at each depth
-			int position = 0;
-			std::vector<node<T>* > nodes = this->nodes_by_depth[new_node->depth];
-			while(position < nodes.size()
-					&& nodes[position].fod_elements.size() < new_node->fod_elements.size()){
-				++position;
-			}
-			if(position >= nodes.size()){
-				--position;
-			}
-			// push instead of emplace because we heavily use pointers and addresses changes in case of reallocation
-			this->nodes_by_depth[new_node->depth].push(position, new_node);
-		}
-		*/
-		node<T>* create_disjunction_node(size_t depth, node<T>* parent_node, node<T>* left_node, node<T>* right_node, const std::vector<fod_element*>& fod_elements){
-			node<T>* new_node = this->node_pool.emplace(depth, parent_node, left_node, right_node, fod_elements);
+		node<T>* create_disjunction_node(const boost::dynamic_bitset<>& set, size_t depth, node<T>* parent_node, node<T>* left_node, node<T>* right_node){
+			node<T>* new_node = this->node_pool.emplace(set, depth, parent_node, left_node, right_node);
 			//insert_disjunction_node(new_node);
 			return new_node;
 		}
-		/*
-		void insert_disjunction_node(node<T>* new_node){
 
-			//int missing_floors = new_node->depth + 1 - this->disjunction_nodes_by_depth.size();
-			//while(missing_floors > 0){
-			//	this->disjunction_nodes_by_depth.emplace_back();
-			//	missing_floors -= 1;
-			//}
-
-			// push instead of emplace because we heavily use pointers and addresses changes in case of reallocation
-			this->disjunction_nodes_by_depth[new_node->depth].push_back(new_node);
-		}
-
-		void move_disjunction_to_regular_node(node<T>* disjunction_node){
-			insert_node(disjunction_node);
-			erase_node_from(disjunction_node, this->disjunction_nodes_by_depth);
-		}
-
-		void move_regular_to_disjunction_node(node<T>* regular_node){
-			insert_disjunction_node(regular_node);
-			erase_node_from(regular_node, this->nodes_by_depth);
-		}
-
-		void move_regular_to_disjunction_node(node<T>* regular_node, int index){
-			insert_disjunction_node(regular_node);
-			this->nodes_by_depth[regular_node->depth].erase(index);
-		}
-		*/
 		/////////////////////////////////////////
 
 		/*
 		 * Complexity O(N), where N = fod size
 		 */
-		set_N_value<T>* insert(const boost::dynamic_bitset<>& key, const std::vector<fod_element*>& fod_elements, const size_t& final_depth,
-				const T& value, size_t& depth, node<T>* parent_node, node<T>*& leaf){
+		set_N_value<T>* insert(const boost::dynamic_bitset<>& set, const T& value, const size_t& final_depth,
+				node<T>* parent_node, node<T>*& leaf, size_t& depth){
 
 			if(depth < leaf->depth){
 				// take skipped depths into account
-				const boost::dynamic_bitset<>& next_set = this->fod->to_set(leaf->fod_elements);
+				const boost::dynamic_bitset<>& next_set = leaf->set;
 				while(depth < leaf->depth){
-					if(key[depth] != next_set[depth]){
-						// if there is a disjunction between key and next_set for the element at *depth in fod
-						if(key[depth]){
+					if(set[depth] != next_set[depth]){
+						// if there is a disjunction between set and next_set for the element at *depth in fod
+						if(set[depth]){
 							// if key has the first different bit
 							if(depth != final_depth){
-								node<T> *right_node = create_node(value, final_depth, nullptr, nullptr, nullptr, fod_elements);
-								boost::dynamic_bitset<> disjunction_set = key;
+								node<T> *right_node = create_node(set, value, final_depth, nullptr, nullptr, nullptr);
+								boost::dynamic_bitset<> disjunction_set = set;
 								for (size_t k = depth + 1; k < disjunction_set.size(); ++k) {
 									disjunction_set[k] = false;
 								}
-								leaf = create_disjunction_node(depth, parent_node, leaf, right_node, this->fod->to_elements(disjunction_set));
+								leaf = create_disjunction_node(disjunction_set, depth, parent_node, leaf, right_node);
 								leaf->right->parent = leaf;
 								leaf->left->parent = leaf;
 								return right_node;
 							}else{
 								// if (next_set U first different bit) & key == key
-								leaf = create_node(value, final_depth, parent_node, leaf, nullptr, fod_elements);
+								leaf = create_node(set, value, final_depth, parent_node, leaf, nullptr);
 								leaf->left->parent = leaf;
 								return leaf;
 							}
 						}else{
-							// if next_set & key != key and next_set has the first different bit
-							// Given that *depth < leaf->depth, leaf can't be a parent of the node described by key
+							// if next_set & set != set and next_set has the first different bit
+							// Given that *depth < leaf->depth, leaf can't be a parent of the node described by set
 							// Hence this only possible case :
-							node<T> *left_node = create_node(value, final_depth, nullptr, nullptr, nullptr, fod_elements);
+							node<T> *left_node = create_node(set, value, final_depth, nullptr, nullptr, nullptr);
 							boost::dynamic_bitset<> disjunction_set = next_set;
 							for (size_t k = depth + 1; k < disjunction_set.size(); ++k) {
 								disjunction_set[k] = false;
 							}
-							leaf = create_disjunction_node(depth, parent_node, left_node, leaf, this->fod->to_elements(disjunction_set));
+							leaf = create_disjunction_node(disjunction_set, depth, parent_node, left_node, leaf);
 							leaf->right->parent = leaf;
 							leaf->left->parent = leaf;
 							return left_node;
 						}
 					}
 					if(depth == final_depth){
-						// if next_set & key == key
-						leaf = create_node(value, final_depth, parent_node, nullptr, leaf, fod_elements);
+						// if next_set & set == set
+						leaf = create_node(set, value, final_depth, parent_node, nullptr, leaf);
 						leaf->right->parent = leaf;
 						return leaf;
 					}
@@ -989,14 +910,14 @@ namespace ow_bft{
 				}
 			}
 			//depth = leaf->depth;
-			if(key[depth]){
+			if(set[depth]){
 				if(depth != final_depth){
 					if(leaf->right){
 						++depth;
-						return insert(key, fod_elements, final_depth, value, depth, leaf, leaf->right);
+						return insert(set, value, final_depth, leaf, leaf->right, depth);
 					}else{
 						// link this node to the position of the fod element corresponding to *final_depth
-						leaf->right = create_node(value, final_depth, leaf, nullptr, nullptr, fod_elements);
+						leaf->right = create_node(set, value, final_depth, leaf, nullptr, nullptr);
 						return leaf->right;
 					}
 				}else{
@@ -1013,15 +934,17 @@ namespace ow_bft{
 			}else {
 				if(leaf->left){
 					++depth;
-					return insert(key, fod_elements, final_depth, value, depth, leaf, leaf->left);
+					return insert(set, value, final_depth, leaf, leaf->left, depth);
 				}else{
 					// link this node to the position of the fod element corresponding to *final_depth
-					leaf->left = create_node(value, final_depth, leaf, nullptr, nullptr, fod_elements);
+					leaf->left = create_node(set, value, final_depth, leaf, nullptr, nullptr);
 					return leaf->left;
 				}
 			}
 		}
-
+		/*
+		 * TODO: continue to review code from here (remove tree flexibility replacing fod_elements by set)
+		 */
 		/////////////////////////////////////////
 
 		set_N_value<T>* find(const boost::dynamic_bitset<>& key, size_t& depth, const size_t& final_depth, node<T> *leaf) const {
@@ -1152,18 +1075,6 @@ namespace ow_bft{
 			}
 		}
 
-		/*
-		 * Complexity O(P), where P = number of nodes assigned by user
-		void elements_by_set_cardinality(node<T>* leaf, std::unordered_map<size_t, std::vector<set_N_value<T>* > >& all_values) const {
-			if(!leaf)
-				return;
-
-			if(!leaf->is_null){
-				all_values[leaf->fod_elements.size()].emplace_back(leaf);
-			}
-			elements_by_set_cardinality(leaf->left, all_values);
-			elements_by_set_cardinality(leaf->right, all_values);
-		}*/
 
 		/*
 		 * Complexity O(S), where S is the number of subsets assigned by user of the set defined by key
@@ -1220,15 +1131,7 @@ namespace ow_bft{
 				}
 			}
 		}
-		/*
-		std::vector<T&> non_null_values_of_subsets_of(boost::dynamic_bitset<> key, int final_depth){
-			std::vector<T&> subset_values{this->emptyset->value};
-			int depth = 0;
-			if(final_depth >= 0)
-				non_null_values_of_subsets_of(key, &final_depth, subset_values, depth, this->root);
-			return subset_values;
-		}
-		*/
+
 		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& key, size_t final_depth, const bool& strict) const {
 			std::vector<set_N_value<T>* > subset_values;
 			subset_values.reserve(this->size());

@@ -214,6 +214,19 @@ namespace ow_bft{
 			return fes;
 		}
 
+		const std::vector<std::string> to_labels(const boost::dynamic_bitset<>& set) const {
+			if(set.size() > this->size()){
+				std::cerr << "\nError : More elements in bitset of size " << set.size() << " than in FOD of size " << this->size() << ".\n";
+				exit(1);
+			}
+			std::vector<std::string> labels;
+			for (size_t i = 0; i < set.size(); ++i){
+				if(set[i])
+					labels.emplace_back(this->fod_elements[i]->label);
+			}
+			return labels;
+		}
+
 		static std::vector<std::string> to_labels(const std::vector<fod_element*>& elements) {
 			std::vector<std::string> labels;
 			for (size_t i = 0; i < elements.size(); ++i){
