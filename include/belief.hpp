@@ -18,12 +18,8 @@ namespace ow_bft{
 			return compute_aggregation_at_fod(this->mass_equivalent.get_focal_elements());
 		}
 
-		T compute_aggregation(const boost::dynamic_bitset<>& key) const {
-			return compute_aggregation(this->mass_equivalent.get_focal_elements(), key);
-		}
-
-		T compute_aggregation(const std::vector<fod_element*>& fod_elements) const {
-			return compute_aggregation(this->mass_equivalent.get_focal_elements(), fod_elements);
+		T compute_aggregation(const boost::dynamic_bitset<>& set) const {
+			return compute_aggregation(this->mass_equivalent.get_focal_elements(), set);
 		}
 
 	public:
@@ -73,8 +69,8 @@ namespace ow_bft{
 			return sum;
 		}
 
-		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& key) {
-			T sum = implicability<T>::compute_aggregation(m_focal_elements, key);
+		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& set) {
+			T sum = implicability<T>::compute_aggregation(m_focal_elements, set);
 
 			const set_N_value<T>* emptyset = m_focal_elements.sub_fod_of_size(0);
 			if(emptyset)
@@ -97,7 +93,7 @@ namespace ow_bft{
 			const std::vector<set_N_value<T>* >& elements = m_focal_elements.elements();
 			// pre-calculation for all focal elements
 			for (size_t i = 0; i < elements.size(); ++i) {
-				special_elements.insert(elements[i]->fod_elements, compute_aggregation(m_focal_elements, elements[i]->fod_elements));
+				special_elements.insert(elements[i]->set, compute_aggregation(m_focal_elements, elements[i]->set));
 			}
 		}
 

@@ -65,6 +65,10 @@ namespace ow_bft{
 		FOD(const FOD& fod) : FOD(to_labels(fod.elements()))
 		{}
 
+		const std::string to_string(const boost::dynamic_bitset<>& set) const{
+			return ow_bft::to_string(to_elements(set));
+		}
+
 		/*
 		 * powerset functions must have been constructed with this fod as parameter
 
@@ -237,24 +241,24 @@ namespace ow_bft{
 
 		const boost::dynamic_bitset<> to_set(const std::vector<fod_element*>& elements) const {
 
-			boost::dynamic_bitset<> key(this->size());
+			boost::dynamic_bitset<> set(this->size());
 			for (size_t i = 0; i < elements.size(); ++i){
 				if(elements[i]->position_in_fod >= this->size()){
 					std::cerr << "\nElement position " << elements[i]->position_in_fod << " in FOD is outside of this FOD.\n";
 					exit(1);
 				}else{
-					key.set(elements[i]->position_in_fod);
+					set.set(elements[i]->position_in_fod);
 				}
 			}
-			return key;
+			return set;
 		}
 
 		const boost::dynamic_bitset<> to_set(const std::vector<std::string>& element_labels) const {
-			boost::dynamic_bitset<> key(this->size());
+			boost::dynamic_bitset<> set(this->size());
 			for (size_t i = 0; i < element_labels.size(); ++i){
-				key.set(to_element(element_labels[i])->position_in_fod);
+				set.set(to_element(element_labels[i])->position_in_fod);
 			}
-			return key;
+			return set;
 		}
 
 		size_t size() const {

@@ -101,20 +101,15 @@ namespace ow_bft{
 		}
 
 		T operator[](const std::vector<std::string>& labels) const {
-			const std::vector<fod_element*>& fod_elements = this->fod->to_elements(labels);
-			set_N_value<T>* set_value = this->special_elements[fod_elements];
-			if(set_value){
-				return set_value->value;
-			}
-			return this->compute_aggregation(fod_elements);
+			return find(this->fod->to_set(labels));
 		}
 
-		T find(const boost::dynamic_bitset<>& key) const {
-			set_N_value<T>* set_value = this->special_elements[key];
+		T find(const boost::dynamic_bitset<>& set) const {
+			set_N_value<T>* set_value = this->special_elements[set];
 			if(set_value){
 				return set_value->value;
 			}
-			return this->compute_aggregation(key);
+			return this->compute_aggregation(set);
 		}
 
 /*

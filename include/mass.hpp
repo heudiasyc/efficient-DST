@@ -242,8 +242,8 @@ namespace ow_bft{
 			size_t i = 0;
 			while(i < ordered_vector.size()-1){
 				if (!this->fod.is_or_is_subset_of(
-						elements_by_cardinality[(*ordered_vector[i])][0]->fod_elements,
-						elements_by_cardinality[(*ordered_vector[i+1])][0]->fod_elements)) {
+						elements_by_cardinality[(*ordered_vector[i])][0]->set,
+						elements_by_cardinality[(*ordered_vector[i+1])][0]->set)) {
 					return false;
 				}
 				++i;
@@ -269,8 +269,8 @@ namespace ow_bft{
 			for (size_t c = 1; c < ordered_vector.size(); ++c) {
 				for (size_t i = 0; i < ordered_vector.size(); ++i) {
 					if (!this->fod.is_or_is_subset_of(
-							(*ordered_vector[0])[0]->fod_elements,
-							(*ordered_vector[c])[i]->fod_elements)) {
+							(*ordered_vector[0])[0]->set,
+							(*ordered_vector[c])[i]->set)) {
 						return false;
 					}
 				}
@@ -290,10 +290,10 @@ namespace ow_bft{
 		bool is_disjoint() const {
 
 			const std::vector<set_N_value<T>* >& elements = this->focal_elements.elements();
-			const boost::dynamic_bitset<>& U = this->fod.to_set(elements[0]->fod_elements);
+			const boost::dynamic_bitset<>& U = elements[0]->set;
 
 			for (size_t j = 1; j < elements.size(); ++j) {
-				const boost::dynamic_bitset<>& setj = this->fod.to_set(elements[j]->fod_elements);
+				const boost::dynamic_bitset<>& setj = elements[j]->set;
 				if (!this->fod.are_disjoint(setj, U)) {
 					return false;
 				}
@@ -308,10 +308,10 @@ namespace ow_bft{
 		/// and the intersection of each focal set with the union of other focal sets is empty.
 		bool is_partitioned() const {
 			const std::vector<set_N_value<T>* >& elements = this->focal_elements.elements();
-			const boost::dynamic_bitset<>& U = this->fod.to_set(elements[0]->fod_elements);
+			const boost::dynamic_bitset<>& U = elements[0]->set;
 
 			for (size_t j = 1; j < elements.size(); ++j) {
-				const boost::dynamic_bitset<>& setj = this->fod.to_set(elements[j]->fod_elements);
+				const boost::dynamic_bitset<>& setj = elements[j]->set;
 				if (!this->fod.are_disjoint(setj, U)) {
 					return false;
 				}
@@ -329,10 +329,10 @@ namespace ow_bft{
 		/// i.e. when the intersection of all focal elements is empty.
 		bool has_internal_conflict() const {
 			const std::vector<set_N_value<T>* >& elements = this->focal_elements.elements();
-			const boost::dynamic_bitset<>& I = this->fod.to_set(elements[0]->fod_elements);
+			const boost::dynamic_bitset<>& I = elements[0]->set;
 
 			for (size_t j = 1; j < elements.size(); ++j) {
-				const boost::dynamic_bitset<>& setj = this->fod.to_set(elements[j]->fod_elements);
+				const boost::dynamic_bitset<>& setj = elements[j]->set;
 				I = this->fod.set_intersection(I, setj);
 				if (this->fod.is_emptyset(I)){
 					return true;

@@ -29,9 +29,9 @@ namespace ow_bft{
 					neg_focal_p,
 					value
 			);
-			std::clog << inserted_neg_focal_p->fod_elements << std::endl;
+			std::clog << inserted_neg_focal_p->set << std::endl;
 
-			size_t c = inserted_neg_focal_p->fod_elements.size();
+			size_t c = inserted_neg_focal_p->set.count();
 
 			neg_func_on_neg_focal_p_map[c].push_back(
 					inserted_neg_focal_p
@@ -46,16 +46,14 @@ namespace ow_bft{
 				std::unordered_map<size_t, std::vector<set_N_value<T>* > >& func_on_focal_p_map
 				) {
 
-			std::clog << "\nNEW INSERTED FOCAL P :\n";
-			std::clog << "\nfocal p : " << focal_p << std::endl;
-
 			set_N_value<T>* inserted_focal_p = func_on_focal_p.insert(
 					focal_p,
 					func_equivalent.find(focal_p)
 			);
-			std::clog << inserted_focal_p->fod_elements << std::endl;
+			std::clog << "\nNEW INSERTED FOCAL POINT :\n";
+			std::clog << inserted_focal_p->set << std::endl;
 
-			func_on_focal_p_map[inserted_focal_p->fod_elements.size()].push_back(
+			func_on_focal_p_map[inserted_focal_p->set.count()].push_back(
 					inserted_focal_p
 			);
 			return inserted_focal_p;
@@ -157,8 +155,8 @@ namespace ow_bft{
 				is_consonant = true;
 				for (size_t i = 1; i < q_on_focal_sets_ordered_vector.size()-1; ++i) {
 					if(q_on_focal_sets_ordered_vector[i]->size() > 1 || !fod->is_or_is_subset_of(
-							(*q_on_focal_sets_ordered_vector[i-1])[0]->fod_elements,
-							(*q_on_focal_sets_ordered_vector[i])[0]->fod_elements
+							(*q_on_focal_sets_ordered_vector[i-1])[0]->set,
+							(*q_on_focal_sets_ordered_vector[i])[0]->set
 						  )
 					){
 						is_consonant = false;
@@ -191,13 +189,13 @@ namespace ow_bft{
 			    }
 			}
 
-			boost::dynamic_bitset<> U = q_on_focal_points.fod->to_set(focal_sets_except_FOD[0]->fod_elements);
+			boost::dynamic_bitset<> U = focal_sets_except_FOD[0]->set;
 			const boost::dynamic_bitset<> emptyset(q_on_focal_points.fod->size());
-			std::clog << "\nU = "<< focal_sets_except_FOD[0]->fod_elements;
+			std::clog << "\nU = "<< focal_sets_except_FOD[0]->set;
 
 			for (size_t i = 1; i < focal_sets_except_FOD.size(); ++i) {
-				std::clog << "\nI = intersection(U, "<< focal_sets_except_FOD[i]->fod_elements << ")\n";
-				const boost::dynamic_bitset<>& A = q_on_focal_points.fod->to_set(focal_sets_except_FOD[i]->fod_elements);
+				std::clog << "\nI = intersection(U, "<< focal_sets_except_FOD[i]->set << ")\n";
+				const boost::dynamic_bitset<>& A = focal_sets_except_FOD[i]->set;
 				const boost::dynamic_bitset<>& I = q_on_focal_points.fod->set_intersection(U, A);
 				const size_t& I_card = I.count();
 				std::clog << "|I| = " << I_card << std::endl;
@@ -283,12 +281,12 @@ namespace ow_bft{
 			for (size_t c = 0; c < q_on_focal_sets_ordered_vector.size()-1; ++c) {
 				for (size_t i = 0; i < q_on_focal_sets_ordered_vector[c]->size(); ++i) {
 
-					const boost::dynamic_bitset<>& setA = q_on_focal_points.fod->to_set((*q_on_focal_sets_ordered_vector[c])[i]->fod_elements);
+					const boost::dynamic_bitset<>& setA = (*q_on_focal_sets_ordered_vector[c])[i]->set;
 
 					// search for sets of same cardinality
 					for (size_t ii = 0; ii < i; ++ii) {
 
-						const boost::dynamic_bitset<>& setB = q_on_focal_points.fod->to_set((*q_on_focal_sets_ordered_vector[c])[ii]->fod_elements);
+						const boost::dynamic_bitset<>& setB = (*q_on_focal_sets_ordered_vector[c])[ii]->set;
 
 						// compute their focal point
 						const boost::dynamic_bitset<>& focal_point = q_on_focal_points.fod->set_intersection(setA, setB);
@@ -316,7 +314,7 @@ namespace ow_bft{
 													.get_special_elements()
 													.intersections_of_not_subsets_of_smaller_than(
 														setA,
-														(*q_on_focal_sets_ordered_vector[c])[i]->fod_elements.size()-1
+														(*q_on_focal_sets_ordered_vector[c])[i]->set.count()-1
 													);
 					// search for sets of higher cardinality that are not supersets of the current set
 					for (size_t ii = 0; ii < intersections_of_not_subsets_of_smaller_than.size(); ++ii) {
@@ -347,13 +345,13 @@ namespace ow_bft{
 			// for each pure focal point (focal point that is not a focal set)
 			for (size_t i = 0; i < q_on_pure_focal_points.size(); ++i) {
 
-				const boost::dynamic_bitset<>& setA = q_on_focal_points.fod->to_set(q_on_pure_focal_points[i]->fod_elements);
+				const boost::dynamic_bitset<>& setA = q_on_pure_focal_points[i]->set;
 
 				const std::vector<boost::dynamic_bitset<> >& intersections_of_not_subsets_of_smaller_than = commonality_equivalent
 												.get_special_elements()
 												.intersections_of_not_subsets_of_smaller_than(
 													setA,
-													q_on_pure_focal_points[i]->fod_elements.size()-1
+													q_on_pure_focal_points[i]->set.count()-1
 												);
 				// search for sets of lower cardinality that are not subsets of the current set
 				for (size_t ii = 0; ii < intersections_of_not_subsets_of_smaller_than.size(); ++ii) {
@@ -383,7 +381,7 @@ namespace ow_bft{
 				const std::vector<boost::dynamic_bitset<> >& unions_of_not_subsets_of_smaller_than = neg_b_on_neg_focal_sets
 												.unions_of_not_subsets_of_smaller_than(
 													q_on_focal_points.fod->set_negate(setA),
-													q_on_focal_points.fod->size() - q_on_pure_focal_points[i]->fod_elements.size()-1
+													q_on_focal_points.fod->size() - q_on_pure_focal_points[i]->set.count()-1
 												);
 				// search for sets of higher cardinality that are not supersets of the current set
 				for (size_t ii = 0; ii < unions_of_not_subsets_of_smaller_than.size(); ++ii) {
@@ -434,8 +432,8 @@ namespace ow_bft{
 						for (size_t i = 0; i < kv.second.size(); ++i) {
 
 							std::clog << "\n======================= NEW WEIGHT\n";
-							std::clog << "\nWeight computation for " << to_string(kv.second[i]->fod_elements) << ":\n";
-							std::clog << "b(" << to_string(neg_b_on_neg_focal_points_map[0][0]->fod_elements) << ") / b(" << to_string(kv.second[i]->fod_elements)
+							std::clog << "\nWeight computation for " << neg_b_on_neg_focal_points.fod->to_string(kv.second[i]->set) << ":\n";
+							std::clog << "b(" << neg_b_on_neg_focal_points.fod->to_string(neg_b_on_neg_focal_points_map[0][0]->set) << ") / b(" << neg_b_on_neg_focal_points.fod->to_string(kv.second[i]->set)
 									<< ") = " << neg_b_on_neg_focal_points_map[0][0]->value << "/" << kv.second[i]->value << "\n";
 
 							val = neg_b_on_neg_focal_points_map[0][0]->value / kv.second[i]->value;	// neg_b_on_neg_focal_points_map[0][0] is the emptyset node
@@ -445,7 +443,7 @@ namespace ow_bft{
 
 							// insert weight among neg_v_special elements
 							neg_v_special_elements.insert(
-								kv.second[i]->fod_elements,
+								kv.second[i]->set,
 								val
 							);
 							std::clog << "\n======================= WEIGHT INSERTED\n";
@@ -454,21 +452,21 @@ namespace ow_bft{
 				}
 				if(neg_b_on_neg_focal_points_map.find(neg_b_on_neg_focal_points.fod->size()) != neg_b_on_neg_focal_points_map.end()){
 					std::clog << "\n======================= NEW WEIGHT\n";
-					std::clog << "\nWeight computation for " << to_string(neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->fod_elements) << ":\n";
-					std::clog << "Initialization with b(" << to_string(neg_b_on_neg_focal_points_map[0][0]->fod_elements) << ") / b(" << to_string(neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->fod_elements)
+					std::clog << "\nWeight computation for " << neg_b_on_neg_focal_points.fod->to_string(neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->set) << ":\n";
+					std::clog << "Initialization with b(" << neg_b_on_neg_focal_points.fod->to_string(neg_b_on_neg_focal_points_map[0][0]->set) << ") / b(" << neg_b_on_neg_focal_points.fod->to_string(neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->set)
 							<< ") = " << neg_b_on_neg_focal_points_map[0][0]->value << "/" << neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->value << "\n";
 
 					val = neg_b_on_neg_focal_points_map[0][0]->value / neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->value;	// neg_b_on_neg_focal_points_map[0][0] is the emptyset node
 
 					const std::vector<set_N_value<T>* >& neg_v_subsets = neg_v_special_elements
 																	.strict_subsets_of(
-																		neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->fod_elements
+																		neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->set
 																	);
 					if(neg_v_subsets.size() > 0){
 						std::clog << "Then, division by weights:\n";
 					}
 					for (size_t ii = 0; ii < neg_v_subsets.size(); ++ii) {
-						std::clog << to_string<T>(*neg_v_subsets[ii]) << std::endl;
+						std::clog << to_string<T>(*neg_v_subsets[ii], *neg_b_on_neg_focal_points.fod) << std::endl;
 
 						val /= neg_v_subsets[ii]->value;	// (*ordered_vector[0])[0] is the emptyset node
 					}
@@ -477,7 +475,7 @@ namespace ow_bft{
 
 					// insert weight among neg_v_special elements
 					neg_v_special_elements.insert(
-						neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->fod_elements,
+						neg_b_on_neg_focal_points_map[neg_b_on_neg_focal_points.fod->size()][0]->set,
 						val
 					);
 					std::clog << "\n======================= WEIGHT INSERTED\n";
@@ -490,14 +488,14 @@ namespace ow_bft{
 
 					for (size_t c = 1; c < ordered_vector.size(); ++c) {
 						std::clog << "\n======================= NEW WEIGHT\n";
-						std::clog << "\nWeight computation for " << to_string((*ordered_vector[c])[0]->fod_elements) << ":\n";
+						std::clog << "\nWeight computation for " << neg_b_on_neg_focal_points.fod->to_string((*ordered_vector[c])[0]->set) << ":\n";
 
 						val = (*ordered_vector[c-1])[0]->value / (*ordered_vector[c])[0]->value;
-						std::clog << "b(" << to_string((*ordered_vector[c-1])[0]->fod_elements) << ") / b(" << to_string((*ordered_vector[c])[0]->fod_elements)
+						std::clog << "b(" << neg_b_on_neg_focal_points.fod->to_string((*ordered_vector[c-1])[0]->set) << ") / b(" << neg_b_on_neg_focal_points.fod->to_string((*ordered_vector[c])[0]->set)
 														<< ") = " << val << "\n";
 
 						neg_v_special_elements.insert(
-							(*ordered_vector[c])[0]->fod_elements,
+							(*ordered_vector[c])[0]->set,
 							val
 						);
 						std::clog << "\n======================= WEIGHT INSERTED\n";
@@ -507,21 +505,21 @@ namespace ow_bft{
 						for (size_t i = 0; i < ordered_vector[c]->size(); ++i) {
 
 							std::clog << "\n======================= NEW WEIGHT\n";
-							std::clog << "\nWeight computation for " << to_string((*ordered_vector[c])[i]->fod_elements) << ":\n";
-							std::clog << "Initialization with b(" << to_string((*ordered_vector[0])[0]->fod_elements) << ") / b(" << to_string((*ordered_vector[c])[i]->fod_elements)
+							std::clog << "\nWeight computation for " << neg_b_on_neg_focal_points.fod->to_string((*ordered_vector[c])[i]->set) << ":\n";
+							std::clog << "Initialization with b(" << neg_b_on_neg_focal_points.fod->to_string((*ordered_vector[0])[0]->set) << ") / b(" << neg_b_on_neg_focal_points.fod->to_string((*ordered_vector[c])[i]->set)
 									<< ") = " << (*ordered_vector[0])[0]->value << "/" << (*ordered_vector[c])[i]->value << "\n";
 
 							val = (*ordered_vector[0])[0]->value / (*ordered_vector[c])[i]->value;	// (*ordered_vector[0])[0] is the emptyset node
 
 							const std::vector<set_N_value<T>* >& neg_v_subsets = neg_v_special_elements
 																			.strict_subsets_of(
-																				(*ordered_vector[c])[i]->fod_elements
+																				(*ordered_vector[c])[i]->set
 																			);
 							if(neg_v_subsets.size() > 0){
 								std::clog << "Then, division by weights:\n";
 							}
 							for (size_t ii = 0; ii < neg_v_subsets.size(); ++ii) {
-								std::clog << to_string<T>(*neg_v_subsets[ii]) << std::endl;
+								std::clog << to_string<T>(*neg_v_subsets[ii], *neg_b_on_neg_focal_points.fod) << std::endl;
 
 								val /= neg_v_subsets[ii]->value;	// (*ordered_vector[0])[0] is the emptyset node
 							}
@@ -530,7 +528,7 @@ namespace ow_bft{
 
 							// insert weight among neg_v_special elements
 							neg_v_special_elements.insert(
-								(*ordered_vector[c])[i]->fod_elements,
+								(*ordered_vector[c])[i]->set,
 								val
 							);
 							std::clog << "\n======================= WEIGHT INSERTED\n";
@@ -553,10 +551,10 @@ namespace ow_bft{
 
 			std::clog << "\n======================= NEW WEIGHT\n";
 
-			const std::vector<fod_element* >& current_set = A->fod_elements;
+			const boost::dynamic_bitset<>& current_set = A->set;
 
 			// initialize its weight with the inverse of its own commonality
-			std::clog << "\nWeight computation for " << to_string(current_set) << ":\n-1\t <- " << to_string(current_set) << std::endl;
+			std::clog << "\nWeight computation for " << q_on_focal_points.fod->to_string(current_set) << ":\n-1\t <- " << q_on_focal_points.fod->to_string(current_set) << std::endl;
 			T weight = 1/A->value;
 
 			// check if there is a focal set in supersets contained in every focal set in supersets...
@@ -566,19 +564,19 @@ namespace ow_bft{
 															.strict_supersets_of(
 																	current_set
 															);
-			boost::dynamic_bitset<> I = q_on_focal_points.fod->to_set(supersets[0]->fod_elements);
+			boost::dynamic_bitset<> I = supersets[0]->set;
 			const boost::dynamic_bitset<> emptyset(q_on_focal_points.fod->size(), 0);
 			size_t i = 1;
 			for (; i < supersets.size(); ++i) {
 				if (I != emptyset){
-					I = I & q_on_focal_points.fod->to_set(supersets[i]->fod_elements);
+					I = I & supersets[i]->set;
 				}else{
 					break;
 				}
 			}
 			for (i = 0; i < supersets.size(); ++i) {
-				if (q_on_focal_points.fod->to_set(supersets[i]->fod_elements) == I){
-					std::clog << "1\t <- " << to_string(supersets[i]->fod_elements) << std::endl;
+				if (supersets[i]->set == I){
+					std::clog << "1\t <- " << q_on_focal_points.fod->to_string(supersets[i]->set) << std::endl;
 					return weight*supersets[i]->value;
 				}
 			}
@@ -592,12 +590,12 @@ namespace ow_bft{
 				// superset in the computation of this current weight is :
 				// ->  1 	if (sc - c) is odd
 				// -> -1 	if (sc - c) is even
-				if(((supersets[i]->fod_elements.size() - current_set.size()) & 1) > 0){	// check the first bit for parity check
+				if(((supersets[i]->set.count() - current_set.count()) & 1) > 0){	// check the first bit for parity check
 					polarity = 1;
 				}else{
 					polarity = -1;
 				}
-				polarities.insert(supersets[i]->fod_elements, polarity);
+				polarities.insert(supersets[i]->set, polarity);
 			}
 
 			std::unordered_map<size_t, std::vector<set_N_value<long int>* > > polarities_by_cardinality = polarities
@@ -613,16 +611,16 @@ namespace ow_bft{
 					s = -1;
 					const std::vector<set_N_value<long int>* >& polarities_supersets = polarities
 																	.strict_subsets_of(
-																			(*ordered_vector[c])[i]->fod_elements
+																			(*ordered_vector[c])[i]->set
 																	);
 					for (size_t ii = 0; ii < polarities_supersets.size(); ++ii) {
 						s += polarities_supersets[ii]->value;
 					}
-					set_N_value<long int>* inserted_polarity = polarities.insert((*ordered_vector[c])[i]->fod_elements, -s);
-					std::clog << to_string<long int>(*inserted_polarity) << std::endl;
+					set_N_value<long int>* inserted_polarity = polarities.insert((*ordered_vector[c])[i]->set, -s);
+					std::clog << to_string<long int>(*inserted_polarity, *q_on_focal_points.fod) << std::endl;
 
 					weight *= pow(
-								q_on_focal_points[(*ordered_vector[c])[i]->fod_elements]->value,
+								q_on_focal_points[(*ordered_vector[c])[i]->set]->value,
 								-s
 							);
 				}

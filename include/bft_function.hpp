@@ -43,14 +43,14 @@ namespace std {
 namespace ow_bft{
 
 	template <class T = double>
-	static std::string to_string(const set_N_value<T>& s) {
-		return to_string<T>(s.value) + "\t <- " + to_string(s.fod_elements);
+	static std::string to_string(const set_N_value<T>& s, const FOD& fod) {
+		return to_string<T>(s.value) + "\t <- " + fod.to_string(s.set);
 	}
 
 	template <class T = double>
-	std::ostream& print(std::ostream& os, const std::vector<set_N_value<T>* >& values) {
+	std::ostream& print(std::ostream& os, const std::vector<set_N_value<T>* >& values, const FOD& fod) {
 		for (size_t i = 0; i < values.size(); ++i) {
-			os << to_string<T>(*(values[i])) << std::endl;
+			os << to_string<T>(*(values[i]), fod) << std::endl;
 		}
 		return os;
 	}
@@ -60,7 +60,7 @@ namespace ow_bft{
 		std::vector<set_N_value<T>* > values = p.elements();
 		std::cerr << std::endl;
 
-		return print<T>(os, values);
+		return print<T>(os, values, *p.fod);
 	}
 
 	enum Special_case {degenerate, vacuous};
@@ -94,7 +94,7 @@ namespace ow_bft{
 
 		virtual T operator[](const std::vector<std::string>& labels) const = 0;
 
-		virtual T find(const boost::dynamic_bitset<>& key) const = 0;
+		virtual T find(const boost::dynamic_bitset<>& set) const = 0;
 	};
 }		// namespace ow_bft
 

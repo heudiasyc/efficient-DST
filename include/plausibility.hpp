@@ -18,8 +18,8 @@ namespace ow_bft{
 			return implicability<T>::compute_aggregation_at_fod(m_focal_elements);
 		}
 
-		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& key) {
-			return 1 - implicability<T>::compute_aggregation(m_focal_elements, m_focal_elements.fod->set_negate(key));
+		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& set) {
+			return 1 - implicability<T>::compute_aggregation(m_focal_elements, m_focal_elements.fod->set_negate(set));
 		}
 
 		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const std::vector<fod_element*>& fod_elements) {
@@ -34,12 +34,8 @@ namespace ow_bft{
 			return compute_aggregation_at_fod(this->mass_equivalent.get_focal_elements());
 		}
 
-		T compute_aggregation(const boost::dynamic_bitset<>& key) const {
-			return compute_aggregation(this->mass_equivalent.get_focal_elements(), key);
-		}
-
-		T compute_aggregation(const std::vector<fod_element*>& fod_elements) const {
-			return compute_aggregation(this->mass_equivalent.get_focal_elements(), fod_elements);
+		T compute_aggregation(const boost::dynamic_bitset<>& set) const {
+			return compute_aggregation(this->mass_equivalent.get_focal_elements(), set);
 		}
 
 	public:
@@ -76,13 +72,8 @@ namespace ow_bft{
 			const std::vector<set_N_value<T>* >& elements = m_focal_elements.elements();
 			// pre-calculation for all focal elements
 			for (size_t i = 0; i < elements.size(); ++i) {
-				const boost::dynamic_bitset<>& focal_element = m_focal_elements.fod->to_set(
-						elements[i]->fod_elements
-				);
-				const boost::dynamic_bitset<>& focal_element_negation = m_focal_elements.fod->set_negate(
-						focal_element
-				);
-				special_elements.insert(focal_element_negation, 1 - implicability<T>::compute_aggregation(m_focal_elements, focal_element));
+				const boost::dynamic_bitset<>& focal_element_negation = m_focal_elements.fod->set_negate(elements[i]->set);
+				special_elements.insert(focal_element_negation, 1 - implicability<T>::compute_aggregation(m_focal_elements, elements[i]->set));
 			}
 		}
 
@@ -95,12 +86,7 @@ namespace ow_bft{
 
 			// pre-calculation for all focal elements
 			for (size_t i = 0; i < elements.size(); ++i) {
-				const boost::dynamic_bitset<>& focal_element
-					= pl_tree.fod->set_negate(
-							pl_tree.fod->to_set(
-								elements[i]->fod_elements
-						)
-					);
+				const boost::dynamic_bitset<>& focal_element = pl_tree.fod->set_negate(elements[i]->set);
 				bel_tree.insert(focal_element, 1 - elements[i]->value);
 			}
 			implicability<T>::to_mass_focal_elements(bel_tree, m_tree);

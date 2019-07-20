@@ -17,12 +17,8 @@ namespace ow_bft{
 			return compute_aggregation_at_fod(this->mass_equivalent.get_focal_elements());
 		}
 
-		T compute_aggregation(const boost::dynamic_bitset<>& key) const {
-			return compute_aggregation(this->mass_equivalent.get_focal_elements(), key);
-		}
-
-		T compute_aggregation(const std::vector<fod_element*>& fod_elements) const {
-			return compute_aggregation(this->mass_equivalent.get_focal_elements(), fod_elements);
+		T compute_aggregation(const boost::dynamic_bitset<>& set) const {
+			return compute_aggregation(this->mass_equivalent.get_focal_elements(), set);
 		}
 
 	public:
@@ -72,9 +68,9 @@ namespace ow_bft{
 			return sum;
 		}
 
-		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& key) {
+		static T compute_aggregation(const powerset_btree<T>& m_focal_elements, const boost::dynamic_bitset<>& set) {
 			T sum = 0;
-			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.subsets_of(key);
+			const std::vector<set_N_value<T>* >& subsets = m_focal_elements.subsets_of(set);
 
 			for (size_t i = 0; i < subsets.size(); ++i) {
 					sum += subsets[i]->value;
@@ -96,7 +92,7 @@ namespace ow_bft{
 			const std::vector<set_N_value<T>* >& elements = m_focal_elements.elements();
 			// pre-calculation for all focal elements
 			for (size_t i = 0; i < elements.size(); ++i) {
-				special_elements.insert(elements[i]->fod_elements, compute_aggregation(m_focal_elements, elements[i]->fod_elements));
+				special_elements.insert(elements[i]->set, compute_aggregation(m_focal_elements, elements[i]->set));
 			}
 		}
 
@@ -110,7 +106,7 @@ namespace ow_bft{
 			// computation based on f_elements
 			for (size_t c = 0; c < ordered_vector.size()-1; ++c) {
 				for (size_t i = 0; i < ordered_vector[c]->size(); ++i) {
-					const std::vector<set_N_value<T>* >& supersets = m_tree.strict_supersets_of((*ordered_vector[c])[i]->fod_elements);
+					const std::vector<set_N_value<T>* >& supersets = m_tree.strict_supersets_of((*ordered_vector[c])[i]->set);
 					for (size_t k = 0; k < supersets.size(); ++k) {
 						supersets[k]->value -= (*ordered_vector[c])[i]->value;
 					}

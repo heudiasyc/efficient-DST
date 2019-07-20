@@ -274,20 +274,15 @@ namespace ow_bft{
 		}
 
 		T operator[](const std::vector<std::string>& labels) const {
-			const std::vector<fod_element*>& fod_elements = this->fod->to_elements(labels);
-			set_N_value<T>* set_value = this->special_elements[fod_elements];
-			if(set_value){
-				return set_value->value;
-			}
-			return compute_aggregation(fod_elements);
+			return find(this->fod->to_set(labels));
 		}
 
-		T find(const boost::dynamic_bitset<>& key) const {
-			set_N_value<T>* set_value = this->special_elements[key];
+		T find(const boost::dynamic_bitset<>& set) const {
+			set_N_value<T>* set_value = this->special_elements[set];
 			if(set_value){
 				return set_value->value;
 			}
-			return compute_aggregation(key);
+			return compute_aggregation(set);
 		}
 
 	protected:
@@ -313,14 +308,14 @@ namespace ow_bft{
 			for (size_t c = 0; c < ordered_vector.size(); ++c) {
 				for (size_t i = 0; i < ordered_vector[c]->size(); ++i) {
 
-					const std::vector<set_N_value<T>* >& v_i_subsets = v_tree.subsets_of((*ordered_vector[c])[i]->fod_elements);
+					const std::vector<set_N_value<T>* >& v_i_subsets = v_tree.subsets_of((*ordered_vector[c])[i]->set);
 					T b_i_val = v_product;
 
 					for (size_t ii = 0; ii < v_i_subsets.size(); ++ii) {
 						b_i_val /= v_i_subsets[ii]->value;
 					}
 
-					b_tree.insert((*ordered_vector[c])[i]->fod_elements, b_i_val);
+					b_tree.insert((*ordered_vector[c])[i]->set, b_i_val);
 				}
 			}
 		}
@@ -334,17 +329,10 @@ namespace ow_bft{
 			return 1;
 		}
 
-		T compute_aggregation(const boost::dynamic_bitset<>& key) const {
-			if(key.count() == this->fod->size())
+		T compute_aggregation(const boost::dynamic_bitset<>& set) const {
+			if(set.count() == this->fod->size())
 				// conjunctive weights are only defined for strict subsets of FOD
 				return compute_aggregation_at_fod();
-			return 1;
-		}
-
-		T compute_aggregation(const std::vector<fod_element*>& fod_elements) const {
-			if(fod_elements.size() == 0)
-				// disjunctive weights are only defined for strict supersets of emptyset
-				return compute_aggregation_at_emptyset();
 			return 1;
 		}
 /*

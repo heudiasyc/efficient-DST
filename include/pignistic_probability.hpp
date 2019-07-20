@@ -23,16 +23,12 @@ namespace ow_bft{
 
 			for (size_t i = 0; i < f_elements.size(); ++i) {
 
-				const boost::dynamic_bitset<>& setB = this->fod.to_set(f_elements[i]->fod_elements);
+				const boost::dynamic_bitset<>& setB = f_elements[i]->set;
 				const boost::dynamic_bitset<>& intersection = this->fod.set_intersection(setA, setB);
 
 				sum += f_elements[i]->value * intersection.count() / setB.count();
 			}
 			return sum;
-		}
-
-		T compute_aggregation(const std::vector<fod_element*>& fod_elements) const {
-			return compute_aggregation(this->fod->to_set(fod_elements));
 		}
 
 	public:

@@ -20,9 +20,7 @@ namespace ow_bft{
 
 		virtual T compute_aggregation_at_fod() const = 0;
 
-		virtual T compute_aggregation(const boost::dynamic_bitset<>& key) const = 0;
-
-		virtual T compute_aggregation(const std::vector<fod_element*>& fod_elements) const = 0;
+		virtual T compute_aggregation(const boost::dynamic_bitset<>& set) const = 0;
 
 	public:
 
@@ -34,7 +32,7 @@ namespace ow_bft{
 
 		virtual T operator[](const std::vector<std::string>& labels) const = 0;
 
-		virtual T find(const boost::dynamic_bitset<>& key) const = 0;
+		virtual T find(const boost::dynamic_bitset<>& set) const = 0;
 	};
 }		// namespace ow_bft
 

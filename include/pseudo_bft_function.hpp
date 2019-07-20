@@ -9,10 +9,10 @@ namespace ow_bft{
 	template <typename T = double>
 	class pseudo_bft_function : public bft_function<T> {
 	public:
-		FOD<powerset_btree<T> > existence_fod;	// existence fod conditioning the universe fod, i.e. the fod from bft_function
+		FOD existence_fod;	// existence fod conditioning the universe fod, i.e. the fod from bft_function
 		powerset_btree<T> existence_focal_elements;
 
-		pseudo_bft_function(FOD<powerset_btree<T> >& _fod) :
+		pseudo_bft_function(FOD& _fod) :
 			bft_function<T>(_fod),
 			existence_fod({
 				"Xi",

@@ -141,10 +141,10 @@ namespace ow_bft{
 			fod(&_fod),
 			block_size(_block_size)
 		{
-			this->root = create_disjunction_node(0, nullptr, nullptr, nullptr, boost::dynamic_bitset<>(this->fod.size(), 1));
+			this->root = create_disjunction_node(boost::dynamic_bitset<>(this->fod->size(), 1), 0, nullptr, nullptr, nullptr);
 
 			//std::vector<fod_element*> empty_fod_elements;
-			this->emptyset = this->node_pool.emplace(boost::dynamic_bitset<>(this->fod.size()));
+			this->emptyset = this->node_pool.emplace(boost::dynamic_bitset<>(this->fod->size()));
 		}
 
 		powerset_btree(const powerset_btree<T>& p) : // @suppress("Class members should be properly initialized")
@@ -805,7 +805,7 @@ namespace ow_bft{
 				//std::clog << "\n" << tab << " right : ";
 				erase_nodes_containing_element_at(leaf->right, final_depth);
 			}else{
-				erase_node_because_of_its_depth(leaf, final_depth);
+				erase_node_because_of_its_depth(leaf);
 			}
 		}
 
@@ -942,35 +942,29 @@ namespace ow_bft{
 				}
 			}
 		}
-		/*
-		 * TODO: continue to review code from here (remove tree flexibility replacing fod_elements by set)
-		 */
+
 		/////////////////////////////////////////
 
-		set_N_value<T>* find(const boost::dynamic_bitset<>& key, size_t& depth, const size_t& final_depth, node<T> *leaf) const {
+		set_N_value<T>* find(const boost::dynamic_bitset<>& set, const size_t& final_depth, node<T> *leaf, size_t& depth) const {
 			// if leaf->depth > *final_depth, then leaf has other elements than the ones of key
 			if(leaf->depth > final_depth){
 				return nullptr;
 			}
-			if(depth < leaf->depth){
-				// take skipped depths into account
-				const boost::dynamic_bitset<>& next_set = this->fod->to_set(leaf->fod_elements);
-				while(depth < leaf->depth){
-					if(key[depth] != next_set[depth]){
-						// if there is a disjunction between key and next_set for the element at *depth in fod
-						return nullptr;
-					}
-					++depth;
+			// take skipped depths into account
+			while(depth < leaf->depth){
+				if(set[depth] != leaf->set[depth]){
+					// if there is a disjunction between key and next_set for the element at *depth in fod
+					return nullptr;
 				}
+				++depth;
 			}
-			//*depth = leaf->depth;
-			if(key[depth]){
+			if(set[depth]){
 				if(depth != final_depth){
 					if(!leaf->right){
 						return nullptr;
 					}
 					++depth;
-					return find(key, depth, final_depth, leaf->right);
+					return find(set, final_depth, leaf->right, depth);
 				}else{
 					if(leaf->is_null)
 						return nullptr;
@@ -982,11 +976,11 @@ namespace ow_bft{
 					return nullptr;
 				}
 				++depth;
-				return find(key, depth, final_depth, leaf->left);
+				return find(set, final_depth, leaf->left, depth);
 			}
 		}
 
-		set_N_value<T>* find(const boost::dynamic_bitset<>& key, size_t final_depth) const {
+		set_N_value<T>* find(const boost::dynamic_bitset<>& set, size_t final_depth) const {
 			/*
 			if(key.size() <= *depth){
 				std::string key_str = "";
@@ -1003,7 +997,7 @@ namespace ow_bft{
 			size_t depth = 0;
 			if(final_depth != 0){
 				--final_depth;
-				return find(key, depth, final_depth, this->root);
+				return find(set, final_depth, this->root, depth);
 			}else{
 				if(this->emptyset->is_null)
 					return nullptr;
@@ -1020,7 +1014,7 @@ namespace ow_bft{
 
 		static void add_to_values_by_cardinality(std::unordered_map<size_t, std::vector<set_N_value<T>* > >& values, node<T>* leaf){
 			//if(values.find(leaf->fod_elements.size()) != values.end()){
-				values[leaf->fod_elements.size()].emplace_back(leaf);
+				values[leaf->set.count()].emplace_back(leaf);
 			//}else{
 			//	values.emplace(leaf->fod_elements.size(), (std::vector<set_N_value<T>* >) {leaf});
 			//}
@@ -1081,30 +1075,25 @@ namespace ow_bft{
 		 * All subsets of key are of depth <= final_depth and don't contain any other elements than the ones of key
 		 */
 		template<typename return_type>
-		void subsets_of(const boost::dynamic_bitset<>& key, const size_t& final_depth,
-				return_type& subset_values, size_t depth, node<T> *leaf, bool is_key, const bool& strict, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
+		void subsets_of(const boost::dynamic_bitset<>& set, const size_t& final_depth,
+				return_type& subset_values, size_t depth, node<T> *leaf, bool is_set, const bool& strict, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
 
 			// if leaf->depth > *final_depth, then leaf has other elements than the ones of key
 			if(leaf->depth > final_depth){
 				return;
 			}
-			if(depth < leaf->depth){
-				// take skipped depths into account
-				const boost::dynamic_bitset<>& next_set = this->fod->to_set(leaf->fod_elements);
-				while(depth < leaf->depth){
-					if(!key[depth] && next_set[depth]){
-						// if next_set has an element that key doesn't
-						return;
-					}else if(key[depth] && !next_set[depth]){
-						// if key has an element that next_set doesn't
-						is_key = false;
-					}
-					++depth;
+			// take skipped depths into account
+			while(depth < leaf->depth){
+				if(!set[depth] && leaf->set[depth]){
+					// if next_set has an element that key doesn't
+					return;
+				}else if(set[depth] && !leaf->set[depth]){
+					// if key has an element that next_set doesn't
+					is_set = false;
 				}
+				++depth;
 			}
-
-			//depth = leaf->depth;
-			if(key[depth]){
+			if(set[depth]){
 				if(depth != final_depth){
 					// get value only if leaf doesn't correspond to key (only strict subsets)
 					if(!leaf->is_null){
@@ -1112,12 +1101,12 @@ namespace ow_bft{
 					}
 					++depth;
 					if(leaf->left){
-						subsets_of(key, final_depth, subset_values, depth, leaf->left, false, strict, add_to_values_func);
+						subsets_of(set, final_depth, subset_values, depth, leaf->left, false, strict, add_to_values_func);
 					}
 					if(leaf->right){
-						subsets_of(key, final_depth, subset_values, depth, leaf->right, is_key, strict, add_to_values_func);
+						subsets_of(set, final_depth, subset_values, depth, leaf->right, is_set, strict, add_to_values_func);
 					}
-				}else if(!(strict && is_key)){//this->fod->is_subset_of(this->fod->to_set(leaf->fod_elements), key)){
+				}else if(!(strict && is_set)){//this->fod->is_subset_of(this->fod->to_set(leaf->fod_elements), key)){
 					// get value if you don't only want strict subsets
 					// OR if this set is a *strict* subset of key
 					if(!leaf->is_null){
@@ -1127,12 +1116,12 @@ namespace ow_bft{
 			}else {
 				if(leaf->left){
 					++depth;
-					subsets_of(key, final_depth, subset_values, depth, leaf->left, is_key, strict, add_to_values_func);
+					subsets_of(set, final_depth, subset_values, depth, leaf->left, is_set, strict, add_to_values_func);
 				}
 			}
 		}
 
-		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& key, size_t final_depth, const bool& strict) const {
+		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict) const {
 			std::vector<set_N_value<T>* > subset_values;
 			subset_values.reserve(this->size());
 
@@ -1144,7 +1133,7 @@ namespace ow_bft{
 				--final_depth;
 				size_t depth = 0;
 				subsets_of<std::vector<set_N_value<T>* > >(
-						key, final_depth, subset_values, depth, this->root, true, strict, add_to_values);
+						set, final_depth, subset_values, depth, this->root, true, strict, add_to_values);
 			}else{
 				if(!this->emptyset->is_null && !strict){
 					subset_values.emplace_back(this->emptyset);
@@ -1154,7 +1143,7 @@ namespace ow_bft{
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > subsets_of_by_cardinality(
-				const boost::dynamic_bitset<>& key, size_t final_depth, const bool& strict) const {
+				const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict) const {
 
 			std::unordered_map<size_t, std::vector<set_N_value<T>* > > subset_values;
 
@@ -1176,7 +1165,7 @@ namespace ow_bft{
 				--final_depth;
 				size_t depth = 0;
 				subsets_of<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(
-						key, final_depth, subset_values, depth, this->root, true, strict, add_to_values_by_cardinality);
+						set, final_depth, subset_values, depth, this->root, true, strict, add_to_values_by_cardinality);
 			}
 			return subset_values;
 		}
@@ -1188,44 +1177,40 @@ namespace ow_bft{
 		 * All supersets of key are of depth >= final_depth and contain every element of key
 		 */
 		template<typename return_type>
-		void supersets_of(const boost::dynamic_bitset<>& key, const size_t& final_depth,
-				return_type& superset_values, size_t depth, node<T> *leaf, bool is_key, const bool& strict, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
+		void supersets_of(const boost::dynamic_bitset<>& set, const size_t& final_depth,
+				return_type& superset_values, size_t depth, node<T> *leaf, bool is_set, const bool& strict, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
 
-			if(depth < leaf->depth){
-				// take skipped depths into account
-				const boost::dynamic_bitset<>& next_set = this->fod->to_set(leaf->fod_elements);
-				while(depth < leaf->depth){
-					if(key[depth]){
-						if(!next_set[depth]){
-							// if key has an element that next_set doesn't
-							return;
-						}
-					}else if(next_set[depth]){
-						// if next_set has an element that key doesn't
-						is_key = false;
+			// take skipped depths into account
+			while(depth < leaf->depth){
+				if(set[depth]){
+					if(!leaf->set[depth]){
+						// if key has an element that next_set doesn't
+						return;
 					}
-					++depth;
+				}else if(leaf->set[depth]){
+					// if next_set has an element that key doesn't
+					is_set = false;
 				}
+				++depth;
 			}
-			//depth = leaf->depth;
 			if(depth < final_depth){
-				if(key[depth++]){
+				if(set[depth++]){
 					// if key has an element at depth, so its supersets
 					if(leaf->right){
-						supersets_of(key, final_depth, superset_values, depth, leaf->right, is_key, strict, add_to_values_func);
+						supersets_of(set, final_depth, superset_values, depth, leaf->right, is_set, strict, add_to_values_func);
 					}
 				}else{
 					// if key has no element at depth, its supersets have one or not
 					if(leaf->left){
-						supersets_of(key, final_depth, superset_values, depth, leaf->left, is_key, strict, add_to_values_func);
+						supersets_of(set, final_depth, superset_values, depth, leaf->left, is_set, strict, add_to_values_func);
 					}
 					if(leaf->right){
-						supersets_of(key, final_depth, superset_values, depth, leaf->right, false, strict, add_to_values_func);
+						supersets_of(set, final_depth, superset_values, depth, leaf->right, false, strict, add_to_values_func);
 					}
 				}
 			}else if(depth == final_depth){
 
-				if(!(strict && is_key)){//!strict || this->fod->is_superset_of(this->fod->to_set(leaf->fod_elements), key)){
+				if(!(strict && is_set)){//!strict || this->fod->is_superset_of(this->fod->to_set(leaf->fod_elements), key)){
 					// get value if you don't only want strict supersets
 					// OR if this set is a *strict* superset of key
 					if(!leaf->is_null){
@@ -1234,7 +1219,7 @@ namespace ow_bft{
 				}
 				++depth;
 				if(leaf->right){
-					supersets_of(key, final_depth, superset_values, depth, leaf->right, false, strict, add_to_values_func);
+					supersets_of(set, final_depth, superset_values, depth, leaf->right, false, strict, add_to_values_func);
 				}
 			}else{
 				// if depth > *final_depth, then we are visiting strict supersets of key
@@ -1245,15 +1230,15 @@ namespace ow_bft{
 				++depth;
 				// Now, no matter what additional elements they have, they are all supersets of key
 				if(leaf->left){
-					supersets_of(key, final_depth, superset_values, depth, leaf->left, is_key, strict, add_to_values_func);
+					supersets_of(set, final_depth, superset_values, depth, leaf->left, is_set, strict, add_to_values_func);
 				}
 				if(leaf->right){
-					supersets_of(key, final_depth, superset_values, depth, leaf->right, is_key, strict, add_to_values_func);
+					supersets_of(set, final_depth, superset_values, depth, leaf->right, is_set, strict, add_to_values_func);
 				}
 			}
 		}
 
-		std::vector<set_N_value<T>* > supersets_of(const boost::dynamic_bitset<>& key, size_t final_depth, const bool& strict) const {
+		std::vector<set_N_value<T>* > supersets_of(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict) const {
 
 			if(final_depth == 0){
 				std::vector<set_N_value<T>* > superset_values = this->elements();
@@ -1268,13 +1253,13 @@ namespace ow_bft{
 				superset_values.reserve(this->size());
 
 				supersets_of<std::vector<set_N_value<T>* > >(
-						key, final_depth, superset_values, depth, this->root, true, strict, add_to_values);
+						set, final_depth, superset_values, depth, this->root, true, strict, add_to_values);
 
 				return superset_values;
 			}
 		}
 
-		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const boost::dynamic_bitset<>& key, size_t final_depth, const bool& strict) const {
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict) const {
 
 			if(final_depth == 0){
 				std::unordered_map<size_t, std::vector<set_N_value<T>* > > superset_values = this->elements_by_set_cardinality();
@@ -1288,61 +1273,56 @@ namespace ow_bft{
 				std::unordered_map<size_t, std::vector<set_N_value<T>* > > superset_values;
 
 				supersets_of<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(
-						key, final_depth, superset_values, depth, this->root, true, strict, add_to_values_by_cardinality);
+						set, final_depth, superset_values, depth, this->root, true, strict, add_to_values_by_cardinality);
 
 				return superset_values;
 			}
 		}
 
 		void not_subsets_of_smaller_than(
-				const boost::dynamic_bitset<>& A,
-				boost::dynamic_bitset<>& operation_result,
+				const boost::dynamic_bitset<>& set,
+				boost::dynamic_bitset<>& resulting_set,
 				size_t c,
 				const size_t& c_max,
 				node<T>* leaf,
 				bool is_subset,
 				size_t& nb_of_extra_elem,
 				size_t depth,
-				const bool& has_union_operation,
+				const bool& union_operation,
 				std::vector<boost::dynamic_bitset<> >& found_sets) const {
 
-			if(leaf->fod_elements.size() > c_max){
-				return;
-			}
-			if(depth < leaf->depth){
-				c = leaf->fod_elements.size();
-				// take skipped depths into account
-				const boost::dynamic_bitset<>& next_set = this->fod->to_set(leaf->fod_elements);
-				while(depth < leaf->depth){
-					if(A[depth]){
-						if(next_set[depth]){
-							// if next_set has an element in common with A
-							if(!has_union_operation){
-								operation_result[depth] = true;
-							}
-						}
-					}else{
-						if(next_set[depth]){
-							// if next_set has an element that A doesn't have
-							if(nb_of_extra_elem > 1)
-								--nb_of_extra_elem;
-							else
-								return;
-
-							is_subset = false;
-							if(has_union_operation){
-								operation_result[depth] = true;
-							}
+			// take skipped depths into account
+			while(depth < leaf->depth){
+				if(set[depth]){
+					if(leaf->set[depth]){
+						++c;
+						// if next_set has an element in common with set
+						if(!union_operation){
+							resulting_set[depth] = true;
 						}
 					}
-					++depth;
-				}
-			}
-			//depth = leaf->depth;
+				}else{
+					if(leaf->set[depth]){
+						++c;
+						// if next_set has an element that set doesn't have
+						if(nb_of_extra_elem > 1)
+							--nb_of_extra_elem;
+						else
+							return;
 
+						is_subset = false;
+						if(union_operation){
+							resulting_set[depth] = true;
+						}
+					}
+				}
+				++depth;
+			}
+			if(c > c_max)
+				return;
 			if(is_subset){
 				// if this branch can contain subsets of A
-				if(A[depth]){
+				if(set[depth]){
 					// if A does have the element at depth
 					++depth;
 
@@ -1350,29 +1330,29 @@ namespace ow_bft{
 					if(leaf->left)
 						// explore the branch that does not have it
 						not_subsets_of_smaller_than(
-										A,
-										operation_result,
+										set,
+										resulting_set,
 										c,
 										c_max,
 										leaf->left,
 										is_subset,
 										nb_of_extra_elem,
 										depth,
-										has_union_operation,
+										union_operation,
 										found_sets);
 
 					if(leaf->right && c < c_max){
 						// if we have not reached the limit of elements in one set,
 						// explore the branch that does have it
 
-						boost::dynamic_bitset<> F = operation_result;
+						boost::dynamic_bitset<> F = resulting_set;
 
-						if (!has_union_operation){
+						if (!union_operation){
 							F[depth] = true;
 						}
 
 						not_subsets_of_smaller_than(
-										A,
+										set,
 										F,
 										c+1,
 										c_max,
@@ -1380,14 +1360,14 @@ namespace ow_bft{
 										is_subset,
 										nb_of_extra_elem,
 										depth,
-										has_union_operation,
+										union_operation,
 										found_sets);
 					}
 				}else{
 					// if A does not have the element at depth
-					boost::dynamic_bitset<> F = operation_result;
+					boost::dynamic_bitset<> F = resulting_set;
 
-					if (has_union_operation){
+					if (union_operation){
 						F[depth] = true;
 					}
 
@@ -1403,15 +1383,15 @@ namespace ow_bft{
 						// (if not, since this branch still satisfies the conditions of subsets of A,
 						// then it will also satisfy them after this depth)
 						not_subsets_of_smaller_than(
-										A,
-										operation_result,
+										set,
+										resulting_set,
 										c,
 										c_max,
 										leaf->left,
 										is_subset,
 										nb_of_extra_elem,
 										depth,
-										has_union_operation,
+										union_operation,
 										found_sets);
 					}
 					if(leaf->right && c < c_max){
@@ -1420,7 +1400,7 @@ namespace ow_bft{
 						// Here, since A does not have the element at depth, all sets in the following depths in this branch will not be subsets of A.
 						is_subset = false;
 						not_subsets_of_smaller_than(
-										A,
+										set,
 										F,
 										c+1,
 										c_max,
@@ -1428,21 +1408,21 @@ namespace ow_bft{
 										is_subset,
 										nb_of_extra_elem,
 										depth,
-										has_union_operation,
+										union_operation,
 										found_sets);
 					}
 				}
 			}else{
 				// if this branch cannot contain any subset of A
-				boost::dynamic_bitset<> F = operation_result;
+				boost::dynamic_bitset<> F = resulting_set;
 
-				if(A[depth]){
+				if(set[depth]){
 					// if A does have the element at depth
-					if (!has_union_operation){
+					if (!union_operation){
 						F[depth] = true;
 					}
 				}else{
-					if (has_union_operation){
+					if (union_operation){
 						F[depth] = true;
 					}
 				}
@@ -1456,22 +1436,22 @@ namespace ow_bft{
 				if(leaf->left)
 					// explore the branch that does not have the element at depth
 					not_subsets_of_smaller_than(
-									A,
-									operation_result,
+									set,
+									resulting_set,
 									c,
 									c_max,
 									leaf->left,
 									is_subset,
 									nb_of_extra_elem,
 									depth,
-									has_union_operation,
+									union_operation,
 									found_sets);
 
 				if(leaf->right && c < c_max){
 					// if we have not reached the limit of elements in one set,
 					// explore the branch that does have it.
 					not_subsets_of_smaller_than(
-									A,
+									set,
 									F,
 									c+1,
 									c_max,
@@ -1479,7 +1459,7 @@ namespace ow_bft{
 									is_subset,
 									nb_of_extra_elem,
 									depth,
-									has_union_operation,
+									union_operation,
 									found_sets);
 				}
 			}
