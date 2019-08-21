@@ -1,5 +1,5 @@
-#ifndef OW_BFT_FOD_HPP
-#define OW_BFT_FOD_HPP
+#ifndef EFFICIENT_DST_FOD_HPP
+#define EFFICIENT_DST_FOD_HPP
 
 #include <boost/dynamic_bitset.hpp>
 #include <unordered_map>
@@ -9,7 +9,7 @@
 #include <memory_pool.hpp>
 #include <powerset_function.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template < typename T = double>
 	std::string to_string(const T& n){
@@ -20,7 +20,7 @@ namespace ow_bft{
 		return stm.str() ;
 	}
 
-	static std::string to_string(const std::vector<ow_bft::fod_element*>& fod_elements){
+	static std::string to_string(const std::vector<efficient_DST::fod_element*>& fod_elements){
 		std::string labels = "{";
 		size_t size = fod_elements.size();
 		if(size > 0){
@@ -34,7 +34,7 @@ namespace ow_bft{
 		return labels;
 	}
 
-	std::ostream& operator<<(std::ostream& os, const std::vector<ow_bft::fod_element*>& fod_elements) {
+	std::ostream& operator<<(std::ostream& os, const std::vector<efficient_DST::fod_element*>& fod_elements) {
 		os << to_string(fod_elements);
 		return os;
 	}
@@ -66,7 +66,7 @@ namespace ow_bft{
 		{}
 
 		const std::string to_string(const boost::dynamic_bitset<>& set) const{
-			return ow_bft::to_string(to_elements(set));
+			return efficient_DST::to_string(to_elements(set));
 		}
 
 		/*
@@ -300,21 +300,21 @@ namespace ow_bft{
 			return set1 & set2;
 		}
 
-		const std::vector<fod_element*> set_intersection(const std::vector<fod_element*>& elements1, const std::vector<fod_element*>& elements2) const {
-			return to_elements(
-				set_intersection(to_set(elements1), to_set(elements2))
-			);
-		}
+		//const std::vector<fod_element*> set_intersection(const std::vector<fod_element*>& elements1, const std::vector<fod_element*>& elements2) const {
+		//	return to_elements(
+		//		set_intersection(to_set(elements1), to_set(elements2))
+		//	);
+		//}
 
 		static const boost::dynamic_bitset<> set_union(const boost::dynamic_bitset<>& set1, const boost::dynamic_bitset<>& set2) {
 			return set1 | set2;
 		}
 
-		const std::vector<fod_element*> set_union(const std::vector<fod_element*>& elements1, const std::vector<fod_element*>& elements2) const {
-			return to_elements(
-				set_union(to_set(elements1), to_set(elements2))
-			);
-		}
+		//const std::vector<fod_element*> set_union(const std::vector<fod_element*>& elements1, const std::vector<fod_element*>& elements2) const {
+		//	return to_elements(
+		//		set_union(to_set(elements1), to_set(elements2))
+		//	);
+		//}
 
 		static const boost::dynamic_bitset<> set_minus(const boost::dynamic_bitset<>& set1, const boost::dynamic_bitset<>& set2) {
 			return set1 - set2;		// set1 & (set1 ^ set2);
@@ -408,6 +408,6 @@ namespace ow_bft{
 	};
 
 
-}	// namespace ow_bft
+}	// namespace efficient_DST
 
-#endif // OW_BFT_FOD_HPP
+#endif // EFFICIENT_DST_FOD_HPP

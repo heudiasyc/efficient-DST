@@ -1,13 +1,13 @@
-#ifndef OW_BFT_PLAUSIBILITY_HPP
-#define OW_BFT_PLAUSIBILITY_HPP
+#ifndef EFFICIENT_DST_PLAUSIBILITY_HPP
+#define EFFICIENT_DST_PLAUSIBILITY_HPP
 
-#include <mass_aggregate.hpp>
 #include <implicability.hpp>
+#include <mobius_aggregate.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T = double>
-	class plausibility : public mass_aggregate<T> {
+	class plausibility : public mobius_aggregate<T> {
 	protected:
 
 		static T compute_aggregation_at_emptyset(const powerset_btree<T>& m_focal_elements) {
@@ -45,7 +45,7 @@ namespace ow_bft{
 			compute_values_for_negation_of_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
-		plausibility(const mass_aggregate<T>& ma) : plausibility(ma.get_mass_equivalent())
+		plausibility(const mobius_aggregate<T>& ma) : plausibility(ma.get_mass_equivalent())
 		{}
 
 		plausibility(const plausibility<T>& p) : mass_aggregate<T>(p.get_mass_equivalent())
@@ -93,7 +93,7 @@ namespace ow_bft{
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_PLAUSIBILITY_HPP
+#endif // EFFICIENT_DST_PLAUSIBILITY_HPP
 

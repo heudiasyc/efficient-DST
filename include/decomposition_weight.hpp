@@ -1,19 +1,35 @@
-#ifndef OW_BFT_CANONICAL_DECOMPOSITION_HPP
-#define OW_BFT_CANONICAL_DECOMPOSITION_HPP
+#ifndef EFFICIENT_DST_DECOMPOSITION_WEIGHT_HPP
+#define EFFICIENT_DST_DECOMPOSITION_WEIGHT_HPP
 
-#include <aggregate.hpp>
-#include <commonality.hpp>
+#include <belief_function.hpp>
+#include <EMT_aggregation.hpp>
 #include <mass.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T = double>
-	class canonical_decomposition : public aggregate<T>{
+	class decomposition_weight : public belief_function<T>{
 
 	public:
-		virtual ~canonical_decomposition(){}
+		virtual ~decomposition_weight(){}
 
 	protected:
+		//const mass_aggregate<T> mass_aggregate_equivalent;
+		//const FOD *fod;
+		FOD fod;
+		/*
+		 * only focal-log sets (sets with weight value different from 1) and respective images
+		 */
+		powerset_btree<T> focal_log_sets_values;
+		/*
+		 * Information needed to efficiently compute
+		 */
+		//mobius_computation_scheme<T> n;
+
+		void display_message_no_mass_function_provided(){
+			std::clog << "No mass function provided for this mass function aggregate." << std::endl
+					<< "Initializing with vacuous case." << std::endl;
+		}
 
 		static set_N_value<T>* insert_neg_focal_p(
 				const boost::dynamic_bitset<>& neg_focal_p,
@@ -41,7 +57,7 @@ namespace ow_bft{
 
 		static set_N_value<T>* insert_focal_p(
 				const boost::dynamic_bitset<>& focal_p,
-				const mass_aggregate<T>& func_equivalent,
+				const mobius_aggregate<T>& func_equivalent,
 				powerset_btree<T>& func_on_focal_p,
 				std::unordered_map<size_t, std::vector<set_N_value<T>* > >& func_on_focal_p_map
 				) {
@@ -202,13 +218,13 @@ namespace ow_bft{
 				if(I_card <= 1){
 					// add it to q_on_focal_points if it wasn't already there
 					if(!q_on_focal_points[I]){
-						set_N_value<T>* inserted_focal_point = canonical_decomposition<T>::insert_focal_p(
+						set_N_value<T>* inserted_focal_point = decomposition_weight<T>::insert_focal_p(
 							I,
 							commonality_equivalent,
 							q_on_focal_points,
 							q_on_focal_points_map
 						);
-						canonical_decomposition<T>::insert_neg_focal_p(
+						decomposition_weight<T>::insert_neg_focal_p(
 							q_on_focal_points.fod->set_negate(I),
 							inserted_focal_point->value,
 							neg_b_on_neg_focal_points,
@@ -233,13 +249,13 @@ namespace ow_bft{
 			if(has_generated_quasi_bayesian){
 				// add also emptyset to q_on_focal_points if it wasn't already there
 				if(!q_on_focal_points[emptyset]){
-					set_N_value<T>* inserted_focal_point = canonical_decomposition<T>::insert_focal_p(
+					set_N_value<T>* inserted_focal_point = decomposition_weight<T>::insert_focal_p(
 						emptyset,
 						commonality_equivalent,
 						q_on_focal_points,
 						q_on_focal_points_map
 					);
-					canonical_decomposition<T>::insert_neg_focal_p(
+					decomposition_weight<T>::insert_neg_focal_p(
 						q_on_focal_points.fod->set_negate(emptyset),
 						inserted_focal_point->value,
 						neg_b_on_neg_focal_points,
@@ -602,25 +618,25 @@ namespace ow_bft{
 																								.strict_supersets_of_by_cardinality(
 																									current_set
 																								);
-			const std::vector<std::vector<set_N_value<long int>* >* >& ordered_vector = polarities
-								.get_vector_of_vectors_ordered_by_cardinality(polarities_by_cardinality);
+			const std::vector<size_t>& ordered_vector = polarities
+								.get_sorted_cardinalities(polarities_by_cardinality);
 
 			long int s;
 			for (size_t c = 0; c < ordered_vector.size(); ++c) {
-				for (size_t i = 0; i < ordered_vector[c]->size(); ++i) {
+				for (size_t i = 0; i < polarities_by_cardinality[ordered_vector[c]].size(); ++i) {
 					s = -1;
 					const std::vector<set_N_value<long int>* >& polarities_supersets = polarities
 																	.strict_subsets_of(
-																			(*ordered_vector[c])[i]->set
+																			polarities_by_cardinality[ordered_vector[c]][i]->set
 																	);
 					for (size_t ii = 0; ii < polarities_supersets.size(); ++ii) {
 						s += polarities_supersets[ii]->value;
 					}
-					set_N_value<long int>* inserted_polarity = polarities.insert((*ordered_vector[c])[i]->set, -s);
+					set_N_value<long int>* inserted_polarity = polarities.insert(polarities_by_cardinality[ordered_vector[c]][i]->set, -s);
 					std::clog << to_string<long int>(*inserted_polarity, *q_on_focal_points.fod) << std::endl;
 
 					weight *= pow(
-								q_on_focal_points[(*ordered_vector[c])[i]->set]->value,
+								q_on_focal_points[polarities_by_cardinality[ordered_vector[c]][i]->set]->value,
 								-s
 							);
 				}
@@ -629,6 +645,6 @@ namespace ow_bft{
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_CANONICAL_DECOMPOSITION_HPP
+#endif // EFFICIENT_DST_DECOMPOSITION_WEIGHT_HPP

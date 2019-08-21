@@ -1,14 +1,14 @@
-#ifndef OW_BFT_DISJUNCTIVE_DECOMPOSITION_HPP
-#define OW_BFT_DISJUNCTIVE_DECOMPOSITION_HPP
+#ifndef EFFICIENT_DST_DISJUNCTIVE_WEIGHT_HPP
+#define EFFICIENT_DST_DISJUNCTIVE_WEIGHT_HPP
 
-#include <canonical_decomposition.hpp>
+#include <decomposition_weight.hpp>
 #include <implicability.hpp>
 #include <mass.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T = double>
-	class disjunctive_decomposition : public canonical_decomposition<T>{
+	class disjunctive_weight : public decomposition_weight<T>{
 	protected:
 
 		const implicability<T> implicability_equivalent;
@@ -28,7 +28,7 @@ namespace ow_bft{
 
 	public:
 
-		disjunctive_decomposition(const mass<T>& m) :
+		disjunctive_weight(const mass<T>& m) :
 			implicability_equivalent(m),
 			fod(&(implicability_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -42,7 +42,7 @@ namespace ow_bft{
 			compute_values_for_special_elements();
 		}
 
-		disjunctive_decomposition(const powerset_btree<T>& m_focal_elements) :
+		disjunctive_weight(const powerset_btree<T>& m_focal_elements) :
 			implicability_equivalent(m_focal_elements),
 			fod(&(implicability_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -52,7 +52,7 @@ namespace ow_bft{
 			compute_values_for_special_elements();
 		}
 
-		disjunctive_decomposition(const implicability<T>& q) :
+		disjunctive_weight(const implicability<T>& q) :
 			implicability_equivalent(q),
 			fod(&(implicability_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -62,7 +62,7 @@ namespace ow_bft{
 			compute_values_for_special_elements();
 		}
 
-		disjunctive_decomposition(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& b_special_elements) :
+		disjunctive_weight(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& b_special_elements) :
 			implicability_equivalent(m_focal_elements, b_special_elements),
 			fod(&(implicability_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -72,7 +72,7 @@ namespace ow_bft{
 			compute_values_for_special_elements();
 		}
 
-		disjunctive_decomposition(const disjunctive_decomposition<T>& v) :
+		disjunctive_weight(const disjunctive_weight<T>& v) :
 			implicability_equivalent(v.get_implicability_equivalent()),
 			fod(&(implicability_equivalent.get_FOD())),
 			special_elements(v.get_special_elements()),
@@ -80,7 +80,7 @@ namespace ow_bft{
 			is_quasi_bayesian(false)
 		{}
 
-		disjunctive_decomposition(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& b_special_elements, const powerset_btree<T>& _special_elements) :
+		disjunctive_weight(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& b_special_elements, const powerset_btree<T>& _special_elements) :
 			implicability_equivalent(m_focal_elements, b_special_elements),
 			fod(&(implicability_equivalent.get_FOD())),
 			special_elements(_special_elements),
@@ -88,15 +88,15 @@ namespace ow_bft{
 			is_quasi_bayesian(false)
 		{}
 
-		disjunctive_decomposition(const mass_aggregate<T>& ma) : disjunctive_decomposition(ma.get_mass_equivalent()) // @suppress("Class members should be properly initialized")
+		disjunctive_weight(const mobius_aggregate<T>& ma) : disjunctive_weight(ma.get_mass_equivalent()) // @suppress("Class members should be properly initialized")
 		{}
 
-		disjunctive_decomposition(const FOD& fod) : disjunctive_decomposition(fod, degenerate)
+		disjunctive_weight(const FOD& fod) : disjunctive_weight(fod, degenerate)
 		{
 			display_message_no_implicability_function_provided();
 		}
 
-		disjunctive_decomposition(const FOD& _fod, const Special_case s_case) :
+		disjunctive_weight(const FOD& _fod, const Special_case s_case) :
 			implicability_equivalent(_fod, s_case),
 			fod(&(implicability_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -108,7 +108,7 @@ namespace ow_bft{
 
 
 		template <class fusion_rule>
-		disjunctive_decomposition<T> apply(const fusion_rule fusion, const disjunctive_decomposition<T>& v2) const {
+		disjunctive_weight<T> apply(const fusion_rule fusion, const disjunctive_weight<T>& v2) const {
 			return fusion(*this, v2);
 		}
 
@@ -171,7 +171,7 @@ namespace ow_bft{
 
 			std::vector<set_N_value<T>* > neg_q_on_pure_neg_focal_planes;
 
-			const bool& all_focal_points_found = canonical_decomposition<T>::linear_analysis_of_focal_points(
+			const bool& all_focal_points_found = decomposition_weight<T>::linear_analysis_of_focal_points(
 				neg_commonality_equivalent,
 				neg_q_on_neg_focal_planes, b_on_focal_planes,
 				neg_q_on_neg_focal_planes_map, b_on_focal_planes_map,
@@ -185,7 +185,7 @@ namespace ow_bft{
 				const std::vector<std::vector<set_N_value<T>* >* >& neg_q_on_neg_focal_sets_ordered_vector = neg_commonality_equivalent.get_special_elements()
 																				.get_vector_of_vectors_ordered_by_cardinality(neg_q_on_neg_focal_sets_map);
 
-				canonical_decomposition<T>::compute_focal_points(
+				decomposition_weight<T>::compute_focal_points(
 					neg_commonality_equivalent, this->implicability_equivalent.get_special_elements(),
 					neg_q_on_neg_focal_planes, b_on_focal_planes,
 					neg_q_on_neg_focal_planes_map, b_on_focal_planes_map,
@@ -193,7 +193,7 @@ namespace ow_bft{
 					neg_q_on_pure_neg_focal_planes
 				);
 				// Consonance check
-				canonical_decomposition<T>::consonance_check(
+				decomposition_weight<T>::consonance_check(
 					neg_q_on_pure_neg_focal_planes,
 					neg_q_on_neg_focal_sets_ordered_vector,
 					neg_q_on_neg_focal_planes.fod,
@@ -204,7 +204,7 @@ namespace ow_bft{
 			std::clog << "\nFocal planes found: \n";
 			print<T>(std::clog, b_on_focal_planes);
 
-			canonical_decomposition<T>::compute_disjunctive_decomposition(
+			decomposition_weight<T>::compute_disjunctive_decomposition(
 				this->implicability_equivalent.get_special_elements(),
 				b_on_focal_planes,
 				b_on_focal_planes_map,
@@ -422,6 +422,6 @@ namespace ow_bft{
 		*/
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_DISJUNCTIVE_DECOMPOSITION_HPP
+#endif // EFFICIENT_DST_DISJUNCTIVE_WEIGHT_HPP

@@ -6,7 +6,7 @@
 #include <iostream>
 
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	class slot_indices {
 	public:
@@ -121,6 +121,6 @@ namespace ow_bft{
 		}
 	};
 
-}	// namespace ow_bft
+}	// namespace efficient_DST
 
 #endif // MEMORY_POOL_HPP

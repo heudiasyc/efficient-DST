@@ -1,13 +1,13 @@
-#ifndef OW_BFT_BELIEF_HPP
-#define OW_BFT_BELIEF_HPP
+#ifndef EFFICIENT_DST_BELIEF_HPP
+#define EFFICIENT_DST_BELIEF_HPP
 
-#include <mass_aggregate.hpp>
 #include <implicability.hpp>
+#include <mobius_aggregate.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T = double>
-	class belief : public mass_aggregate<T> {
+	class belief : public mobius_aggregate<T> {
 	protected:
 
 		T compute_aggregation_at_emptyset() const {
@@ -24,12 +24,12 @@ namespace ow_bft{
 
 	public:
 
-		belief(const mass<T>& m) : mass_aggregate<T>(m)
+		belief(const mass<T>& m) : mobius_aggregate<T>(m)
 		{
 			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
-		belief(const powerset_btree<T>& m_focal_elements) : mass_aggregate<T>(m_focal_elements)
+		belief(const powerset_btree<T>& m_focal_elements) : mobius_aggregate<T>(m_focal_elements)
 		{
 			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
@@ -38,18 +38,18 @@ namespace ow_bft{
 		{}
 
 		belief(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& _special_elements) :
-			mass_aggregate<T>(m_focal_elements, _special_elements)
+			mobius_aggregate<T>(m_focal_elements, _special_elements)
 		{}
 
-		belief(const mass_aggregate<T>& ma) : belief(ma.get_mass_equivalent())
+		belief(const mobius_aggregate<T>& ma) : belief(ma.get_mass_equivalent())
 		{}
 
-		belief(const FOD& fod) : mass_aggregate<T>(fod)
+		belief(const FOD& fod) : mobius_aggregate<T>(fod)
 		{
 			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
-		belief(const FOD& fod, const Special_case s_case) : mass_aggregate<T>(fod, s_case)
+		belief(const FOD& fod, const Special_case s_case) : mobius_aggregate<T>(fod, s_case)
 		{
 			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
@@ -102,6 +102,6 @@ namespace ow_bft{
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_BELIEF_HPP
+#endif // EFFICIENT_DST_BELIEF_HPP

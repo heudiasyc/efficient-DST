@@ -1,13 +1,12 @@
-#ifndef OW_BFT_RULE_CONJUNCTIVE_CAUTIOUS_HPP
-#define OW_BFT_RULE_CONJUNCTIVE_CAUTIOUS_HPP
+#ifndef EFFICIENT_DST_RULE_CONJUNCTIVE_CAUTIOUS_HPP
+#define EFFICIENT_DST_RULE_CONJUNCTIVE_CAUTIOUS_HPP
 
-#include <conjunctive_decomposition.hpp>
+#include <conjunctive_weight.hpp>
 #include <mass.hpp>
-#include <min.hpp>
 #include <rule_conjunctive.hpp>
 #include <detail/is_small.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T>
 	static T multiply(T val1, T val2){
@@ -25,7 +24,7 @@ namespace ow_bft{
 		}
 
 		template <typename T>
-		static conjunctive_decomposition<T> operator()(const conjunctive_decomposition<T>& w1, const conjunctive_decomposition<T>& w2) {
+		static conjunctive_weight<T> operator()(const conjunctive_weight<T>& w1, const conjunctive_weight<T>& w2) {
 
 
 			// initialization
@@ -55,6 +54,6 @@ namespace ow_bft{
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_RULE_CONJUNCTIVE_CAUTIOUS_HPP
+#endif // EFFICIENT_DST_RULE_CONJUNCTIVE_CAUTIOUS_HPP

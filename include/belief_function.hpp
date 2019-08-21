@@ -1,5 +1,5 @@
-#ifndef OW_BFT_BFT_FUNCTION_HPP
-#define OW_BFT_BFT_FUNCTION_HPP
+#ifndef EFFICIENT_DST_BFT_FUNCTION_HPP
+#define EFFICIENT_DST_BFT_FUNCTION_HPP
 
 #include <boost/dynamic_bitset.hpp>
 #include <vector>
@@ -40,7 +40,7 @@ namespace std {
 	};
 }
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <class T = double>
 	static std::string to_string(const set_N_value<T>& s, const FOD& fod) {
@@ -66,11 +66,11 @@ namespace ow_bft{
 	enum Special_case {degenerate, vacuous};
 
 	template <typename T = double>
-	class bft_function {
+	class belief_function {
 	protected:
 
 		bool is_equivalent_to_zero(const T& value) const {
-			return ow_bft::detail::is_small(value, precision);
+			return efficient_DST::detail::is_small(value, precision);
 		}
 
 	public:
@@ -83,7 +83,7 @@ namespace ow_bft{
 			//this->fod->push_back_powerset(this->focal_elements);
 		}
 */
-		virtual ~bft_function()
+		virtual ~belief_function()
 		{}
 
 		// =============================================================================
@@ -96,6 +96,6 @@ namespace ow_bft{
 
 		virtual T find(const boost::dynamic_bitset<>& set) const = 0;
 	};
-}		// namespace ow_bft
+}		// namespace efficient_DST
 
-#endif // OW_BFT_BFT_FUNCTION_HPP
+#endif // EFFICIENT_DST_BFT_FUNCTION_HPP

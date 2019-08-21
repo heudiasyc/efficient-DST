@@ -5,7 +5,7 @@
 #include <vector>
 #include <fod.hpp>
 
-namespace ow_bft {
+namespace efficient_DST {
 
 class infinite_FOD : public FOD {
 protected:
@@ -40,6 +40,6 @@ public:
 	}
 };
 
-}	// namespace ow_bft
+}	// namespace efficient_DST
 
 #endif // INFINITE_FOD_HPP

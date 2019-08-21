@@ -1,12 +1,12 @@
-#ifndef OW_BFT_RULE_CONJUNCTIVE_HPP
-#define OW_BFT_RULE_CONJUNCTIVE_HPP
+#ifndef EFFICIENT_DST_RULE_CONJUNCTIVE_HPP
+#define EFFICIENT_DST_RULE_CONJUNCTIVE_HPP
 
 #include <commonality.hpp>
-#include <conjunctive_decomposition.hpp>
+#include <conjunctive_weight.hpp>
 #include <mass.hpp>
 #include <converter_to_mass_focal_elements.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T>
 	static T multiply(const powerset_btree<T>& powerset, T val1, T val2){
@@ -44,7 +44,7 @@ namespace ow_bft{
 						);
 					const set_N_value<T>* m12_focal_element_node = m12_focal_elements[m12_focal_element];
 					if(!m12_focal_element_node)
-						m12_focal_elements.insert(m12_focal_element, q1.find(m12_focal_element) * q2[fod.to_labels(fod.to_elements(m12_focal_element))]);
+						m12_focal_elements.insert(m12_focal_element, q1.find(m12_focal_element) * q2[fod.to_labels(m12_focal_element)]);
 				}
 			}
 
@@ -109,15 +109,15 @@ namespace ow_bft{
 		}
 
 		template <typename T>
-		conjunctive_decomposition<T> operator()(const conjunctive_decomposition<T>& w1, const conjunctive_decomposition<T>& w2) const {
+		conjunctive_weight<T> operator()(const conjunctive_weight<T>& w1, const conjunctive_weight<T>& w2) const {
 			const powerset_btree<T>& m12_focal_elements = fusion_of_commonalities_to_mass_focal_elements(
 					w1.get_commonality_equivalent(),
 					w2.get_commonality_equivalent(),
 					w1.precision);
-			return conjunctive_decomposition<T>(m12_focal_elements);
+			return conjunctive_weight<T>(m12_focal_elements);
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_RULE_CONJUNCTIVE_HPP
+#endif // EFFICIENT_DST_RULE_CONJUNCTIVE_HPP

@@ -1,5 +1,5 @@
-#ifndef OW_BFT_FOD_HPP
-#define OW_BFT_FOD_HPP
+#ifndef EFFICIENT_DST_INTERNAL_FOD_HPP
+#define EFFICIENT_DST_INTERNAL_FOD_HPP
 
 #include <boost/dynamic_bitset.hpp>
 #include <unordered_map>
@@ -10,16 +10,16 @@
 #include <memory_pool.hpp>
 #include <powerset_function.hpp>
 
-class bft_function;
+class belief_function;
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	class internal_sub_FOD {
 	protected:
 		FOD* mother;
 		std::vector<fod_element*> fod_elements;
 		std::unordered_map<std::string, size_t> indices_by_labels;
-		bft_function* managed_bft_function;
+		belief_function* managed_bft_function;
 
 	public:
 
@@ -49,7 +49,7 @@ namespace ow_bft{
 			this->powerset_pointers.emplace_back(pp);
 			return pp;
 		}*/
-		void set_managed_bft_function(bft_function& managed_bft_function){
+		void set_managed_bft_function(belief_function& managed_bft_function){
 			this->managed_bft_function = &managed_bft_function;
 		}
 /*
@@ -340,6 +340,6 @@ namespace ow_bft{
 	};
 
 
-}	// namespace ow_bft
+}	// namespace efficient_DST
 
-#endif // OW_BFT_FOD_HPP
+#endif // EFFICIENT_DST_INTERNAL_FOD_HPP

@@ -1,19 +1,19 @@
 #ifndef BOOST_BFT_PSEUDO_BFT_FUNCTION_HPP
 #define BOOST_BFT_PSEUDO_BFT_FUNCTION_HPP
 
-#include <bft_function.hpp>
+#include <belief_function.hpp>
 
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T = double>
-	class pseudo_bft_function : public bft_function<T> {
+	class pseudo_bft_function : public belief_function<T> {
 	public:
 		FOD existence_fod;	// existence fod conditioning the universe fod, i.e. the fod from bft_function
 		powerset_btree<T> existence_focal_elements;
 
 		pseudo_bft_function(FOD& _fod) :
-			bft_function<T>(_fod),
+			belief_function<T>(_fod),
 			existence_fod({
 				"Xi",
 				"not", 		// nothing, i.e. {emptyset}
@@ -24,5 +24,5 @@ namespace ow_bft{
 			this->existence_fod.push_back_powerset(this->existence_focal_elements);
 		}
 	};
-}	// namespace ow_bft
+}	// namespace efficient_DST
 #endif // BOOST_BFT_PSEUDO_BFT_FUNCTION_HPP

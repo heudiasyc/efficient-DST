@@ -1,7 +1,7 @@
-#ifndef OW_BFT_POWERSET_FUNCTION_HPP
-#define OW_BFT_POWERSET_FUNCTION_HPP
+#ifndef EFFICIENT_DST_POWERSET_FUNCTION_HPP
+#define EFFICIENT_DST_POWERSET_FUNCTION_HPP
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	class powerset_function {
 	protected:
@@ -29,6 +29,6 @@ namespace ow_bft{
 		{}
 
 	};
-}	// namespace ow_bft
+}	// namespace efficient_DST
 
-#endif // OW_BFT_POWERSET_FUNCTION_HPP
+#endif // EFFICIENT_DST_POWERSET_FUNCTION_HPP

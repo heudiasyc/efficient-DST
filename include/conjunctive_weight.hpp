@@ -1,14 +1,14 @@
-#ifndef OW_BFT_CONJUNCTIVE_DECOMPOSITION_HPP
-#define OW_BFT_CONJUNCTIVE_DECOMPOSITION_HPP
+#ifndef EFFICIENT_DST_CONJUNCTIVE_WEIGHT_HPP
+#define EFFICIENT_DST_CONJUNCTIVE_WEIGHT_HPP
 
-#include <canonical_decomposition.hpp>
 #include <commonality.hpp>
+#include <decomposition_weight.hpp>
 #include <mass.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T = double>
-	class conjunctive_decomposition : public canonical_decomposition<T>{
+	class conjunctive_weight : public decomposition_weight<T>{
 	protected:
 
 		const commonality<T> commonality_equivalent;
@@ -28,7 +28,7 @@ namespace ow_bft{
 
 	public:
 
-		conjunctive_decomposition(const mass<T>& m) :
+		conjunctive_weight(const mass<T>& m) :
 			commonality_equivalent(m),
 			fod(&(commonality_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -42,7 +42,7 @@ namespace ow_bft{
 			compute_values_for_special_elements();
 		}
 
-		conjunctive_decomposition(const powerset_btree<T>& m_focal_elements) :
+		conjunctive_weight(const powerset_btree<T>& m_focal_elements) :
 			commonality_equivalent(m_focal_elements),
 			fod(&(commonality_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -52,7 +52,7 @@ namespace ow_bft{
 			compute_values_for_special_elements();
 		}
 
-		conjunctive_decomposition(const commonality<T>& q) :
+		conjunctive_weight(const commonality<T>& q) :
 			commonality_equivalent(q),
 			fod(&(commonality_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -62,7 +62,7 @@ namespace ow_bft{
 			compute_values_for_special_elements();
 		}
 
-		conjunctive_decomposition(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& q_special_elements) :
+		conjunctive_weight(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& q_special_elements) :
 			commonality_equivalent(m_focal_elements, q_special_elements),
 			fod(&(commonality_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -72,7 +72,7 @@ namespace ow_bft{
 			compute_values_for_special_elements();
 		}
 
-		conjunctive_decomposition(const conjunctive_decomposition<T>& w) :
+		conjunctive_weight(const conjunctive_weight<T>& w) :
 			commonality_equivalent(w.get_commonality_equivalent()),
 			fod(&(commonality_equivalent.get_FOD())),
 			special_elements(w.get_special_elements()),
@@ -80,7 +80,7 @@ namespace ow_bft{
 			is_quasi_bayesian(false)
 		{}
 
-		conjunctive_decomposition(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& q_special_elements, const powerset_btree<T>& _special_elements) :
+		conjunctive_weight(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& q_special_elements, const powerset_btree<T>& _special_elements) :
 			commonality_equivalent(m_focal_elements, q_special_elements),
 			fod(&(commonality_equivalent.get_FOD())),
 			special_elements(_special_elements),
@@ -88,15 +88,15 @@ namespace ow_bft{
 			is_quasi_bayesian(false)
 		{}
 
-		conjunctive_decomposition(const mass_aggregate<T>& ma) : conjunctive_decomposition(ma.get_mass_equivalent()) // @suppress("Class members should be properly initialized")
+		conjunctive_weight(const mobius_aggregate<T>& ma) : conjunctive_weight(ma.get_mass_equivalent()) // @suppress("Class members should be properly initialized")
 		{}
 
-		conjunctive_decomposition(const FOD& fod) : conjunctive_decomposition(fod, vacuous)
+		conjunctive_weight(const FOD& fod) : conjunctive_weight(fod, vacuous)
 		{
 			display_message_no_commonality_function_provided();
 		}
 
-		conjunctive_decomposition(const FOD& _fod, const Special_case s_case) :
+		conjunctive_weight(const FOD& _fod, const Special_case s_case) :
 			commonality_equivalent(_fod, s_case),
 			fod(&(commonality_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size),
@@ -108,7 +108,7 @@ namespace ow_bft{
 
 
 		template <class fusion_rule>
-		conjunctive_decomposition<T> apply(const fusion_rule fusion, const conjunctive_decomposition<T>& w2) const {
+		conjunctive_weight<T> apply(const fusion_rule fusion, const conjunctive_weight<T>& w2) const {
 			return fusion(*this, w2);
 		}
 
@@ -174,7 +174,7 @@ namespace ow_bft{
 
 			std::vector<set_N_value<T>* > q_on_pure_focal_points;
 
-			const bool& all_focal_points_found = canonical_decomposition<T>::linear_analysis_of_focal_points(
+			const bool& all_focal_points_found = decomposition_weight<T>::linear_analysis_of_focal_points(
 				this->commonality_equivalent,
 				q_on_focal_points, neg_b_on_neg_focal_points,
 				q_on_focal_points_map, neg_b_on_neg_focal_points_map,
@@ -188,7 +188,7 @@ namespace ow_bft{
 				const std::vector<std::vector<set_N_value<T>* >* >& q_on_focal_sets_ordered_vector = commonality_equivalent.get_special_elements()
 																				.get_vector_of_vectors_ordered_by_cardinality(q_on_focal_sets_map);
 
-				canonical_decomposition<T>::compute_focal_points(
+				decomposition_weight<T>::compute_focal_points(
 					this->commonality_equivalent, neg_b_on_neg_focal_sets,
 					q_on_focal_points, neg_b_on_neg_focal_points,
 					q_on_focal_points_map, neg_b_on_neg_focal_points_map,
@@ -196,7 +196,7 @@ namespace ow_bft{
 					q_on_pure_focal_points
 				);
 				// Consonance check
-				canonical_decomposition<T>::consonance_check(
+				decomposition_weight<T>::consonance_check(
 					q_on_pure_focal_points,
 					q_on_focal_sets_ordered_vector,
 					q_on_focal_points.fod,
@@ -209,7 +209,7 @@ namespace ow_bft{
 
 			powerset_btree<T> neg_v_special_elements(*q_on_focal_points.fod, q_on_focal_points.block_size);
 
-			canonical_decomposition<T>::compute_disjunctive_decomposition(
+			decomposition_weight<T>::compute_disjunctive_decomposition(
 				neg_b_on_neg_focal_sets,
 				neg_b_on_neg_focal_points,
 				neg_b_on_neg_focal_points_map,
@@ -344,6 +344,6 @@ namespace ow_bft{
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_CONJUNCTIVE_DECOMPOSITION_HPP
+#endif // EFFICIENT_DST_CONJUNCTIVE_WEIGHT_HPP

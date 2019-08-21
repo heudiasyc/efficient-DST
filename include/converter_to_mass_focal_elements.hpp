@@ -1,15 +1,15 @@
-#ifndef OW_BFT_CONVERTER_TO_MASS_HPP
-#define OW_BFT_CONVERTER_TO_MASS_HPP
+#ifndef EFFICIENT_DST_CONVERTER_TO_MASS_HPP
+#define EFFICIENT_DST_CONVERTER_TO_MASS_HPP
 
 #include <converter.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <class bft_function, class T = double>
 	class converter_to_mass_focal_elements {
 	protected:
 		static bool is_equivalent_to_zero(const T& value, T precision) {
-			return ow_bft::detail::is_small(value, precision);
+			return efficient_DST::detail::is_small(value, precision);
 		}
 	public:
 
@@ -79,6 +79,6 @@ namespace ow_bft{
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_CONVERTER_TO_MASS_HPP
+#endif // EFFICIENT_DST_CONVERTER_TO_MASS_HPP

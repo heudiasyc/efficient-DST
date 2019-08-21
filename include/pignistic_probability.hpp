@@ -1,12 +1,12 @@
-#ifndef OW_BFT_PIGNISTIC_PROBABILITY_HPP
-#define OW_BFT_PIGNISTIC_PROBABILITY_HPP
+#ifndef EFFICIENT_DST_PIGNISTIC_PROBABILITY_HPP
+#define EFFICIENT_DST_PIGNISTIC_PROBABILITY_HPP
 
-#include <mass_aggregate.hpp>
+#include <mobius_aggregate.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T = double>
-	class pignistic_probability : public mass_aggregate<T> {
+	class pignistic_probability : public mobius_aggregate<T> {
 	protected:
 
 		T compute_aggregation_at_emptyset() const {
@@ -38,7 +38,7 @@ namespace ow_bft{
 			this->set_values_for_special_elements();
 		}
 
-		pignistic_probability(const mass_aggregate<T>& ma) : pignistic_probability(ma.get_mass_equivalent())
+		pignistic_probability(const mobius_aggregate<T>& ma) : pignistic_probability(ma.get_mass_equivalent())
 		{}
 
 		pignistic_probability(const pignistic_probability<T>& bet_p) : mass_aggregate<T>(bet_p.get_mass_equivalent())
@@ -72,6 +72,6 @@ namespace ow_bft{
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_PIGNISTIC_PROBABILITY_HPP
+#endif // EFFICIENT_DST_PIGNISTIC_PROBABILITY_HPP

@@ -1,5 +1,5 @@
-#ifndef OW_BFT_POWERSET_BTREE_HPP
-#define OW_BFT_POWERSET_BTREE_HPP
+#ifndef EFFICIENT_DST_POWERSET_BTREE_HPP
+#define EFFICIENT_DST_POWERSET_BTREE_HPP
 
 #include <algorithm>
 #include <math.h>
@@ -11,7 +11,7 @@
 #include <powerset_function.hpp>
 
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <class T=double>
 	class set_N_value{
@@ -608,54 +608,55 @@ namespace ow_bft{
 
 		/////////////////////////////////////////
 
-		std::vector<std::vector<set_N_value<T>* >* > get_vector_of_vectors_ordered_by_cardinality(std::unordered_map<size_t, std::vector<set_N_value<T>* > >& map) const {
+		std::vector<size_t> get_sorted_cardinalities(std::unordered_map<size_t, std::vector<set_N_value<T>* > >& map) const {
 			const size_t& F_card = map.size();
-			std::vector<std::vector<set_N_value<T>* >* > ordered_vector;
-			ordered_vector.reserve(F_card);
+			std::vector<size_t> ordered_cardinalities;
+			ordered_cardinalities.reserve(F_card);
 
 			if(F_card > 0 && this->fod->size() <= F_card*log2(F_card)){
 				for(size_t c = 0; c <= this->fod->size(); ++c) {
 					if(map.find(c) != map.end()){
-						ordered_vector.push_back(&map[c]);
+						ordered_cardinalities.push_back(c);
 					}
 				}
 			}else{
-				std::vector<size_t> keys;
-				keys.reserve(map.size());
-
 				for(auto kv : map) {
-				    keys.push_back(kv.first);
+					ordered_cardinalities.push_back(kv.first);
 				}
-				// sort indices in ascending order
-				std::sort(keys.begin(), keys.end());
-				for(size_t c = 0; c < keys.size(); ++c) {
-					ordered_vector.push_back(&map[keys[c]]);
-				}
+				// sort cardinalities in ascending order
+				std::sort(ordered_cardinalities.begin(), ordered_cardinalities.end());
 			}
-
-			return ordered_vector;
+			return ordered_cardinalities;
 		}
 
 		/////////////////////////////////////////
 
-		std::vector<boost::dynamic_bitset<> > unions_of_not_subsets_of_smaller_than(const boost::dynamic_bitset<>& set, size_t c_max) const {
-			size_t nb_of_extra_elem = this->fod->size() - set.count();
+		static const std::vector<boost::dynamic_bitset<> > unions_with_not_subsets_of_smaller_than(
+				const powerset_btree<T>& powerset,
+				const boost::dynamic_bitset<>& set,
+				size_t c_max
+				) {
+			size_t nb_of_extra_elem = powerset.fod->size() - set.count();
 			std::vector<boost::dynamic_bitset<> > unions;
 			boost::dynamic_bitset<> A = set;
 
 			if (nb_of_extra_elem > 0 && c_max > 0) {
-				not_subsets_of_smaller_than(set, A, 1, c_max, this->root, true, nb_of_extra_elem, 0, true, unions);
+				powerset.not_subsets_of_smaller_than(set, A, 1, c_max, powerset.root, true, nb_of_extra_elem, 0, true, unions);
 			}
 			return unions;
 		}
 
-		std::vector<boost::dynamic_bitset<> > intersections_of_not_subsets_of_smaller_than(const boost::dynamic_bitset<>& set, size_t c_max) const {
-			size_t nb_of_extra_elem = this->fod->size() - set.count();
+		static const std::vector<boost::dynamic_bitset<> > intersections_with_not_subsets_of_smaller_than(
+				const powerset_btree<T>& powerset,
+				const boost::dynamic_bitset<>& set,
+				size_t c_max
+				) {
+			size_t nb_of_extra_elem = powerset.fod->size() - set.count();
 			std::vector<boost::dynamic_bitset<> > intersections;
-			boost::dynamic_bitset<> emptyset(this->fod->size());
+			boost::dynamic_bitset<> emptyset(powerset.fod->size());
 
 			if (nb_of_extra_elem > 0 && c_max > 0) {
-				not_subsets_of_smaller_than(set, emptyset, 1, c_max, this->root, true, nb_of_extra_elem, 0, false, intersections);
+				powerset.not_subsets_of_smaller_than(set, emptyset, 1, c_max, powerset.root, true, nb_of_extra_elem, 0, false, intersections);
 			}
 			return intersections;
 		}
@@ -673,6 +674,12 @@ namespace ow_bft{
 					powerset1_list[i]->value
 				);
 			}
+		}
+
+		/////////////////////////////////////////
+
+		void connect_terminal_nodes_to_first_superset() {
+
 		}
 
 		/////////////////////////////////////////
@@ -1464,8 +1471,7 @@ namespace ow_bft{
 				}
 			}
 		}
-
 	};
-}	// namespace ow_bft
+}	// namespace efficient_DST
 
-#endif // OW_BFT_POWERSET_BTREE_HPP
+#endif // EFFICIENT_DST_POWERSET_BTREE_HPP

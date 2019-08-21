@@ -1,9 +1,9 @@
-#ifndef OW_BFT_AGGREGATE_HPP
-#define OW_BFT_AGGREGATE_HPP
+#ifndef EFFICIENT_DST_AGGREGATE_HPP
+#define EFFICIENT_DST_AGGREGATE_HPP
 
-#include <bft_function.hpp>
+#include <belief_function.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	/*
 	 * aggregate is a bft_function that results in the sum or multiplication of images of another function,
@@ -13,7 +13,7 @@ namespace ow_bft{
 	 * - disjunctive decomposition as product of images of an implicability function
 	 */
 	template <typename T = double>
-	class aggregate : public bft_function<T> {
+	class aggregate : public belief_function<T> {
 	protected:
 
 		virtual T compute_aggregation_at_emptyset() const = 0;
@@ -34,6 +34,6 @@ namespace ow_bft{
 
 		virtual T find(const boost::dynamic_bitset<>& set) const = 0;
 	};
-}		// namespace ow_bft
+}		// namespace efficient_DST
 
-#endif // OW_BFT_AGGREGATE_HPP
+#endif // EFFICIENT_DST_AGGREGATE_HPP

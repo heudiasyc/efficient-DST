@@ -1,13 +1,13 @@
-#ifndef OW_BFT_RULE_DEMPSTER_HPP
-#define OW_BFT_RULE_DEMPSTER_HPP
+#ifndef EFFICIENT_DST_RULE_DEMPSTER_HPP
+#define EFFICIENT_DST_RULE_DEMPSTER_HPP
 
 #include <commonality.hpp>
-#include <conjunctive_decomposition.hpp>
+#include <conjunctive_weight.hpp>
 #include <mass.hpp>
 #include <converter_to_mass_focal_elements.hpp>
 #include <rule_conjunctive.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	struct rule_Dempster {
 		std::string to_string() const {
@@ -99,15 +99,15 @@ namespace ow_bft{
 		}
 
 		template <typename T>
-		conjunctive_decomposition<T> operator()(const conjunctive_decomposition<T>& w1, const conjunctive_decomposition<T>& w2) const {
+		conjunctive_weight<T> operator()(const conjunctive_weight<T>& w1, const conjunctive_weight<T>& w2) const {
 			const powerset_btree<T>& m12_focal_elements = fusion_of_commonalities_to_mass_focal_elements(
 					w1.get_commonality_equivalent(),
 					w2.get_commonality_equivalent(),
 					w1.precision);
-			return conjunctive_decomposition<T>(m12_focal_elements);
+			return conjunctive_weight<T>(m12_focal_elements);
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_RULE_DEMPSTER_HPP
+#endif // EFFICIENT_DST_RULE_DEMPSTER_HPP

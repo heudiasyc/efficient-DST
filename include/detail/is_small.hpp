@@ -1,10 +1,10 @@
-#ifndef OW_BFT_DETAIL_IS_SMALL_HPP
-#define OW_BFT_DETAIL_IS_SMALL_HPP
+#ifndef EFFICIENT_DST_DETAIL_IS_SMALL_HPP
+#define EFFICIENT_DST_DETAIL_IS_SMALL_HPP
 
 #include <boost/version.hpp>
 #include <boost/test/floating_point_comparison.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 	namespace detail{
 
 		template <typename FPT>
@@ -22,6 +22,6 @@ namespace ow_bft{
 
 	} // namespace detail
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_DETAIL_IS_SMALL_HPP
+#endif // EFFICIENT_DST_DETAIL_IS_SMALL_HPP

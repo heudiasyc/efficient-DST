@@ -1,7 +1,7 @@
-#ifndef OW_BFT_FOD_ELEMENT_HPP
-#define OW_BFT_FOD_ELEMENT_HPP
+#ifndef EFFICIENT_DST_FOD_ELEMENT_HPP
+#define EFFICIENT_DST_FOD_ELEMENT_HPP
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	class fod_element{
 	public:
@@ -14,6 +14,6 @@ namespace ow_bft{
 		{}
 	};
 
-}	// namespace ow_bft
+}	// namespace efficient_DST
 
-#endif // OW_BFT_FOD_ELEMENT_HPP
+#endif // EFFICIENT_DST_FOD_ELEMENT_HPP

@@ -1,56 +1,56 @@
-#ifndef OW_BFT_IMPLICABILITY_HPP
-#define OW_BFT_IMPLICABILITY_HPP
+#ifndef EFFICIENT_DST_IMPLICABILITY_HPP
+#define EFFICIENT_DST_IMPLICABILITY_HPP
 
-#include <mass_aggregate.hpp>
+#include <mobius_aggregate.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	template <typename T = double>
-	class implicability : public mass_aggregate<T> {
+	class implicability : public mobius_aggregate<T> {
 	protected:
 
 		T compute_aggregation_at_emptyset() const {
-			return compute_aggregation_at_emptyset(this->mass_equivalent.get_focal_elements());
+			return compute_aggregation_at_emptyset(this->mass_equivalent.get_focal_sets_values());
 		}
 
 		T compute_aggregation_at_fod() const {
-			return compute_aggregation_at_fod(this->mass_equivalent.get_focal_elements());
+			return compute_aggregation_at_fod(this->mass_equivalent.get_focal_sets_values());
 		}
 
 		T compute_aggregation(const boost::dynamic_bitset<>& set) const {
-			return compute_aggregation(this->mass_equivalent.get_focal_elements(), set);
+			return compute_aggregation(this->mass_equivalent.get_focal_sets_values(), set);
 		}
 
 	public:
 
-		implicability(const mass<T>& m) : mass_aggregate<T>(m)
+		implicability(const mass<T>& m) : mobius_aggregate<T>(m)
 		{
-			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
+			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_sets_values(), this->special_elements);
 		}
 
-		implicability(const powerset_btree<T>& m_focal_elements) : mass_aggregate<T>(m_focal_elements)
+		implicability(const powerset_btree<T>& m_focal_elements) : mobius_aggregate<T>(m_focal_elements)
 		{
-			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
+			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_sets_values(), this->special_elements);
 		}
 
-		implicability(const implicability<T>& b) : implicability(b.get_mass_equivalent().get_focal_elements(), b.get_special_elements())
+		implicability(const implicability<T>& b) : implicability(b.get_mass_equivalent().get_focal_sets_values(), b.get_special_elements())
 		{}
 
 		implicability(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& _special_elements) :
-			mass_aggregate<T>(m_focal_elements, _special_elements)
+			mobius_aggregate<T>(m_focal_elements, _special_elements)
 		{}
 
-		implicability(const mass_aggregate<T>& ma) : implicability(ma.get_mass_equivalent())
+		implicability(const mobius_aggregate<T>& ma) : implicability(ma.get_mass_equivalent())
 		{}
 
-		implicability(const FOD& fod) : mass_aggregate<T>(fod)
+		implicability(const FOD& fod) : mobius_aggregate<T>(fod)
 		{
-			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
+			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_sets_values(), this->special_elements);
 		}
 
-		implicability(const FOD& fod, const Special_case s_case) : mass_aggregate<T>(fod, s_case)
+		implicability(const FOD& fod, const Special_case s_case) : mobius_aggregate<T>(fod, s_case)
 		{
-			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
+			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_sets_values(), this->special_elements);
 		}
 
 
@@ -101,20 +101,20 @@ namespace ow_bft{
 			m_tree.copy(bel_tree);
 
 			std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_cardinality = m_tree.elements_by_set_cardinality();
-			const std::vector<std::vector<set_N_value<T>* >* >& ordered_vector = m_tree.get_vector_of_vectors_ordered_by_cardinality(elements_by_cardinality);
+			const std::vector<size_t>& ordered_vector = m_tree.get_sorted_cardinalities(elements_by_cardinality);
 
 			// computation based on f_elements
 			for (size_t c = 0; c < ordered_vector.size()-1; ++c) {
-				for (size_t i = 0; i < ordered_vector[c]->size(); ++i) {
-					const std::vector<set_N_value<T>* >& supersets = m_tree.strict_supersets_of((*ordered_vector[c])[i]->set);
+				for (size_t i = 0; i < elements_by_cardinality[ordered_vector[c]].size(); ++i) {
+					const std::vector<set_N_value<T>* >& supersets = m_tree.strict_supersets_of(elements_by_cardinality[ordered_vector[c]][i]->set);
 					for (size_t k = 0; k < supersets.size(); ++k) {
-						supersets[k]->value -= (*ordered_vector[c])[i]->value;
+						supersets[k]->value -= elements_by_cardinality[ordered_vector[c]][i]->value;
 					}
 				}
 			}
 		}
 	};
 
-} // namespace ow_bft
+} // namespace efficient_DST
 
-#endif // OW_BFT_IMPLICABILITY_HPP
+#endif // EFFICIENT_DST_IMPLICABILITY_HPP

@@ -1,17 +1,17 @@
-#ifndef OW_BFT_MASS_AGGREGATE_HPP
-#define OW_BFT_MASS_AGGREGATE_HPP
+#ifndef EFFICIENT_DST_MASS_AGGREGATE_HPP
+#define EFFICIENT_DST_MASS_AGGREGATE_HPP
 
 #include <aggregate.hpp>
 #include <mass.hpp>
 
-namespace ow_bft{
+namespace efficient_DST{
 
 	/*
 	 * mass_aggregate is a bft_function that results in the sum of images of a mass function
 	 * i.e. commonality, belief, implicability, plausibility, conjunctive weights and disjunctive weights
 	 */
 	template <typename T = double>
-	class mass_aggregate : public aggregate<T> {
+	class mobius_aggregate : public aggregate<T> {
 	protected:
 
 		const mass<T> mass_equivalent;
@@ -30,7 +30,7 @@ namespace ow_bft{
 
 	public:
 
-		mass_aggregate(const mass<T>& m) :
+		mobius_aggregate(const mass<T>& m) :
 			mass_equivalent(m),
 			fod(&(mass_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size)
@@ -41,7 +41,7 @@ namespace ow_bft{
 			}
 		}
 
-		mass_aggregate(const powerset_btree<T>& m_focal_elements) :
+		mobius_aggregate(const powerset_btree<T>& m_focal_elements) :
 			mass_equivalent(m_focal_elements),
 			fod(&(mass_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size)
@@ -52,24 +52,24 @@ namespace ow_bft{
 			}
 		}
 
-		mass_aggregate(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& _special_elements) : // @suppress("Class members should be properly initialized")
-			mass_aggregate(m_focal_elements)
+		mobius_aggregate(const powerset_btree<T>& m_focal_elements, const powerset_btree<T>& _special_elements) : // @suppress("Class members should be properly initialized")
+			mobius_aggregate(m_focal_elements)
 		{
 			this->special_elements.copy(_special_elements);
 		}
 
-		mass_aggregate(const FOD& fod) : mass_aggregate(fod, vacuous)
+		mobius_aggregate(const FOD& fod) : mobius_aggregate(fod, vacuous)
 		{
 			display_message_no_mass_function_provided();
 		}
 
-		mass_aggregate(const FOD& _fod, const Special_case s_case) :
+		mobius_aggregate(const FOD& _fod, const Special_case s_case) :
 			mass_equivalent(_fod, s_case),
 			fod(&(mass_equivalent.get_FOD())),
 			special_elements(*fod, this->block_size)
 		{}
 
-		virtual ~mass_aggregate(){}
+		virtual ~mobius_aggregate(){}
 
 
 		const FOD& get_FOD() const {
@@ -170,7 +170,7 @@ namespace ow_bft{
 				if(f.origin.type == mass_t){
 					// example of possible case : this->type = commonality, old_f.type = mass
 					this->origin = f;
-					this->before_changes = ow_bft::powerset_btree<T>(&this->fod);
+					this->before_changes = efficient_DST::powerset_btree<T>(&this->fod);
 					this->fod.push_back_powerset(&this->before_changes);
 					std::vector<set_N_value<T>* > elements = this->origin.changes.elements();
 					// insertion of value of type this->type at each focal element
@@ -209,7 +209,7 @@ namespace ow_bft{
 				// example of possible case : this->type = commonality, old_f.type = mass
 				bft_function(old_f.fod);
 				this->origin = old_f;
-				this->before_changes = ow_bft::powerset_btree<T>(&this->fod);
+				this->before_changes = efficient_DST::powerset_btree<T>(&this->fod);
 				this->fod.push_back_powerset(&this->before_changes);
 			}
 		}
@@ -328,6 +328,6 @@ namespace ow_bft{
 		}
 */
 	};
-}		// namespace ow_bft
+}		// namespace efficient_DST
 
-#endif // OW_BFT_MASS_AGGREGATE_HPP
+#endif // EFFICIENT_DST_MASS_AGGREGATE_HPP
