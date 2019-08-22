@@ -326,7 +326,7 @@ namespace efficient_DST{
 		}
 
 		set_N_value<T>* operator[](const boost::dynamic_bitset<>& set) const {
-			return find(set, get_final_element_number(set));
+			return find(set, get_final_element_number(set), false);
 		}
 
 		/////////////////////////////////////////
@@ -608,7 +608,7 @@ namespace efficient_DST{
 
 		/////////////////////////////////////////
 
-		std::vector<size_t> get_sorted_cardinalities(std::unordered_map<size_t, std::vector<set_N_value<T>* > >& map) const {
+		std::vector<size_t> get_sorted_cardinalities(const std::unordered_map<size_t, std::vector<set_N_value<T>* > >& map) const {
 			const size_t& F_card = map.size();
 			std::vector<size_t> ordered_cardinalities;
 			ordered_cardinalities.reserve(F_card);
@@ -678,8 +678,51 @@ namespace efficient_DST{
 
 		/////////////////////////////////////////
 
-		void connect_terminal_nodes_to_first_superset() {
+		void connect_terminal_nodes_to_closest_superset() {
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > card_map = elements_by_set_cardinality();
+			std::vector<size_t> ordered_cardinalities = get_sorted_cardinalities(card_map);
+			/*
+			 * powerset_btree of terminal nodes lacking one or two connections in this powerset.
+			 * Each node in terminal_connection_tree is associated with the address of the corresponding node in this powerset.
+			 */
+			powerset_btree<set_N_value<T>* > terminal_connection_tree(*this->fod, this->block_size);
 
+			size_t c = 0;
+			if (ordered_cardinalities[0] == 0){
+				c = 1;
+			}
+
+			for (; c < ordered_cardinalities.size(); ++c){
+				const std::vector<set_N_value<T>* >& elements = card_map[ordered_cardinalities[c]];
+
+				for (size_t i = 0; i < elements.size(); ++i){
+					const std::vector<set_N_value<set_N_value<T>* >* >& subsets = terminal_connection_tree.subsets_of(elements[i]->set);
+
+					for (size_t s = 0; s < subsets.size(); ++s){
+						const node<T>*& node = (efficient_DST::node<T>) subsets[s]->value;
+						if (!node->left){
+							node->left = (efficient_DST::node<T>) elements[i];
+						}
+						if (!node->right){
+							node->right = (efficient_DST::node<T>) elements[i];
+						}
+					}
+					for (size_t s = 0; s < subsets.size(); ++s){
+						terminal_connection_tree.nullify(subsets[s]);
+					}
+				}
+
+				for (size_t i = 0; i < elements.size(); ++i){
+					const node<T>*& node = (efficient_DST::node<T>) elements[i];
+					if (!node->left || !node->right){
+						terminal_connection_tree.insert(node->set, elements[i]);
+					}
+				}
+			}
+		}
+
+		set_N_value<T>* closest_node_containing(const boost::dynamic_bitset<> set){
+			return find(set, get_final_element_number(set), true);
 		}
 
 		/////////////////////////////////////////
@@ -952,42 +995,63 @@ namespace efficient_DST{
 
 		/////////////////////////////////////////
 
-		set_N_value<T>* find(const boost::dynamic_bitset<>& set, const size_t& final_depth, node<T> *leaf, size_t& depth) const {
+		set_N_value<T>* find(const boost::dynamic_bitset<>& set, const size_t& final_depth, node<T> *leaf, size_t& depth, const bool& smallest_superset_search) const {
 			// if leaf->depth > *final_depth, then leaf has other elements than the ones of key
 			if(leaf->depth > final_depth){
-				return nullptr;
+				if(smallest_superset_search){
+					// take skipped depths into account
+					while(depth <= final_depth){
+						if(set[depth] && !leaf->set[depth]){
+							// if there is a disjunction between key and next_set for the element at depth in fod
+							return nullptr;
+						}
+						++depth;
+					}
+					if(leaf->is_null){
+						return find(set, final_depth, leaf->left, depth, smallest_superset_search);
+					}else{
+						return leaf;
+					}
+				}else{
+					return nullptr;
+				}
 			}
 			// take skipped depths into account
 			while(depth < leaf->depth){
 				if(set[depth] != leaf->set[depth]){
-					// if there is a disjunction between key and next_set for the element at *depth in fod
+					// if there is a disjunction between key and next_set for the element at depth in fod
 					return nullptr;
 				}
 				++depth;
 			}
 			if(set[depth]){
-				if(depth != final_depth){
+				if(depth == final_depth){
+					if(leaf->is_null){
+						if(smallest_superset_search){
+							return find(set, final_depth, leaf->right, depth, smallest_superset_search);
+						}else{
+							return nullptr;
+						}
+					}else{
+						return leaf;
+					}
+				}else{
 					if(!leaf->right){
 						return nullptr;
 					}
 					++depth;
-					return find(set, final_depth, leaf->right, depth);
-				}else{
-					if(leaf->is_null)
-						return nullptr;
-					else
-						return leaf;
+					return find(set, final_depth, leaf->right, depth, smallest_superset_search);
 				}
 			}else {
 				if(!leaf->left){
 					return nullptr;
 				}
 				++depth;
-				return find(set, final_depth, leaf->left, depth);
+				return find(set, final_depth, leaf->left, depth, smallest_superset_search);
 			}
 		}
 
-		set_N_value<T>* find(const boost::dynamic_bitset<>& set, size_t final_depth) const {
+		set_N_value<T>* find(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& smallest_superset_search) const {
 			/*
 			if(key.size() <= *depth){
 				std::string key_str = "";
@@ -1004,7 +1068,7 @@ namespace efficient_DST{
 			size_t depth = 0;
 			if(final_depth != 0){
 				--final_depth;
-				return find(set, final_depth, this->root, depth);
+				return find(set, final_depth, this->root, depth, smallest_superset_search);
 			}else{
 				if(this->emptyset->is_null)
 					return nullptr;
