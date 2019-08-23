@@ -10,8 +10,6 @@
 
 #include <detail/is_small.hpp>
 #include <fod.hpp>
-#include <infinite_fod.hpp>
-#include <fod_element.hpp>
 #include <powerset_btree.hpp>
 
 
