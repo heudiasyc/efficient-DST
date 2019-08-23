@@ -7,13 +7,13 @@
 namespace efficient_DST{
 
 	template <typename T = double>
-	class pseudo_bft_function : public belief_function<T> {
+	class pseudo_bft_function : public mobius_transform<T> {
 	public:
 		FOD existence_fod;	// existence fod conditioning the universe fod, i.e. the fod from bft_function
 		powerset_btree<T> existence_focal_elements;
 
 		pseudo_bft_function(FOD& _fod) :
-			belief_function<T>(_fod),
+			mobius_transform<T>(_fod),
 			existence_fod({
 				"Xi",
 				"not", 		// nothing, i.e. {emptyset}

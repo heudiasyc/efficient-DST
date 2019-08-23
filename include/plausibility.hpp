@@ -58,7 +58,7 @@ namespace efficient_DST{
 			compute_values_for_negation_of_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
-		plausibility(const FOD& fod, const Special_case s_case) : mass_aggregate<T>(fod, s_case)
+		plausibility(const FOD& fod, const special_case_t s_case) : mass_aggregate<T>(fod, s_case)
 		{
 			compute_values_for_negation_of_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}

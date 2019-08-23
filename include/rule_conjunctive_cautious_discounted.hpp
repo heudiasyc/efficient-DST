@@ -25,8 +25,8 @@ struct rule_conjunctive_cautious_discounted : public rule_base
 
     const double alpha = 0;
     long n = 0;
-    mass<FOD, T>& m01 = 0;
-    mass<FOD, T>& m02 = 0;
+    mass<FOD, T>& m01 = 0; // @suppress("Invalid template argument") // @suppress("Type cannot be resolved")
+    mass<FOD, T>& m02 = 0; // @suppress("Invalid template argument") // @suppress("Type cannot be resolved")
 
     template <class FOD, typename T>
     mass<FOD, T>

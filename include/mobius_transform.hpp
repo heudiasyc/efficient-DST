@@ -1,5 +1,5 @@
-#ifndef EFFICIENT_DST_BFT_FUNCTION_HPP
-#define EFFICIENT_DST_BFT_FUNCTION_HPP
+#ifndef EFFICIENT_DST_MOBIUS_TRANSFORM_HPP
+#define EFFICIENT_DST_MOBIUS_TRANSFORM_HPP
 
 #include <boost/dynamic_bitset.hpp>
 #include <vector>
@@ -63,10 +63,12 @@ namespace efficient_DST{
 		return print<T>(os, values, *p.fod);
 	}
 
-	enum Special_case {degenerate, vacuous};
+	enum special_case_t {degenerate, vacuous};
+	enum class order_relation_t: bool { subset, superset };
+	enum class mobius_transformation_form_t: bool { additive, multiplicative };
 
 	template <typename T = double>
-	class belief_function {
+	class mobius_transform {
 	protected:
 
 		bool is_equivalent_to_zero(const T& value) const {
@@ -77,13 +79,21 @@ namespace efficient_DST{
 		// allow user to configure the floating-point tolerance
 		static const size_t block_size = 100;
 		const T precision = 1e-10;
-/*
-		bft_function(FOD& _fod)
-		{
-			//this->fod->push_back_powerset(this->focal_elements);
-		}
-*/
-		virtual ~belief_function()
+		/*
+		 * Only sets necessary to the definition of this Möbius transform
+		 * and their respective images are stored. Their data structure is a binary tree.
+		 */
+		powerset_btree<T> definition;
+
+		mobius_transform (const powerset_btree<T>& definition) :
+			definition(definition)
+		{}
+
+		mobius_transform (const FOD& fod) :
+			definition(fod, block_size)
+		{}
+
+		virtual ~mobius_transform()
 		{}
 
 		// =============================================================================
@@ -95,7 +105,15 @@ namespace efficient_DST{
 		virtual T operator[](const std::vector<std::string>& labels) const = 0;
 
 		virtual T find(const boost::dynamic_bitset<>& set) const = 0;
+
+		const powerset_btree<T>& get_definition() const {
+			return this->definition;
+		}
+
+		const FOD& get_FOD() const {
+			return *(this->definition.fod);
+		}
 	};
 }		// namespace efficient_DST
 
-#endif // EFFICIENT_DST_BFT_FUNCTION_HPP
+#endif // EFFICIENT_DST_MOBIUS_TRANSFORM_HPP

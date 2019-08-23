@@ -51,7 +51,7 @@ namespace efficient_DST{
 			this->set_values_for_special_elements();
 		}
 
-		pignistic_probability(const FOD& fod, const Special_case s_case) : mass_aggregate<T>(fod, s_case)
+		pignistic_probability(const FOD& fod, const special_case_t s_case) : mass_aggregate<T>(fod, s_case)
 		{
 			this->set_values_for_special_elements();
 		}

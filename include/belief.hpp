@@ -49,7 +49,7 @@ namespace efficient_DST{
 			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}
 
-		belief(const FOD& fod, const Special_case s_case) : mobius_aggregate<T>(fod, s_case)
+		belief(const FOD& fod, const special_case_t s_case) : mobius_aggregate<T>(fod, s_case)
 		{
 			compute_values_for_mass_focal_elements(this->mass_equivalent.get_focal_elements(), this->special_elements);
 		}

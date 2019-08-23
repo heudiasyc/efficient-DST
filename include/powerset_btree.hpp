@@ -699,12 +699,12 @@ namespace efficient_DST{
 					const std::vector<set_N_value<set_N_value<T>* >* >& subsets = terminal_connection_tree.subsets_of(elements[i]->set);
 
 					for (size_t s = 0; s < subsets.size(); ++s){
-						const node<T>*& node = (efficient_DST::node<T>) subsets[s]->value;
+						node<T>* node = (efficient_DST::node<T>*) subsets[s]->value;
 						if (!node->left){
-							node->left = (efficient_DST::node<T>) elements[i];
+							node->left = (efficient_DST::node<T>*) elements[i];
 						}
 						if (!node->right){
-							node->right = (efficient_DST::node<T>) elements[i];
+							node->right = (efficient_DST::node<T>*) elements[i];
 						}
 					}
 					for (size_t s = 0; s < subsets.size(); ++s){
@@ -713,7 +713,7 @@ namespace efficient_DST{
 				}
 
 				for (size_t i = 0; i < elements.size(); ++i){
-					const node<T>*& node = (efficient_DST::node<T>) elements[i];
+					node<T>* node = (efficient_DST::node<T>*) elements[i];
 					if (!node->left || !node->right){
 						terminal_connection_tree.insert(node->set, elements[i]);
 					}
