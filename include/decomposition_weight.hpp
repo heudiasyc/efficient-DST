@@ -2,6 +2,7 @@
 #define EFFICIENT_DST_DECOMPOSITION_WEIGHT_HPP
 
 #include <mobius_transform.hpp>
+#include <mobius_aggregate.hpp>
 
 namespace efficient_DST{
 
@@ -9,6 +10,16 @@ namespace efficient_DST{
 	class decomposition_weight : public mobius_transform<T>{
 
 	public:
+
+		decomposition_weight(const powerset_btree<T>& focal_log_sets_values) : mobius_transform<T>(focal_log_sets_values)
+		{}
+
+		decomposition_weight(const FOD& fod) : mobius_transform<T>(fod)
+		{}
+
+		decomposition_weight(const mobius_aggregate<T>& ma) : mobius_transform<T>(ma.inversion(mobius_transformation_form_t::multiplicative))
+		{}
+
 
 		virtual ~decomposition_weight(){}
 

@@ -503,14 +503,13 @@ namespace efficient_DST{
 			}
 			*/
 			if(!this->emptyset->is_null){
-				std::clog << "\nEMPTYSET : " << this->emptyset->value;
-				//all_values[0].emplace_back(this->emptyset);
+				//std::clog << "\nEMPTYSET : " << this->emptyset->value;
 				all_values.emplace(0, (std::vector<set_N_value<T>* >) {this->emptyset});
 			}
 
-			std::clog << "\n" << "[" << 0 << "]\t" << "ROOT : ";
+			//std::clog << "\n" << "[" << 0 << "]\t" << "ROOT : ";
 			elements<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(this->root, all_values, add_to_values_by_cardinality);
-			std::clog << std::endl;
+			//std::clog << std::endl;
 
 			return all_values;
 		}
@@ -520,12 +519,12 @@ namespace efficient_DST{
 			all_values.reserve(this->size());
 
 			if(!this->emptyset->is_null){
-				std::clog << "\nEMPTYSET : " << this->emptyset->value;
+				//std::clog << "\nEMPTYSET : " << this->emptyset->value;
 				all_values.emplace_back(this->emptyset);
 			}
-			std::clog << "\n" << "[" << 0 << "]\t" << "ROOT : ";
+			//std::clog << "\n" << "[" << 0 << "]\t" << "ROOT : ";
 			elements<std::vector<set_N_value<T>* > >(this->root, all_values, add_to_values);
-			std::clog << std::endl;
+			//std::clog << std::endl;
 
 			return all_values;
 		}
@@ -1102,15 +1101,15 @@ namespace efficient_DST{
 			}*/
 
 			if(!leaf->is_null){
-				std::clog << leaf->value;
+				//std::clog << leaf->value;
 				add_to_values_func(all_values, leaf);
 			}else{
-				std::clog << "null";
+				//std::clog << "null";
 			}
 
 
 			if(leaf->left){
-				std::string tab = "";
+				/*std::string tab = "";
 				for (size_t i = 0; i < leaf->depth; ++i) {
 					tab += "|";
 				}
@@ -1121,11 +1120,12 @@ namespace efficient_DST{
 					tab += ".";
 				}
 				std::clog << "\n" << "[" << leaf->left->depth << "]\t" << tab << " : ";
+				*/
 				elements(leaf->left, all_values, add_to_values_func);
 			}
 
 			if(leaf->right){
-				std::string tab = "";
+				/*std::string tab = "";
 				for (size_t i = 0; i < leaf->depth; ++i) {
 					tab += "|";
 				}
@@ -1136,6 +1136,7 @@ namespace efficient_DST{
 					tab += ".";
 				}
 				std::clog << "\n" << "[" << leaf->right->depth << "]\t" << tab << " : ";
+				*/
 				elements(leaf->right, all_values, add_to_values_func);
 			}
 		}
@@ -1352,15 +1353,17 @@ namespace efficient_DST{
 
 		void not_subsets_of_smaller_than(
 				const boost::dynamic_bitset<>& set,
-				boost::dynamic_bitset<>& resulting_set,
+				const boost::dynamic_bitset<>& F,
 				size_t c,
 				const size_t& c_max,
 				node<T>* leaf,
 				bool is_subset,
-				size_t& nb_of_extra_elem,
+				size_t nb_of_extra_elem,
 				size_t depth,
 				const bool& union_operation,
 				std::vector<boost::dynamic_bitset<> >& found_sets) const {
+
+			boost::dynamic_bitset<> resulting_set(F);
 
 			// take skipped depths into account
 			while(depth < leaf->depth){
@@ -1378,9 +1381,10 @@ namespace efficient_DST{
 						// if next_set has an element that set doesn't have
 						if(nb_of_extra_elem > 1)
 							--nb_of_extra_elem;
-						else
-							return;
-
+						else {
+							if(is_subset)
+								return;
+						}
 						is_subset = false;
 						if(union_operation){
 							resulting_set[depth] = true;
@@ -1388,6 +1392,8 @@ namespace efficient_DST{
 					}
 				}
 				++depth;
+				if(c > c_max)
+					return;
 			}
 			if(c > c_max)
 				return;
@@ -1395,10 +1401,8 @@ namespace efficient_DST{
 				// if this branch can contain subsets of A
 				if(set[depth]){
 					// if A does have the element at depth
-					++depth;
 
-
-					if(leaf->left)
+					if(leaf->left){
 						// explore the branch that does not have it
 						not_subsets_of_smaller_than(
 										set,
@@ -1408,46 +1412,34 @@ namespace efficient_DST{
 										leaf->left,
 										is_subset,
 										nb_of_extra_elem,
-										depth,
+										depth+1,
 										union_operation,
 										found_sets);
+					}
 
 					if(leaf->right && c < c_max){
 						// if we have not reached the limit of elements in one set,
 						// explore the branch that does have it
 
-						boost::dynamic_bitset<> F = resulting_set;
-
 						if (!union_operation){
-							F[depth] = true;
+							resulting_set[depth] = true;
 						}
-
 						not_subsets_of_smaller_than(
 										set,
-										F,
+										resulting_set,
 										c+1,
 										c_max,
 										leaf->right,
 										is_subset,
 										nb_of_extra_elem,
-										depth,
+										depth+1,
 										union_operation,
 										found_sets);
 					}
 				}else{
 					// if A does not have the element at depth
-					boost::dynamic_bitset<> F = resulting_set;
-
-					if (union_operation){
-						F[depth] = true;
-					}
-
-					if(!leaf->is_null){
-						found_sets.emplace_back(F);
-					}
-
-					++depth;
 					--nb_of_extra_elem;
+
 					if(leaf->left && nb_of_extra_elem > 1){
 						// if there are still elements that are not in A in the following depths,
 						// explore the branch that does not have it
@@ -1461,10 +1453,19 @@ namespace efficient_DST{
 										leaf->left,
 										is_subset,
 										nb_of_extra_elem,
-										depth,
+										depth+1,
 										union_operation,
 										found_sets);
 					}
+
+					if (union_operation){
+						resulting_set[depth] = true;
+					}
+
+					if(!leaf->is_null){
+						found_sets.emplace_back(resulting_set);
+					}
+
 					if(leaf->right && c < c_max){
 						// if we have not reached the limit of elements in one set,
 						// explore the branch that does have it.
@@ -1472,37 +1473,19 @@ namespace efficient_DST{
 						is_subset = false;
 						not_subsets_of_smaller_than(
 										set,
-										F,
+										resulting_set,
 										c+1,
 										c_max,
 										leaf->right,
 										is_subset,
 										nb_of_extra_elem,
-										depth,
+										depth+1,
 										union_operation,
 										found_sets);
 					}
 				}
 			}else{
 				// if this branch cannot contain any subset of A
-				boost::dynamic_bitset<> F = resulting_set;
-
-				if(set[depth]){
-					// if A does have the element at depth
-					if (!union_operation){
-						F[depth] = true;
-					}
-				}else{
-					if (union_operation){
-						F[depth] = true;
-					}
-				}
-
-				if(!leaf->is_null){
-					found_sets.emplace_back(F);
-				}
-
-				++depth;
 
 				if(leaf->left)
 					// explore the branch that does not have the element at depth
@@ -1514,22 +1497,37 @@ namespace efficient_DST{
 									leaf->left,
 									is_subset,
 									nb_of_extra_elem,
-									depth,
+									depth+1,
 									union_operation,
 									found_sets);
+
+				if(set[depth]){
+					// if A does have the element at depth
+					if (!union_operation){
+						resulting_set[depth] = true;
+					}
+				}else{
+					if (union_operation){
+						resulting_set[depth] = true;
+					}
+				}
+
+				if(!leaf->is_null){
+					found_sets.emplace_back(resulting_set);
+				}
 
 				if(leaf->right && c < c_max){
 					// if we have not reached the limit of elements in one set,
 					// explore the branch that does have it.
 					not_subsets_of_smaller_than(
 									set,
-									F,
+									resulting_set,
 									c+1,
 									c_max,
 									leaf->right,
 									is_subset,
 									nb_of_extra_elem,
-									depth,
+									depth+1,
 									union_operation,
 									found_sets);
 				}

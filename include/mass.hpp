@@ -2,6 +2,7 @@
 #define EFFICIENT_DST_MASS_HPP
 
 #include <mobius_transform.hpp>
+#include <mobius_aggregate.hpp>
 #include <powerset_function.hpp>
 
 namespace efficient_DST{
@@ -28,6 +29,10 @@ namespace efficient_DST{
 			    case vacuous	:  set_fod_value(1);	break;
 			}
 		}
+
+		mass(const mobius_aggregate<T>& ma) : mobius_transform<T>(ma.inversion(mobius_transformation_form_t::additive))
+		{}
+
 /*
 		void erase_elements_containing_fod_element(const std::string& element_label){
 			size_t position = this->fod.to_element(element_label)->position_in_fod;

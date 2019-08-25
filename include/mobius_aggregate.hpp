@@ -122,7 +122,7 @@ namespace efficient_DST{
 
 		powerset_btree<T> inversion(const mobius_transformation_form_t& mobius_transformation_form) const {
 			if (mobius_transformation_form == this->original_mobius_transform_form && this->original_mobius_transform.size() > 0){
-				return this->original_mobius_transform;
+				//return this->original_mobius_transform;
 			}
 			powerset_btree<T> transformed_structure(this->definition);
 			powerset_btree<T> transformed_structure_dual(this->dual_definition);
@@ -396,10 +396,9 @@ namespace efficient_DST{
 				std::function<T(const T&, const T&)> range_binary_operator,
 				powerset_btree<T>& transformed_structure
 				) const {
-			powerset_btree<T> initial_structure(transformed_structure);
 			T val;
-			std::unordered_map<size_t, std::vector<set_N_value<T>* > > structure_card_map = initial_structure.elements_by_set_cardinality();
-			std::vector<size_t> ordered_cardinalities = initial_structure.get_sorted_cardinalities(structure_card_map);
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > structure_card_map = transformed_structure.elements_by_set_cardinality();
+			std::vector<size_t> ordered_cardinalities = transformed_structure.get_sorted_cardinalities(structure_card_map);
 			std::vector<set_N_value<T>* > elements;
 
 			if (this->order_relation == order_relation_t::superset) {
@@ -410,9 +409,9 @@ namespace efficient_DST{
 				for (size_t i = 0; i < structure_elements.size(); ++i) {
 					val = structure_elements[i]->value;
 					if (this->order_relation == order_relation_t::subset){
-						elements = initial_structure.strict_subsets_of(structure_elements[i]->set);
+						elements = transformed_structure.strict_subsets_of(structure_elements[i]->set);
 					} else{
-						elements = initial_structure.strict_supersets_of(structure_elements[i]->set);
+						elements = transformed_structure.strict_supersets_of(structure_elements[i]->set);
 					}
 					for (size_t ii = 0; ii < elements.size(); ++ii) {
 						val = range_binary_operator(val, elements[ii]->value);
@@ -733,7 +732,6 @@ namespace efficient_DST{
 					}
 				}
 			}
-
 			// for each pure focal point (focal point that is not a focal set)
 			for (size_t i = 0; i < new_elements_in_structure.size(); ++i) {
 				const boost::dynamic_bitset<>& setA = new_elements_in_structure[i]->set;
