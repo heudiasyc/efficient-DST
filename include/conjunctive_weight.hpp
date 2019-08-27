@@ -64,7 +64,7 @@ namespace efficient_DST{
 
 	protected:
 
-		void invert_values(powerset_btree<T>& values) const {
+		static void invert_values(powerset_btree<T>& values) {
 			std::vector<set_N_value<T>* > elements = values.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
 				elements[i]->value = 1 / elements[i]->value;

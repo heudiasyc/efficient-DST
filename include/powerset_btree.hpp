@@ -1229,15 +1229,20 @@ namespace efficient_DST{
 				subset_values[i].reserve(alloc_per_cardinality);
 			}*/
 
-			if(!this->emptyset->is_null){
-				//subset_values[0].emplace_back(this->emptyset);
-				subset_values.emplace(0, {this->emptyset});
-			}
 			if(final_depth > 0){
+				if(!this->emptyset->is_null){
+					//subset_values[0].emplace_back(this->emptyset);
+					subset_values.emplace(0, {this->emptyset});
+				}
+
 				--final_depth;
 				size_t depth = 0;
 				subsets_of<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(
 						set, final_depth, subset_values, depth, this->root, true, strict, add_to_values_by_cardinality);
+			}else{
+				if(!this->emptyset->is_null && !strict){
+					subset_values.emplace(0, this->emptyset);
+				}
 			}
 			return subset_values;
 		}
@@ -1314,7 +1319,7 @@ namespace efficient_DST{
 
 			if(final_depth == 0){
 				std::vector<set_N_value<T>* > superset_values = this->elements();
-				if(strict){
+				if(!this->emptyset->is_null && strict){
 					superset_values.erase(superset_values.begin());
 				}
 				return superset_values;
@@ -1335,7 +1340,7 @@ namespace efficient_DST{
 
 			if(final_depth == 0){
 				std::unordered_map<size_t, std::vector<set_N_value<T>* > > superset_values = this->elements_by_set_cardinality();
-				if(strict){
+				if(!this->emptyset->is_null && strict){
 					superset_values.erase(0);
 				}
 				return superset_values;
