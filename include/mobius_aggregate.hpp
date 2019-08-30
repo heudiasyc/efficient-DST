@@ -218,7 +218,7 @@ namespace efficient_DST{
 				this->scheme_type = scheme_type_t::other;
 			}else{
 				// sort focal sets in original_structure by increasing cardinality
-				const std::vector<size_t>& original_ordered_cardinalities = original_structure.get_sorted_cardinalities(original_structure_card_map);
+				const std::vector<size_t>& original_ordered_cardinalities = powerset_btree<T>::get_sorted_cardinalities(original_structure_card_map, *original_structure.fod);
 
 				std::clog << "Consonance check:" << std::endl;
 				const bool& is_consonant = consonance_check(
@@ -232,7 +232,7 @@ namespace efficient_DST{
 					this->scheme_type = scheme_type_t::consonant;
 				}else{
 					std::clog << "not consonant." << std::endl;
-					if(original_structure.size() < 10 * original_structure.fod->size()){
+					if(original_structure.size() < 5 * original_structure.fod->size()){
 						std::clog << "Number of focal sets equivalent to |FOD|." << std::endl;
 						std::clog << "Transform to semilattice:" << std::endl;
 						to_semilattice(
@@ -241,15 +241,15 @@ namespace efficient_DST{
 							new_elements_in_structure,
 							default_value
 						);
-						if(this->definition.size() < 10 * original_structure.fod->size()){
+						if(this->definition.size() < 5 * original_structure.fod->size()){
 							std::clog << "Number of focal points also equivalent to |FOD|." << std::endl;
 							this->scheme_type = scheme_type_t::other;
 						}else{
 							std::clog << "Number of focal points superior to |FOD|." << std::endl;
 							if(this->order_relation == order_relation_t::subset){
-								compute_core_sequence(this->dual_definition);
+								compute_core_sequence(original_dual_structure);
 							}else{
-								compute_core_sequence(this->definition);
+								compute_core_sequence(original_structure);
 							}
 							this->scheme_type = scheme_type_t::semilattice;
 						}
@@ -398,7 +398,7 @@ namespace efficient_DST{
 				) const {
 			T val;
 			std::unordered_map<size_t, std::vector<set_N_value<T>* > > structure_card_map = transformed_structure.elements_by_set_cardinality();
-			std::vector<size_t> ordered_cardinalities = transformed_structure.get_sorted_cardinalities(structure_card_map);
+			std::vector<size_t> ordered_cardinalities = powerset_btree<T>::get_sorted_cardinalities(structure_card_map, *transformed_structure.fod);
 			std::vector<set_N_value<T>* > elements;
 
 			if (this->order_relation == order_relation_t::superset) {
@@ -429,7 +429,7 @@ namespace efficient_DST{
 				const T& default_value
 				) const {
 			std::unordered_map<size_t, std::vector<set_N_value<T>* > > structure_card_map = focal_points_tree.elements_by_set_cardinality();
-			std::vector<size_t> ordered_cardinalities = focal_points_tree.get_sorted_cardinalities(structure_card_map);
+			std::vector<size_t> ordered_cardinalities = powerset_btree<T>::get_sorted_cardinalities(structure_card_map, *focal_points_tree.fod);
 			T value, preceding_value = default_value;
 
 			if (this->order_relation == order_relation_t::superset) {
@@ -452,10 +452,10 @@ namespace efficient_DST{
 		void EMT_with_lower_semilattice(
 				powerset_btree<T>& focal_points_tree,
 				const std::vector<boost::dynamic_bitset<> >& sequence,
-				bool inversion,
+				const bool& inversion,
 				std::function<T(const T&, const T&)> range_binary_operator
 				) const {
-			focal_points_tree.connect_terminal_nodes_to_closest_superset();
+			powerset_btree<set_N_value<T>* > focal_points_superset_map = focal_points_tree.superset_map();
 			const std::vector<set_N_value<T>* >& focal_points = focal_points_tree.elements();
 			boost::dynamic_bitset<> fod_cum(focal_points_tree.fod->size());
 
@@ -464,15 +464,18 @@ namespace efficient_DST{
 			}
 
 			for (size_t o = 0; o < sequence.size(); ++o){
+
 				if (!inversion)
 					fod_cum = FOD::set_union(fod_cum, sequence[o]);
 
 				for (size_t i = 0; i < focal_points.size(); ++i){
 					const boost::dynamic_bitset<>& B = FOD::set_union(focal_points[i]->set, sequence[o]);
+
 					if (B != focal_points[i]->set){
-						const set_N_value<T>* X = focal_points_tree.closest_node_containing(B);
+						const set_N_value<set_N_value<T>* >* X = focal_points_superset_map.closest_node_containing(B);
+
 						if (X && FOD::is_or_is_subset_of(X->set, FOD::set_union(focal_points[i]->set, fod_cum))){
-							focal_points[i]->value = range_binary_operator(focal_points[i]->value, X->value);
+							focal_points[i]->value = range_binary_operator(focal_points[i]->value, X->value->value);
 						}
 					}
 				}
@@ -816,7 +819,7 @@ namespace efficient_DST{
 				}
 			}
 			std::unordered_map<size_t, std::vector<set_N_value<bool>* > > focal_atoms_card_map = focal_atoms_tree.elements_by_set_cardinality();
-			const std::vector<size_t>& ordered_cardinalities = focal_atoms_tree.get_sorted_cardinalities(focal_atoms_card_map);
+			const std::vector<size_t>& ordered_cardinalities = powerset_btree<bool>::get_sorted_cardinalities(focal_atoms_card_map, *focal_atoms_tree.fod);
 			this->sequence.reserve(focal_atoms_tree.size());
 
 			for (size_t c = 0; c < ordered_cardinalities.size(); ++c) {
@@ -832,11 +835,11 @@ namespace efficient_DST{
 		}
 
 
-		void to_lattice(bool dual, const T& default_value){
+		void to_lattice(const bool& dual, const T& default_value){
 			if (this->sequence.size() == 0)
 				return;
 
-			if(this->order_relation == order_relation_t::subset){
+			if(this->order_relation == order_relation_t::subset || dual){
 				powerset_btree<T>* working_tree;
 				if(dual)
 					working_tree = &this->dual_definition;
@@ -850,6 +853,7 @@ namespace efficient_DST{
 						if(dual){
 							if(!this->dual_definition[new_set]){
 								// this->dual_structure.insert(new_set, this->default_value);
+								std::clog << "!!!!!!!!!!!!!!!!!!!!!! = " << new_set << std::endl;
 								insert_dual_focal_point(new_set, default_value);
 							}
 						}else{

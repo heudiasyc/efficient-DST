@@ -70,7 +70,7 @@ namespace efficient_DST{
 	protected:
 
 		bool is_equivalent_to_zero(const T& value) const {
-			return efficient_DST::detail::is_small(value, precision);
+			return detail::is_small(value, precision);
 		}
 
 	public:

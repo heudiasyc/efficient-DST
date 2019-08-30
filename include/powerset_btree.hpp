@@ -100,32 +100,9 @@ namespace efficient_DST{
 		node<T> *root;
 		set_N_value<T> *emptyset;
 		size_t number_of_non_null_values;
-
-		/*
-		non_null_nodes_by_depth structure (cardinality ordering at each depth) :
-		{
-			{}, 																							: fod = {}
-			{c1}, 																							: fod = {c1}
-			{c2}, {c1, c2}, 																				: fod = {c1, c2}
-			{c3}, {c1, c3}, {c2, c3}, {c1, c2, c3}, 														: fod = {c1, c2, c3}
-			{c4}, {c1, c4}, {c2, c4}, {c3, c4}, {c1, c2, c4}, {c1, c3, c4}, {c2, c3, c4}, {c1, c2, c3, c4},	: fod = {c1, c2, c3, c4}
-			...
-		}
-
-		where the powerset natural order is slightly different :
-		{
-			{}, 																							: fod = {}
-			{c1}, 																							: fod = {c1}
-			{c2}, {c1, c2}, 																				: fod = {c1, c2}
-			{c3}, {c1, c3}, {c2, c3}, {c1, c2, c3}, 														: fod = {c1, c2, c3}
-			{c4}, {c1, c4}, {c2, c4}, {c1, c2, c4}, {c3, c4}, {c1, c3, c4}, {c2, c3, c4}, {c1, c2, c3, c4},	: fod = {c1, c2, c3, c4}
-			...
-		}
-		*/
-		//std::vector<std::vector<node<T>* > > non_null_nodes_by_depth;
+		const bool mark_every_depth;
 
 	public:
-		//const T null = -1;
 		const FOD *fod;
 		const size_t block_size;
 
@@ -135,9 +112,10 @@ namespace efficient_DST{
 		 * if the number of nodes exceeds block_size, this class will reserve another block of block_size nodes without reallocating the previous one
 		 * in order to preserve pointers and references
 		 */
-		powerset_btree(const FOD& _fod, const size_t _block_size) :
+		powerset_btree(const FOD& _fod, const size_t _block_size, const bool& mark_every_depth) :
 			node_pool(_block_size),
 			number_of_non_null_values(0),
+			mark_every_depth(mark_every_depth),
 			fod(&_fod),
 			block_size(_block_size)
 		{
@@ -147,8 +125,12 @@ namespace efficient_DST{
 			this->emptyset = this->node_pool.emplace(boost::dynamic_bitset<>(this->fod->size()));
 		}
 
+		powerset_btree(const FOD& _fod, const size_t _block_size) :
+			powerset_btree(_fod, _block_size, false)
+		{}
+
 		powerset_btree(const powerset_btree<T>& p) : // @suppress("Class members should be properly initialized")
-			powerset_btree(*(p.fod), p.node_pool.get_bock_size())
+			powerset_btree(*(p.fod), p.node_pool.get_bock_size(), p.mark_every_depth)
 		{
 			copy(p);
 		}
@@ -177,13 +159,6 @@ namespace efficient_DST{
 		}
 
 		size_t size() const {
-			/*
-			int s = this->non_null_nodes_by_depth[0].size();
-			for (int d = 1; d < this->non_null_nodes_by_depth.size(); ++d) {
-				s += this->non_null_nodes_by_depth[d].size();
-			}
-			return s;
-			*/
 			return this->number_of_non_null_values;
 		}
 
@@ -491,6 +466,10 @@ namespace efficient_DST{
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_set_cardinality() const {
+			return elements_by_set_cardinality(false);
+		}
+
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_set_cardinality(const bool& include_disjunction_nodes) const {
 
 			//std::vector<std::vector<set_N_value<T>* > > all_values(this->fod->size()+1);
 			std::unordered_map<size_t, std::vector<set_N_value<T>* > > all_values;
@@ -502,28 +481,32 @@ namespace efficient_DST{
 				all_values[i].reserve(alloc_per_cardinality);
 			}
 			*/
-			if(!this->emptyset->is_null){
+			if(include_disjunction_nodes || !this->emptyset->is_null){
 				//std::clog << "\nEMPTYSET : " << this->emptyset->value;
 				all_values.emplace(0, (std::vector<set_N_value<T>* >) {this->emptyset});
 			}
 
 			//std::clog << "\n" << "[" << 0 << "]\t" << "ROOT : ";
-			elements<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(this->root, all_values, add_to_values_by_cardinality);
+			elements<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(this->root, all_values, add_to_values_by_cardinality, include_disjunction_nodes);
 			//std::clog << std::endl;
 
 			return all_values;
 		}
 
 		std::vector<set_N_value<T>* > elements() const {
+			return elements(false);
+		}
+
+		std::vector<set_N_value<T>* > elements(const bool& include_disjunction_nodes) const {
 			std::vector<set_N_value<T>* > all_values;
 			all_values.reserve(this->size());
 
-			if(!this->emptyset->is_null){
+			if(include_disjunction_nodes || !this->emptyset->is_null){
 				//std::clog << "\nEMPTYSET : " << this->emptyset->value;
 				all_values.emplace_back(this->emptyset);
 			}
 			//std::clog << "\n" << "[" << 0 << "]\t" << "ROOT : ";
-			elements<std::vector<set_N_value<T>* > >(this->root, all_values, add_to_values);
+			elements<std::vector<set_N_value<T>* > >(this->root, all_values, add_to_values, include_disjunction_nodes);
 			//std::clog << std::endl;
 
 			return all_values;
@@ -532,11 +515,15 @@ namespace efficient_DST{
 		/////////////////////////////////////////
 
 		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& set) const {
-			return subsets_of(set, get_final_element_number(set), false);
+			return subsets_of(set, false);
+		}
+
+		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& set, const bool& include_disjunction_nodes) const {
+			return subsets_of(set, get_final_element_number(set), false, include_disjunction_nodes);
 		}
 
 		std::vector<set_N_value<T>* > subsets_of(const std::vector<fod_element*>& fod_elements) const {
-			return subsets_of(this->fod->to_set(fod_elements));
+			return subsets_of(this->fod->to_set(fod_elements), false);
 		}
 
 		std::vector<set_N_value<T>* > subsets_of(const std::vector<std::string>& labels) const {
@@ -544,11 +531,15 @@ namespace efficient_DST{
 		}
 
 		std::vector<set_N_value<T>* > strict_subsets_of(const boost::dynamic_bitset<>& set) const {
-			return subsets_of(set, get_final_element_number(set), true);
+			return strict_subsets_of(set, false);
+		}
+
+		std::vector<set_N_value<T>* > strict_subsets_of(const boost::dynamic_bitset<>& set, const bool& include_disjunction_nodes) const {
+			return subsets_of(set, get_final_element_number(set), true, include_disjunction_nodes);
 		}
 
 		std::vector<set_N_value<T>* > strict_subsets_of(const std::vector<fod_element*>& fod_elements) const {
-			return strict_subsets_of(this->fod->to_set(fod_elements));
+			return strict_subsets_of(this->fod->to_set(fod_elements), false);
 		}
 
 		std::vector<set_N_value<T>* > strict_subsets_of(const std::vector<std::string>& labels) const {
@@ -556,21 +547,29 @@ namespace efficient_DST{
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_subsets_of_by_cardinality(const boost::dynamic_bitset<>& set) const {
-			return subsets_of_by_cardinality(set, get_final_element_number(set), true);
+			return strict_subsets_of_by_cardinality(set, false);
+		}
+
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_subsets_of_by_cardinality(const boost::dynamic_bitset<>& set, const bool& include_disjunction_nodes) const {
+			return subsets_of_by_cardinality(set, get_final_element_number(set), true, include_disjunction_nodes);
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_subsets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
-			return strict_subsets_of_by_cardinality(this->fod->to_set(fod_elements));
+			return strict_subsets_of_by_cardinality(this->fod->to_set(fod_elements), false);
 		}
 
 		/////////////////////////////////////////
 
 		std::vector<set_N_value<T>* > supersets_of(const boost::dynamic_bitset<>& set) const {
-			return supersets_of(set, get_final_element_number(set), false);
+			return supersets_of(set, false);
+		}
+
+		std::vector<set_N_value<T>* > supersets_of(const boost::dynamic_bitset<>& set, const bool& include_disjunction_nodes) const {
+			return supersets_of(set, get_final_element_number(set), false, include_disjunction_nodes);
 		}
 
 		std::vector<set_N_value<T>* > supersets_of(const std::vector<fod_element*>& fod_elements) const {
-			return supersets_of(this->fod->to_set(fod_elements));
+			return supersets_of(this->fod->to_set(fod_elements), false);
 		}
 
 		std::vector<set_N_value<T>* > supersets_of(const std::vector<std::string>& labels) const {
@@ -578,19 +577,27 @@ namespace efficient_DST{
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const boost::dynamic_bitset<>& set) const {
-			return supersets_of_by_cardinality(set, get_final_element_number(set), false);
+			return supersets_of_by_cardinality(set, false);
+		}
+
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const boost::dynamic_bitset<>& set, const bool& include_disjunction_nodes) const {
+			return supersets_of_by_cardinality(set, get_final_element_number(set), false, include_disjunction_nodes);
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
-			return supersets_of_by_cardinality(this->fod->to_set(fod_elements));
+			return supersets_of_by_cardinality(this->fod->to_set(fod_elements), false);
 		}
 
 		std::vector<set_N_value<T>* > strict_supersets_of(const boost::dynamic_bitset<>& key) const {
-			return supersets_of(key, get_final_element_number(key), true);
+			return strict_supersets_of(key, false);
+		}
+
+		std::vector<set_N_value<T>* > strict_supersets_of(const boost::dynamic_bitset<>& key, const bool& include_disjunction_nodes) const {
+			return supersets_of(key, get_final_element_number(key), true, include_disjunction_nodes);
 		}
 
 		std::vector<set_N_value<T>* > strict_supersets_of(const std::vector<fod_element*>& fod_elements) const {
-			return strict_supersets_of(this->fod->to_set(fod_elements));
+			return strict_supersets_of(this->fod->to_set(fod_elements), false);
 		}
 
 		std::vector<set_N_value<T>* > strict_supersets_of(const std::vector<std::string>& labels) const {
@@ -598,22 +605,26 @@ namespace efficient_DST{
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_supersets_of_by_cardinality(const boost::dynamic_bitset<>& set) const {
-			return supersets_of_by_cardinality(set, get_final_element_number(set), true);
+			return strict_supersets_of_by_cardinality(set, false);
+		}
+
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_supersets_of_by_cardinality(const boost::dynamic_bitset<>& set, const bool& include_disjunction_nodes) const {
+			return supersets_of_by_cardinality(set, get_final_element_number(set), true, include_disjunction_nodes);
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > strict_supersets_of_by_cardinality(const std::vector<fod_element*>& fod_elements) const {
-			return strict_supersets_of_by_cardinality(this->fod->to_set(fod_elements));
+			return strict_supersets_of_by_cardinality(this->fod->to_set(fod_elements), false);
 		}
 
 		/////////////////////////////////////////
 
-		std::vector<size_t> get_sorted_cardinalities(const std::unordered_map<size_t, std::vector<set_N_value<T>* > >& map) const {
+		static const std::vector<size_t> get_sorted_cardinalities(const std::unordered_map<size_t, std::vector<set_N_value<T>* > >& map, const FOD& fod) {
 			const size_t& F_card = map.size();
 			std::vector<size_t> ordered_cardinalities;
 			ordered_cardinalities.reserve(F_card);
 
-			if(F_card > 0 && this->fod->size() <= F_card*log2(F_card)){
-				for(size_t c = 0; c <= this->fod->size(); ++c) {
+			if(F_card > 0 && fod.size() <= F_card*log2(F_card)){
+				for(size_t c = 0; c <= fod.size(); ++c) {
 					if(map.find(c) != map.end()){
 						ordered_cardinalities.push_back(c);
 					}
@@ -677,14 +688,21 @@ namespace efficient_DST{
 
 		/////////////////////////////////////////
 
-		void connect_terminal_nodes_to_closest_superset() {
-			std::unordered_map<size_t, std::vector<set_N_value<T>* > > card_map = elements_by_set_cardinality();
-			std::vector<size_t> ordered_cardinalities = get_sorted_cardinalities(card_map);
+		powerset_btree<set_N_value<T>* > superset_map() {
+			powerset_btree<set_N_value<T>* > superset_map(*this->fod, this->block_size, true);
+			const std::vector<set_N_value<T>* >& elements = this->elements();
+
+			for (size_t i = 0; i < elements.size(); ++i) {
+				superset_map.insert(elements[i]->set, elements[i]);
+			}
+
+			std::unordered_map<size_t, std::vector<set_N_value<set_N_value<T>* >* > > card_map = superset_map.elements_by_set_cardinality(true);
+			std::vector<size_t> ordered_cardinalities = powerset_btree<set_N_value<T>* >::get_sorted_cardinalities(card_map, *this->fod);
 			/*
 			 * powerset_btree of terminal nodes lacking one or two connections in this powerset.
 			 * Each node in terminal_connection_tree is associated with the address of the corresponding node in this powerset.
 			 */
-			powerset_btree<set_N_value<T>* > terminal_connection_tree(*this->fod, this->block_size);
+			powerset_btree<set_N_value<set_N_value<T>* >* > terminal_connection_tree(*this->fod, this->block_size);
 
 			size_t c = 0;
 			if (ordered_cardinalities[0] == 0){
@@ -692,33 +710,30 @@ namespace efficient_DST{
 			}
 
 			for (; c < ordered_cardinalities.size(); ++c){
-				const std::vector<set_N_value<T>* >& elements = card_map[ordered_cardinalities[c]];
+				const std::vector<set_N_value<set_N_value<T>* >* >& elements = card_map[ordered_cardinalities[c]];
 
 				for (size_t i = 0; i < elements.size(); ++i){
-					const std::vector<set_N_value<set_N_value<T>* >* >& subsets = terminal_connection_tree.subsets_of(elements[i]->set);
-
-					for (size_t s = 0; s < subsets.size(); ++s){
-						node<T>* node = (efficient_DST::node<T>*) subsets[s]->value;
-						if (!node->left){
-							node->left = (efficient_DST::node<T>*) elements[i];
+					if(!elements[i]->is_null){
+						const std::vector<set_N_value<set_N_value<set_N_value<T>* >* >* >& subsets = terminal_connection_tree.subsets_of(elements[i]->set);
+						for (size_t s = 0; s < subsets.size(); ++s){
+							node<set_N_value<T>* >* node = (efficient_DST::node<set_N_value<T>* >*) subsets[s]->value;
+							node->right = (efficient_DST::node<set_N_value<T>* >*) elements[i];
 						}
-						if (!node->right){
-							node->right = (efficient_DST::node<T>*) elements[i];
+						for (size_t s = 0; s < subsets.size(); ++s){
+							terminal_connection_tree.nullify(subsets[s]);
 						}
-					}
-					for (size_t s = 0; s < subsets.size(); ++s){
-						terminal_connection_tree.nullify(subsets[s]);
 					}
 				}
-
 				for (size_t i = 0; i < elements.size(); ++i){
-					node<T>* node = (efficient_DST::node<T>*) elements[i];
-					if (!node->left || !node->right){
-						terminal_connection_tree.insert(node->set, elements[i]);
+					node<set_N_value<T>* >* node = (efficient_DST::node<set_N_value<T>* >*) elements[i];
+					if (!node->right){
+						terminal_connection_tree.insert(elements[i]->set, elements[i]);
 					}
 				}
 			}
+			return superset_map;
 		}
+
 
 		set_N_value<T>* closest_node_containing(const boost::dynamic_bitset<> set){
 			return find(set, get_final_element_number(set), true);
@@ -965,9 +980,17 @@ namespace efficient_DST{
 						++depth;
 						return insert(set, value, final_depth, leaf, leaf->right, depth);
 					}else{
-						// link this node to the position of the fod element corresponding to *final_depth
-						leaf->right = create_node(set, value, final_depth, leaf, nullptr, nullptr);
-						return leaf->right;
+						if(this->mark_every_depth){
+							boost::dynamic_bitset<> disjunction_set = (const boost::dynamic_bitset<>&) leaf->set;
+							++depth;
+							disjunction_set[depth] = true;
+							leaf->right = create_disjunction_node(disjunction_set, depth, leaf, nullptr, nullptr);
+							return insert(set, value, final_depth, leaf, leaf->right, depth);
+						}else{
+							// link this node to the position of the fod element corresponding to *final_depth
+							leaf->right = create_node(set, value, final_depth, leaf, nullptr, nullptr);
+							return leaf->right;
+						}
 					}
 				}else{
 					if(leaf->is_null){
@@ -978,6 +1001,21 @@ namespace efficient_DST{
 						//this->non_null_nodes_by_depth[leaf->depth + 1].push_back(leaf);
 					}
 					leaf->value = value;
+					if(this->mark_every_depth){
+						if(!leaf->right && depth < this->fod->size()-1){
+							boost::dynamic_bitset<> disjunction_set = (const boost::dynamic_bitset<>&) leaf->set;
+							++depth;
+							disjunction_set[depth] = true;
+							leaf->right = create_disjunction_node(disjunction_set, depth, leaf, nullptr, nullptr);
+							node<T>* branch_cursor = leaf->right;
+							for(size_t d = depth+1; d < this->fod->size(); ++d){
+								disjunction_set[d-1] = false;
+								disjunction_set[d] = true;
+								branch_cursor->left = create_disjunction_node(disjunction_set, d, branch_cursor, nullptr, nullptr);
+								branch_cursor = branch_cursor->left;
+							}
+						}
+					}
 					return leaf;
 				}
 			}else {
@@ -985,9 +1023,18 @@ namespace efficient_DST{
 					++depth;
 					return insert(set, value, final_depth, leaf, leaf->left, depth);
 				}else{
-					// link this node to the position of the fod element corresponding to *final_depth
-					leaf->left = create_node(set, value, final_depth, leaf, nullptr, nullptr);
-					return leaf->left;
+					if(this->mark_every_depth){
+						boost::dynamic_bitset<> disjunction_set = (const boost::dynamic_bitset<>&) leaf->set;
+						disjunction_set[depth] = false;
+						++depth;
+						disjunction_set[depth] = true;
+						leaf->left = create_disjunction_node(disjunction_set, depth, leaf, nullptr, nullptr);
+						return insert(set, value, final_depth, leaf, leaf->left, depth);
+					}else{
+						// link this node to the position of the fod element corresponding to *final_depth
+						leaf->left = create_node(set, value, final_depth, leaf, nullptr, nullptr);
+						return leaf->left;
+					}
 				}
 			}
 		}
@@ -995,38 +1042,51 @@ namespace efficient_DST{
 		/////////////////////////////////////////
 
 		set_N_value<T>* find(const boost::dynamic_bitset<>& set, const size_t& final_depth, node<T> *leaf, size_t& depth, const bool& smallest_superset_search) const {
-			// if leaf->depth > *final_depth, then leaf has other elements than the ones of key
-			if(leaf->depth > final_depth){
-				if(smallest_superset_search){
-					// take skipped depths into account
-					while(depth <= final_depth){
-						if(set[depth] && !leaf->set[depth]){
-							// if there is a disjunction between key and next_set for the element at depth in fod
-							return nullptr;
+			//boost::dynamic_bitset<> A(this->fod->size());
+			//A[4] = true;
+			if(smallest_superset_search){
+				if(depth > final_depth){
+					if(this->mark_every_depth){
+						while(leaf->is_null){
+							if(leaf->left){
+								leaf = leaf->left;
+							}else if(leaf->right){
+								leaf = leaf->right;
+							}else{
+								return nullptr;
+							}
 						}
-						++depth;
-					}
-					if(leaf->is_null){
-						return find(set, final_depth, leaf->left, depth, smallest_superset_search);
-					}else{
 						return leaf;
 					}
-				}else{
+					return nullptr;
+				}
+			}else{
+				// if leaf->depth > final_depth, then leaf has other elements than the ones of key
+				if(leaf->depth > final_depth){
 					return nullptr;
 				}
 			}
+
 			// take skipped depths into account
-			while(depth < leaf->depth){
+			while(depth < leaf->depth && depth < final_depth){
 				if(set[depth] != leaf->set[depth]){
-					// if there is a disjunction between key and next_set for the element at depth in fod
-					return nullptr;
+					if(smallest_superset_search){
+						if(set[depth] && !leaf->set[depth])
+							return nullptr;
+					}else{
+						// if there is a disjunction between key and next_set for the element at depth in fod
+						return nullptr;
+					}
+
 				}
 				++depth;
 			}
+
 			if(set[depth]){
 				if(depth == final_depth){
 					if(leaf->is_null){
-						if(smallest_superset_search){
+						if(smallest_superset_search && leaf->right){
+							++depth;
 							return find(set, final_depth, leaf->right, depth, smallest_superset_search);
 						}else{
 							return nullptr;
@@ -1043,7 +1103,12 @@ namespace efficient_DST{
 				}
 			}else {
 				if(!leaf->left){
-					return nullptr;
+					if(smallest_superset_search && leaf->right){
+						++depth;
+						return find(set, final_depth, leaf->right, depth, smallest_superset_search);
+					}else{
+						return nullptr;
+					}
 				}
 				++depth;
 				return find(set, final_depth, leaf->left, depth, smallest_superset_search);
@@ -1051,19 +1116,6 @@ namespace efficient_DST{
 		}
 
 		set_N_value<T>* find(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& smallest_superset_search) const {
-			/*
-			if(key.size() <= *depth){
-				std::string key_str = "";
-				for (int i = 0; i < key.size(); ++i) {
-					std::string bit_str = "0";
-					if(key[i]){
-						bit_str = "1";
-					}
-					key_str = bit_str + key_str;
-				}
-				throw "\nCardinality parameter given for key " << key_str << " superior to its actual cardinality\n";
-			}
-			*/
 			size_t depth = 0;
 			if(final_depth != 0){
 				--final_depth;
@@ -1094,50 +1146,57 @@ namespace efficient_DST{
 		 * Complexity O(P), where P = number of nodes assigned by user
 		 */
 		template<typename return_type>
-		void elements(node<T>* leaf, return_type& all_values, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
+		void elements(node<T>* leaf, return_type& all_values, std::function<void(return_type&, node<T>*)> add_to_values_func, const bool& include_disjunction_nodes) const {
 			/*if(!leaf){
 				std::clog << "null";
 				return;
 			}*/
 
-			if(!leaf->is_null){
-				//std::clog << leaf->value;
+			bool debug = false;
+
+			if(include_disjunction_nodes || !leaf->is_null){
 				add_to_values_func(all_values, leaf);
-			}else{
-				//std::clog << "null";
+			}
+			if(debug){
+				if(leaf->is_null)
+					std::clog << "null";
+				else
+					std::clog << leaf->value;
 			}
 
 
 			if(leaf->left){
-				/*std::string tab = "";
-				for (size_t i = 0; i < leaf->depth; ++i) {
-					tab += "|";
+				if(debug){
+					std::string tab = "";
+					for (size_t i = 0; i < leaf->depth; ++i) {
+						tab += "|";
+					}
+					if(leaf->depth > 0)
+						tab += "";
+					tab += "-";
+					for (size_t i = leaf->depth; i < leaf->left->depth; ++i) {
+						tab += ".";
+					}
+					std::clog << "\n" << "[" << leaf->left->depth << "]\t" << tab << " : ";
 				}
-				if(leaf->depth > 0)
-					tab += "";
-				tab += "-";
-				for (size_t i = leaf->depth; i < leaf->left->depth; ++i) {
-					tab += ".";
-				}
-				std::clog << "\n" << "[" << leaf->left->depth << "]\t" << tab << " : ";
-				*/
-				elements(leaf->left, all_values, add_to_values_func);
+				elements(leaf->left, all_values, add_to_values_func, include_disjunction_nodes);
 			}
 
 			if(leaf->right){
-				/*std::string tab = "";
-				for (size_t i = 0; i < leaf->depth; ++i) {
-					tab += "|";
+				if(debug){
+					std::string tab = "";
+					for (size_t i = 0; i < leaf->depth; ++i) {
+						tab += "|";
+					}
+					if(leaf->depth > 0)
+						tab += "";
+					tab += "+";
+					for (size_t i = leaf->depth; i < leaf->right->depth; ++i) {
+						tab += ".";
+					}
+					std::clog << "\n" << "[" << leaf->right->depth << "]\t" << tab << " : ";
 				}
-				if(leaf->depth > 0)
-					tab += "";
-				tab += "+";
-				for (size_t i = leaf->depth; i < leaf->right->depth; ++i) {
-					tab += ".";
-				}
-				std::clog << "\n" << "[" << leaf->right->depth << "]\t" << tab << " : ";
-				*/
-				elements(leaf->right, all_values, add_to_values_func);
+				elements(leaf->right, all_values, add_to_values_func, include_disjunction_nodes);
 			}
 		}
 
@@ -1147,8 +1206,16 @@ namespace efficient_DST{
 		 * All subsets of key are of depth <= final_depth and don't contain any other elements than the ones of key
 		 */
 		template<typename return_type>
-		void subsets_of(const boost::dynamic_bitset<>& set, const size_t& final_depth,
-				return_type& subset_values, size_t depth, node<T> *leaf, bool is_set, const bool& strict, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
+		void subsets_of(
+				const boost::dynamic_bitset<>& set,
+				const size_t& final_depth,
+				return_type& subset_values,
+				size_t depth,
+				node<T> *leaf,
+				bool is_set,
+				const bool& strict,
+				std::function<void(return_type&, node<T>*)> add_to_values_func,
+				const bool& include_disjunction_nodes) const {
 
 			// if leaf->depth > *final_depth, then leaf has other elements than the ones of key
 			if(leaf->depth > final_depth){
@@ -1168,46 +1235,46 @@ namespace efficient_DST{
 			if(set[depth]){
 				if(depth != final_depth){
 					// get value only if leaf doesn't correspond to key (only strict subsets)
-					if(!leaf->is_null){
+					if(include_disjunction_nodes || !leaf->is_null){
 						add_to_values_func(subset_values, leaf);
 					}
 					++depth;
 					if(leaf->left){
-						subsets_of(set, final_depth, subset_values, depth, leaf->left, false, strict, add_to_values_func);
+						subsets_of(set, final_depth, subset_values, depth, leaf->left, false, strict, add_to_values_func, include_disjunction_nodes);
 					}
 					if(leaf->right){
-						subsets_of(set, final_depth, subset_values, depth, leaf->right, is_set, strict, add_to_values_func);
+						subsets_of(set, final_depth, subset_values, depth, leaf->right, is_set, strict, add_to_values_func, include_disjunction_nodes);
 					}
 				}else if(!(strict && is_set)){//this->fod->is_subset_of(this->fod->to_set(leaf->fod_elements), key)){
 					// get value if you don't only want strict subsets
 					// OR if this set is a *strict* subset of key
-					if(!leaf->is_null){
+					if(include_disjunction_nodes || !leaf->is_null){
 						add_to_values_func(subset_values, leaf);
 					}
 				}
 			}else {
 				if(leaf->left){
 					++depth;
-					subsets_of(set, final_depth, subset_values, depth, leaf->left, is_set, strict, add_to_values_func);
+					subsets_of(set, final_depth, subset_values, depth, leaf->left, is_set, strict, add_to_values_func, include_disjunction_nodes);
 				}
 			}
 		}
 
-		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict) const {
+		std::vector<set_N_value<T>* > subsets_of(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict, const bool& include_disjunction_nodes) const {
 			std::vector<set_N_value<T>* > subset_values;
 			subset_values.reserve(this->size());
 
 			if(final_depth > 0){
-				if(!this->emptyset->is_null){
+				if(include_disjunction_nodes || !this->emptyset->is_null){
 					subset_values.emplace_back(this->emptyset);
 				}
 
 				--final_depth;
 				size_t depth = 0;
 				subsets_of<std::vector<set_N_value<T>* > >(
-						set, final_depth, subset_values, depth, this->root, true, strict, add_to_values);
+						set, final_depth, subset_values, depth, this->root, true, strict, add_to_values, include_disjunction_nodes);
 			}else{
-				if(!this->emptyset->is_null && !strict){
+				if((include_disjunction_nodes || !this->emptyset->is_null) && !strict){
 					subset_values.emplace_back(this->emptyset);
 				}
 			}
@@ -1215,7 +1282,7 @@ namespace efficient_DST{
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > subsets_of_by_cardinality(
-				const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict) const {
+				const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict, const bool& include_disjunction_nodes) const {
 
 			std::unordered_map<size_t, std::vector<set_N_value<T>* > > subset_values;
 
@@ -1230,7 +1297,7 @@ namespace efficient_DST{
 			}*/
 
 			if(final_depth > 0){
-				if(!this->emptyset->is_null){
+				if(include_disjunction_nodes || !this->emptyset->is_null){
 					//subset_values[0].emplace_back(this->emptyset);
 					subset_values.emplace(0, {this->emptyset});
 				}
@@ -1238,9 +1305,9 @@ namespace efficient_DST{
 				--final_depth;
 				size_t depth = 0;
 				subsets_of<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(
-						set, final_depth, subset_values, depth, this->root, true, strict, add_to_values_by_cardinality);
+						set, final_depth, subset_values, depth, this->root, true, strict, add_to_values_by_cardinality, include_disjunction_nodes);
 			}else{
-				if(!this->emptyset->is_null && !strict){
+				if((include_disjunction_nodes || !this->emptyset->is_null) && !strict){
 					subset_values.emplace(0, this->emptyset);
 				}
 			}
@@ -1254,8 +1321,16 @@ namespace efficient_DST{
 		 * All supersets of key are of depth >= final_depth and contain every element of key
 		 */
 		template<typename return_type>
-		void supersets_of(const boost::dynamic_bitset<>& set, const size_t& final_depth,
-				return_type& superset_values, size_t depth, node<T> *leaf, bool is_set, const bool& strict, std::function<void(return_type&, node<T>*)> add_to_values_func) const {
+		void supersets_of(
+				const boost::dynamic_bitset<>& set,
+				const size_t& final_depth,
+				return_type& superset_values,
+				size_t depth,
+				node<T> *leaf,
+				bool is_set,
+				const bool& strict,
+				std::function<void(return_type&, node<T>*)> add_to_values_func,
+				const bool& include_disjunction_nodes) const {
 
 			// take skipped depths into account
 			while(depth < leaf->depth){
@@ -1274,15 +1349,15 @@ namespace efficient_DST{
 				if(set[depth++]){
 					// if key has an element at depth, so its supersets
 					if(leaf->right){
-						supersets_of(set, final_depth, superset_values, depth, leaf->right, is_set, strict, add_to_values_func);
+						supersets_of(set, final_depth, superset_values, depth, leaf->right, is_set, strict, add_to_values_func, include_disjunction_nodes);
 					}
 				}else{
 					// if key has no element at depth, its supersets have one or not
 					if(leaf->left){
-						supersets_of(set, final_depth, superset_values, depth, leaf->left, is_set, strict, add_to_values_func);
+						supersets_of(set, final_depth, superset_values, depth, leaf->left, is_set, strict, add_to_values_func, include_disjunction_nodes);
 					}
 					if(leaf->right){
-						supersets_of(set, final_depth, superset_values, depth, leaf->right, false, strict, add_to_values_func);
+						supersets_of(set, final_depth, superset_values, depth, leaf->right, false, strict, add_to_values_func, include_disjunction_nodes);
 					}
 				}
 			}else if(depth == final_depth){
@@ -1290,36 +1365,36 @@ namespace efficient_DST{
 				if(!(strict && is_set)){//!strict || this->fod->is_superset_of(this->fod->to_set(leaf->fod_elements), key)){
 					// get value if you don't only want strict supersets
 					// OR if this set is a *strict* superset of key
-					if(!leaf->is_null){
+					if(include_disjunction_nodes || !leaf->is_null){
 						add_to_values_func(superset_values, leaf);
 					}
 				}
 				++depth;
 				if(leaf->right){
-					supersets_of(set, final_depth, superset_values, depth, leaf->right, false, strict, add_to_values_func);
+					supersets_of(set, final_depth, superset_values, depth, leaf->right, false, strict, add_to_values_func, include_disjunction_nodes);
 				}
 			}else{
-				// if depth > *final_depth, then we are visiting strict supersets of key
-				if(!leaf->is_null){
+				// if depth > final_depth, then we are visiting strict supersets of key
+				if(include_disjunction_nodes || !leaf->is_null){
 					add_to_values_func(superset_values, leaf);
 				}
 
 				++depth;
 				// Now, no matter what additional elements they have, they are all supersets of key
 				if(leaf->left){
-					supersets_of(set, final_depth, superset_values, depth, leaf->left, is_set, strict, add_to_values_func);
+					supersets_of(set, final_depth, superset_values, depth, leaf->left, is_set, strict, add_to_values_func, include_disjunction_nodes);
 				}
 				if(leaf->right){
-					supersets_of(set, final_depth, superset_values, depth, leaf->right, is_set, strict, add_to_values_func);
+					supersets_of(set, final_depth, superset_values, depth, leaf->right, is_set, strict, add_to_values_func, include_disjunction_nodes);
 				}
 			}
 		}
 
-		std::vector<set_N_value<T>* > supersets_of(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict) const {
+		std::vector<set_N_value<T>* > supersets_of(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict, const bool& include_disjunction_nodes) const {
 
 			if(final_depth == 0){
 				std::vector<set_N_value<T>* > superset_values = this->elements();
-				if(!this->emptyset->is_null && strict){
+				if((include_disjunction_nodes || !this->emptyset->is_null) && strict){
 					superset_values.erase(superset_values.begin());
 				}
 				return superset_values;
@@ -1330,17 +1405,17 @@ namespace efficient_DST{
 				superset_values.reserve(this->size());
 
 				supersets_of<std::vector<set_N_value<T>* > >(
-						set, final_depth, superset_values, depth, this->root, true, strict, add_to_values);
+						set, final_depth, superset_values, depth, this->root, true, strict, add_to_values, include_disjunction_nodes);
 
 				return superset_values;
 			}
 		}
 
-		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict) const {
+		std::unordered_map<size_t, std::vector<set_N_value<T>* > > supersets_of_by_cardinality(const boost::dynamic_bitset<>& set, size_t final_depth, const bool& strict, const bool& include_disjunction_nodes) const {
 
 			if(final_depth == 0){
 				std::unordered_map<size_t, std::vector<set_N_value<T>* > > superset_values = this->elements_by_set_cardinality();
-				if(!this->emptyset->is_null && strict){
+				if((include_disjunction_nodes || !this->emptyset->is_null) && strict){
 					superset_values.erase(0);
 				}
 				return superset_values;
@@ -1350,7 +1425,7 @@ namespace efficient_DST{
 				std::unordered_map<size_t, std::vector<set_N_value<T>* > > superset_values;
 
 				supersets_of<std::unordered_map<size_t, std::vector<set_N_value<T>* > > >(
-						set, final_depth, superset_values, depth, this->root, true, strict, add_to_values_by_cardinality);
+						set, final_depth, superset_values, depth, this->root, true, strict, add_to_values_by_cardinality, include_disjunction_nodes);
 
 				return superset_values;
 			}
