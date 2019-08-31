@@ -88,8 +88,8 @@ namespace efficient_DST{
 			return find(this->definition.fod->to_set(labels));
 		}
 
-		T find(const boost::dynamic_bitset<>& key) const {
-			set_N_value<T>* set_value = this->definition[key];
+		T find(const boost::dynamic_bitset<>& set) const {
+			set_N_value<T>* set_value = this->definition[set];
 			if(set_value)
 				return set_value->value;
 			else

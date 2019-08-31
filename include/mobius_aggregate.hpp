@@ -52,9 +52,8 @@ namespace efficient_DST{
 				std::cerr << "\nThe given vector does not feature the same size as the powerset of the given FOD.\n";
 				return;
 			}
-			to_lower_semilattice(
-				powerset_values,
-				order_relation
+			to_semilattice(
+				powerset_values
 			);
 			this->original_mobius_transform.copy(this->inversion(mobius_transformation_form_t::additive));
 			this->original_mobius_transform_form = mobius_transformation_form_t::additive;
@@ -773,7 +772,46 @@ namespace efficient_DST{
 		void to_semilattice(
 			const std::vector<T>& powerset_values
 		) {
+			std::unordered_map<T, std::vector<boost::dynamic_bitset<> > > focal_points_map;
 
+			for (size_t n = 0; n < pow(2, this->definition.fod->size()); ++n){
+				boost::dynamic_bitset<> set(this->definition.fod->size(), n);
+
+				if (focal_points_map.find(powerset_values[n]) == focal_points_map.end()){
+					focal_points_map.emplace(powerset_values[n], (std::vector<boost::dynamic_bitset<> >) {set});
+				}else{
+					bool new_point = true;
+					std::vector<boost::dynamic_bitset<> >& focal_points = focal_points_map[powerset_values[n]];
+					for (size_t i = 0; i < focal_points.size(); ++i){
+						if (this->order_relation == order_relation_t::subset){
+							if (FOD::is_subset_of(set, focal_points[i])){
+								focal_points[i] = set;
+							}else if (FOD::is_subset_of(focal_points[i], set)){
+								new_point = false;
+								break;
+							}
+						}else{
+							if (FOD::is_superset_of(set, focal_points[i])){
+								focal_points[i] = set;
+								new_point = false;
+							}else if (FOD::is_superset_of(focal_points[i], set)){
+								new_point = false;
+								break;
+							}
+						}
+					}
+					if (new_point){
+						focal_points.emplace_back(set);
+					}
+				}
+			}
+			for (auto kv : focal_points_map){
+				for (size_t i = 0; i < kv.second.size(); ++i){
+					if(!this->definition[kv.second[i]]){
+						insert_focal_point(kv.second[i], kv.first);
+					}
+				}
+			}
 		}
 
 
@@ -853,7 +891,6 @@ namespace efficient_DST{
 						if(dual){
 							if(!this->dual_definition[new_set]){
 								// this->dual_structure.insert(new_set, this->default_value);
-								std::clog << "!!!!!!!!!!!!!!!!!!!!!! = " << new_set << std::endl;
 								insert_dual_focal_point(new_set, default_value);
 							}
 						}else{
