@@ -28,7 +28,8 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		commonality<T> apply(const fusion_rule fusion, const commonality<T>& q2) const {
+		commonality<T> apply(const commonality<T>& q2) const {
+			const fusion_rule fusion;
 			return fusion(*this, q2);
 		}
 	};

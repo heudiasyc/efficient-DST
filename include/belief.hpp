@@ -49,7 +49,8 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		belief<T> apply(const fusion_rule fusion, const belief<T>& b2) const {
+		belief<T> apply(const belief<T>& b2) const {
+			const fusion_rule fusion;
 			return fusion(*this, b2);
 		}
 	};

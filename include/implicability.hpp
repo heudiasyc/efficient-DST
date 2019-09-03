@@ -28,7 +28,8 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		implicability<T> apply(const fusion_rule fusion, const implicability<T>& b2) const {
+		implicability<T> apply(const implicability<T>& b2) const {
+			const fusion_rule fusion;
 			return fusion(*this, b2);
 		}
 	};

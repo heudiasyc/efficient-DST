@@ -3,7 +3,6 @@
 
 #include <mobius_transform.hpp>
 #include <mobius_aggregate.hpp>
-#include <powerset_function.hpp>
 
 namespace efficient_DST{
 
@@ -31,7 +30,10 @@ namespace efficient_DST{
 		}
 
 		mass(const mobius_aggregate<T>& ma) : mobius_transform<T>(ma.inversion(mobius_transformation_form_t::additive))
-		{}
+		{
+			this->remove_negligible_values();
+			this->normalize();
+		}
 
 /*
 		void erase_elements_containing_fod_element(const std::string& element_label){
@@ -42,7 +44,8 @@ namespace efficient_DST{
 		}
 */
 		template <class fusion_rule>
-		mass<T> apply(const fusion_rule fusion, const mass<T>& m2) const {
+		mass<T> apply(const mass<T>& m2) const {
+			const fusion_rule fusion;
 			return fusion(*this, m2);
 		}
 
@@ -94,6 +97,35 @@ namespace efficient_DST{
 				return set_value->value;
 			else
 				return 0;
+		}
+
+		void normalize() {
+			T sum = 0;
+			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
+			for (size_t i = 0; i < elements.size(); ++i) {
+				sum += elements[i]->value;
+			}
+			if(sum == 0){
+				std::cerr << "\nSum of mass values equal to 0."
+						<< "\nThis means that this mass function is either empty or contains as much positive values as negative values."
+						<< "\nEither way, this mass function cannot be normalized into a valid mass function." << std::endl;;
+				exit(1);
+			}
+			if(sum != 1){
+				// normalize
+				for (size_t i = 0; i < elements.size(); ++i) {
+					elements[i]->value /= sum;
+				}
+			}
+		}
+
+		void remove_negligible_values() {
+			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
+			for (size_t i = 0; i < elements.size(); ++i) {
+				if(this->is_equivalent_to_zero(elements[i]->value)){
+					this->definition.nullify(elements[i]);
+				}
+			}
 		}
 
 		///////////////////////////////////////////////////////////////////

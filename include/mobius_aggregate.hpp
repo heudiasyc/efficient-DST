@@ -121,7 +121,7 @@ namespace efficient_DST{
 
 		powerset_btree<T> inversion(const mobius_transformation_form_t& mobius_transformation_form) const {
 			if (mobius_transformation_form == this->original_mobius_transform_form && this->original_mobius_transform.size() > 0){
-				//return this->original_mobius_transform;
+				return this->original_mobius_transform;
 			}
 			powerset_btree<T> transformed_structure(this->definition);
 			powerset_btree<T> transformed_structure_dual(this->dual_definition);

@@ -7,8 +7,6 @@
 #include <boost/dynamic_bitset.hpp>
 #include <fod.hpp>
 #include <memory_pool.hpp>
-#include <fod_element.hpp>
-#include <powerset_function.hpp>
 
 
 namespace efficient_DST{
@@ -154,6 +152,26 @@ namespace efficient_DST{
 				std::vector<set_N_value<T>* > elem = p.elements();
 				for (size_t i = 0; i < elem.size(); ++i) {
 					insert(elem[i]->set, elem[i]->value);
+				}
+			}
+		}
+
+		void copy_sets(const powerset_btree<T>& p, T default_value){
+
+			if(p.fod != this->fod){
+				std::vector<set_N_value<T>* > elem = p.elements();
+				for (size_t i = 0; i < elem.size(); ++i) {
+					const std::vector<std::string>& set = this->fod->to_labels(elem[i]->set);
+					set_N_value<T>* node = (*this)[set];
+					if(!node)
+						insert(set, default_value);
+				}
+			}else{
+				std::vector<set_N_value<T>* > elem = p.elements();
+				for (size_t i = 0; i < elem.size(); ++i) {
+					set_N_value<T>* node = (*this)[elem[i]->set];
+					if(!node)
+						insert(elem[i]->set, default_value);
 				}
 			}
 		}
@@ -450,19 +468,33 @@ namespace efficient_DST{
 		void fill_with_union_of_powersets(
 				const powerset_btree<T>& powerset1,
 				const powerset_btree<T>& powerset2,
-				T (*f)(T, T)
+				std::function<T(const T&, const T&)> operation,
+				const T& default_value
 		){
-			T val = (*f)(powerset1.emptyset->value, powerset2.emptyset->value);
-			if(val > 0)
-				this->emptyset->value = val;
+			if(powerset1.fod != powerset2.fod){
+				std::cerr << "FOD in powerset1 is not the same as FOD in powerset2. Their union has been aborted." << std::endl;
+				return;
+			}
+
+			T val1 = default_value, val2 = default_value;
+			if(!powerset1.emptyset->is_null)
+				val1 = powerset1.emptyset->value;
+			if(!powerset2.emptyset->is_null)
+				val2 = powerset2.emptyset->value;
+
+			if(this->emptyset->is_null){
+				this->emptyset->is_null = false;
+				++this->number_of_non_null_values;
+			}
+			this->emptyset->value = operation(val1, val2);
 
 			fill_with_union_of_powersets(
-					(node<T>*) powerset1.sub_fod_of_size(1),
-					(node<T>*) powerset2.sub_fod_of_size(1),
-					f,
-					powerset2.fod,
-					0
-				);
+				powerset1.root,
+				powerset2.root,
+				operation,
+				0,
+				default_value
+			);
 		}
 
 		std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_set_cardinality() const {
@@ -742,6 +774,115 @@ namespace efficient_DST{
 		/////////////////////////////////////////
 
 	private:
+
+		//Complexity O(P), where P = number of nodes assigned by user
+		void fill_with_first_powerset(node<T>* leaf, std::function<T(const T&, const T&)> operation, const T& default_value){
+			if(!leaf)
+				return;
+
+			if(!leaf->is_null)
+				insert(leaf->set, operation(leaf->value, default_value));
+			fill_with_first_powerset(leaf->left, operation, default_value);
+			fill_with_first_powerset(leaf->right, operation, default_value);
+		}
+
+		void fill_with_second_powerset(node<T>* leaf, std::function<T(const T&, const T&)> operation, const T& default_value){
+			if(!leaf)
+				return;
+
+			if(!leaf->is_null)
+				insert(leaf->set, operation(default_value, leaf->value));
+			fill_with_second_powerset(leaf->left, operation, default_value);
+			fill_with_second_powerset(leaf->right, operation, default_value);
+		}
+
+		//Complexity O(P1 + P2), where P1 = number of nodes in powerset1, P2 = number of nodes in powerset2
+		void fill_with_union_of_powersets(
+				node<T>* leaf1,
+				node<T>* leaf2,
+				std::function<T(const T&, const T&)> operation,
+				size_t depth,
+				const T& default_value){
+
+			// take skipped depths into account
+			while(depth < leaf1->depth && depth < leaf2->depth){
+				if(leaf1->set[depth] != leaf2->set[depth]){
+					fill_with_first_powerset(leaf1, operation, default_value);
+					fill_with_second_powerset(leaf2, operation, default_value);
+					return;
+
+				}
+				++depth;
+			}
+
+			if(leaf1->depth < leaf2->depth){
+				if(!leaf1->is_null)
+					insert(leaf1->set, operation(leaf1->value, default_value));
+				if(leaf2->set[depth]){
+					if(leaf1->right){
+						fill_with_union_of_powersets(leaf1->right, leaf2, operation, depth+1, default_value);
+					}
+					fill_with_first_powerset(leaf1->left, operation, default_value);
+				}else{
+					if(leaf1->left){
+						fill_with_union_of_powersets(leaf1->left, leaf2, operation, depth+1, default_value);
+					}
+					fill_with_first_powerset(leaf1->right, operation, default_value);
+				}
+				return;
+			}
+
+			if(leaf1->depth > leaf2->depth){
+				if(!leaf2->is_null)
+					insert(leaf2->set, operation(default_value, leaf2->value));
+				if(leaf1->set[depth]){
+					if(leaf2->right){
+						fill_with_union_of_powersets(leaf1, leaf2->right, operation, depth+1, default_value);
+					}
+					fill_with_second_powerset(leaf2->left, operation, default_value);
+				}else{
+					if(leaf2->left){
+						fill_with_union_of_powersets(leaf1, leaf2->left, operation, depth+1, default_value);
+					}
+					fill_with_second_powerset(leaf2->right, operation, default_value);
+				}
+				return;
+			}
+
+			if(!leaf1->is_null || !leaf2->is_null){
+				T val1 = default_value, val2 = default_value;
+				if(!leaf1->is_null)
+					val1 = leaf1->value;
+				if(!leaf2->is_null)
+					val2 = leaf2->value;
+				insert(leaf1->set, operation(val1, val2));
+			}
+
+			++depth;
+			if(leaf1->right){
+				if(leaf2->right){
+					fill_with_union_of_powersets(leaf1->right, leaf2->right, operation, depth, default_value);
+				}else{
+					fill_with_first_powerset(leaf1->right, operation, default_value);
+				}
+			}else{
+				if(leaf2->right){
+					fill_with_second_powerset(leaf2->right, operation, default_value);
+				}
+			}
+			if(leaf1->left){
+				if(leaf2->left){
+					fill_with_union_of_powersets(leaf1->left, leaf2->left, operation, depth, default_value);
+				}else{
+					fill_with_first_powerset(leaf1->left, operation, default_value);
+				}
+			}else{
+				if(leaf2->left){
+					fill_with_second_powerset(leaf2->left, operation, default_value);
+				}
+			}
+		}
+
 
 		void destroy_tree(node<T> *leaf){
 			if(leaf){

@@ -18,7 +18,10 @@ namespace efficient_DST{
 		{}
 
 		decomposition_weight(const mobius_aggregate<T>& ma) : mobius_transform<T>(ma.inversion(mobius_transformation_form_t::multiplicative))
-		{}
+		{
+			this->remove_negligible_values();
+			this->normalize();
+		}
 
 
 		virtual ~decomposition_weight(){}
@@ -71,6 +74,35 @@ namespace efficient_DST{
 				return set_value->value;
 			else
 				return 1;
+		}
+
+		void normalize() {
+			T prod = 1;
+			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
+			for (size_t i = 0; i < elements.size(); ++i) {
+				prod *= elements[i]->value;
+			}
+			if(prod == 0){
+				std::cerr << "\nProduct of weight values equal to 0."
+						<< "\nThis means that at least one of these weights is null, which is not allowed in a weight function." << std::endl;
+				exit(1);
+			}
+			if(prod != 1){
+				// normalize
+				T factor = pow(prod, 1/elements.size());
+				for (size_t i = 0; i < elements.size(); ++i) {
+					elements[i]->value /= factor;
+				}
+			}
+		}
+
+		void remove_negligible_values() {
+			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
+			for (size_t i = 0; i < elements.size(); ++i) {
+				if(this->is_equivalent_to_zero(1-elements[i]->value)){
+					this->definition.nullify(elements[i]);
+				}
+			}
 		}
 	};
 

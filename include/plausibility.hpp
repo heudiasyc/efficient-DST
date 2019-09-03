@@ -17,7 +17,8 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		plausibility<T> apply(const fusion_rule fusion, const plausibility<T>& p2) const {
+		plausibility<T> apply(const plausibility<T>& p2) const {
+			const fusion_rule fusion;
 			return fusion(*this, p2);
 		}
 

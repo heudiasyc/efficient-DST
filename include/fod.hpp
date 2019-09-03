@@ -5,11 +5,20 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
-#include <fod_element.hpp>
 #include <memory_pool.hpp>
-#include <powerset_function.hpp>
 
 namespace efficient_DST{
+
+	class fod_element{
+	public:
+		size_t position_in_fod;
+		std::string label;
+
+		fod_element(size_t _position_in_fod, std::string _label) :
+			position_in_fod(_position_in_fod),
+			label(_label)
+		{}
+	};
 
 	template < typename T = double>
 	std::string to_string(const T& n){

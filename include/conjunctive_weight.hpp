@@ -58,7 +58,8 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		conjunctive_weight<T> apply(const fusion_rule fusion, const conjunctive_weight<T>& w2) const {
+		conjunctive_weight<T> apply(const conjunctive_weight<T>& w2) const {
+			const fusion_rule fusion;
 			return fusion(*this, w2);
 		}
 

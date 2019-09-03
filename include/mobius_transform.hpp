@@ -68,6 +68,11 @@ namespace efficient_DST{
 	template <typename T = double>
 	class mobius_transform {
 	protected:
+		/*
+		 * Only sets necessary to the definition of this Möbius transform
+		 * and their respective images are stored. Their data structure is a binary tree.
+		 */
+		powerset_btree<T> definition;
 
 		bool is_equivalent_to_zero(const T& value) const {
 			return detail::is_small(value, precision);
@@ -77,11 +82,6 @@ namespace efficient_DST{
 		// allow user to configure the floating-point tolerance
 		static const size_t block_size = 100;
 		const T precision = 1e-10;
-		/*
-		 * Only sets necessary to the definition of this Möbius transform
-		 * and their respective images are stored. Their data structure is a binary tree.
-		 */
-		powerset_btree<T> definition;
 
 		mobius_transform (const powerset_btree<T>& definition) :
 			definition(definition)
