@@ -8,7 +8,6 @@
 #include <iostream>
 #include <iomanip>
 
-#include <detail/is_small.hpp>
 #include <fod.hpp>
 #include <powerset_btree.hpp>
 
@@ -74,8 +73,8 @@ namespace efficient_DST{
 		 */
 		powerset_btree<T> definition;
 
-		bool is_equivalent_to_zero(const T& value) const {
-			return detail::is_small(value, precision);
+		inline bool is_equivalent_to_zero(const T& value) const {
+			return (value < static_cast<T>(0) ? -value : value) <= precision;
 		}
 
 	public:

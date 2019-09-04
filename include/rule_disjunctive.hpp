@@ -1,55 +1,80 @@
-// Copyright (c) 2011-2014
-// Marek Kurdej
-//
-// Distributed under the Boost Software License, Version 1.0.
-// See accompanying file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt
+#ifndef EFFICIENT_DST_RULE_DISJUNCTIVE_HPP
+#define EFFICIENT_DST_RULE_DISJUNCTIVE_HPP
 
-#ifndef BOOST_BFT_RULE_DISJUNCTIVE_HPP
-#define BOOST_BFT_RULE_DISJUNCTIVE_HPP
+#include <implicability.hpp>
+#include <disjunctive_weight.hpp>
+#include <mass.hpp>
 
-#include <boost/bft/implicability.hpp>
-#include <boost/bft/mass.hpp>
-#include <boost/bft/rule_base.hpp>
-#include <boost/bft/to_implicability.hpp>
-#include <boost/bft/to_mass.hpp>
+namespace efficient_DST{
 
-namespace boost
-{
-namespace bft
-{
+	template <typename T = double>
+	class rule_disjunctive {
+		std::string to_string() const {
+			return "Disjunctive rule";
+		}
 
-struct rule_disjunctive : public rule_base
-{
-    std::string to_string() const
-    {
-        return "disjunctive rule";
-    }
+	public:
 
-    template <class FOD, typename T>
-    implicability<FOD, T> operator()(const implicability<FOD, T>& b1,
-                                     const implicability<FOD, T>& b2) const
-    {
-        implicability<FOD, T> b12;
-        for (std::size_t i = 0; i < FOD::powerset_size; ++i) {
-            b12[i] = b1[i] * b2[i];
-        }
-        return b12;
-    }
+		mass<T> operator()(const mass<T>& m1, const mass<T>& m2) const {
+			const powerset_btree<T>& m1_definition = m1.get_definition();
+			const powerset_btree<T>& m2_definition = m2.get_definition();
 
-    template <class FOD, typename T>
-    mass<FOD, T>
-    operator()(const mass<FOD, T>& m1, const mass<FOD, T>& m2) const
-    {
-        implicability<FOD, T> b1 = to_implicability(m1);
-        implicability<FOD, T> b2 = to_implicability(m2);
-        implicability<FOD, T> b12 = operator()(b1, b2);
-        return to_mass(b12);
-    }
-};
+			if (m1_definition.size() * m2_definition.size() < 0.5 * m1_definition.fod->size() * pow(2, m1_definition.fod->size())){
+				const std::vector<set_N_value<T>* >& focal_sets_1 = m1_definition.elements();
+				const std::vector<set_N_value<T>* >& focal_sets_2 = m2_definition.elements();
+				powerset_btree<T> focal_sets_12(*m1_definition.fod, m1_definition.block_size);
 
-} // namespace bft
+				for (size_t i1 = 0; i1 < focal_sets_1.size(); ++i1){
+					for (size_t i2 = 0; i2 < focal_sets_2.size(); ++i2){
+						const boost::dynamic_bitset<>& set = FOD::set_union(focal_sets_1[i1]->set, focal_sets_2[i2]->set);
+						set_N_value<T>* node = focal_sets_12[set];
+						if (node){
+							node->value += focal_sets_1[i1]->value * focal_sets_2[i2]->value;
+						}else{
+							focal_sets_12.insert(set, focal_sets_1[i1]->value * focal_sets_2[i2]->value);
+						}
+					}
+				}
+				return mass<T>(focal_sets_12);
+			}else{
+				mobius_aggregate<T> b1(m1_definition, order_relation_t::subset, mobius_transformation_form_t::additive);
+				mobius_aggregate<T> b2(m2_definition, order_relation_t::subset, mobius_transformation_form_t::additive);
+				implicability<T> b12 = operator()(*(implicability<T>*) &b1, *(implicability<T>*) &b2);
+				return mass<T>(b12);
+			}
+		}
 
-} // namespace boost
 
-#endif // BOOST_BFT_RULE_CONJUNCTIVE_HPP
+		implicability<T> operator()(const implicability<T>& b1, const implicability<T>& b2) const {
+			const powerset_btree<T>& v1_definition = b1.inversion(mobius_transformation_form_t::multiplicative);
+			const powerset_btree<T>& v2_definition = b2.inversion(mobius_transformation_form_t::multiplicative);
+			mobius_aggregate<T> b12(
+				weight_fusion(v1_definition, v2_definition),
+				order_relation_t::subset,
+				mobius_transformation_form_t::multiplicative
+			);
+			return *(implicability<T>*) &b12;
+		}
+
+
+		disjunctive_weight<T> operator()(const disjunctive_weight<T>& v1, const disjunctive_weight<T>& v2) const {
+			return disjunctive_weight<T>(weight_fusion(v1.get_definition(), v2.get_definition()));
+		}
+
+
+	protected:
+
+		static T multiply(const T& val1, const T& val2){
+			return val1 * val2;
+		}
+
+		powerset_btree<T> weight_fusion(const powerset_btree<T>& v1_definition, const powerset_btree<T>& v2_definition) const {
+			powerset_btree<T> v12_definition(*v1_definition.fod, v1_definition.block_size);
+			v12_definition.fill_with_union_of_powersets(v1_definition, v2_definition, multiply, 1);
+			return v12_definition;
+		}
+	};
+
+} // namespace efficient_DST
+
+#endif // EFFICIENT_DST_RULE_DISJUNCTIVE_HPP

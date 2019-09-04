@@ -1,61 +1,58 @@
-// Copyright (c) 2011-2014
-// Marek Kurdej
-//
-// Distributed under the Boost Software License, Version 1.0.
-// See accompanying file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt
+#ifndef EFFICIENT_DST_RULE_DISJUNCTIVE_BOLD_HPP
+#define EFFICIENT_DST_RULE_DISJUNCTIVE_BOLD_HPP
 
-#ifndef BOOST_BFT_RULE_DISJUNCTIVE_BOLD_HPP
-#define BOOST_BFT_RULE_DISJUNCTIVE_BOLD_HPP
+#include <implicability.hpp>
+#include <disjunctive_weight.hpp>
+#include <mass.hpp>
 
-#include <boost/bft/disjunctive_decomposition.hpp>
-#include <boost/bft/mass.hpp>
-#include <boost/bft/max.hpp>
-#include <boost/bft/rule_base.hpp>
-#include <boost/bft/rule_disjunctive.hpp>
-#include <boost/bft/detail/is_small.hpp>
+namespace efficient_DST{
 
-namespace boost
-{
-namespace bft
-{
+	template <typename T = double>
+	class rule_disjunctive_bold {
+		std::string to_string() const {
+			return "Bold disjunctive rule";
+		}
 
-struct rule_disjunctive_bold : public rule_base
-{
-    std::string to_string() const
-    {
-        return "bold disjunctive rule";
-    }
+	public:
 
-    template <class FOD, typename T>
-    mass<FOD, T>
-    operator()(const mass<FOD, T>& m1, const mass<FOD, T>& m2) const
-    {
-        // compute canonical disjunctive decompositions v_1(A), v_2(A)
-        disjunctive_decomposition decomposition;
-        const bft_function<FOD, T> v1 = m1.apply(decomposition);
-        const bft_function<FOD, T> v2 = m2.apply(decomposition);
+		mass<T> operator()(const mass<T>& m1, const mass<T>& m2) const {
+			mobius_aggregate<T> b1(m1.get_definition(), order_relation_t::subset, mobius_transformation_form_t::additive);
+			mobius_aggregate<T> b2(m2.get_definition(), order_relation_t::subset, mobius_transformation_form_t::additive);
+			implicability<T> b12 = operator()(*(implicability<T>*) &b1, *(implicability<T>*) &b2);
+			return mass<T>(b12);
+		}
 
-        // find minimum weight decomposition v_1(A) \vee v_2(A)
-        bft_function<FOD, T> v_min12 = min(v1, v2);
 
-        // compute disjunctive combination of GSBBA A^{v_1(A) \vee v_2(A)}
-        mass<FOD, T> m_result(degenerate);
-        rule_disjunctive rule;
-        for (std::size_t A = 1; A < FOD::powerset_size; ++A) {
-            if (detail::is_small(1 - v_min12[A], detail::tolerance)) {
-                continue;
-            }
-            m_result = m_result.apply(
-                rule, mass<FOD, T>::create_mass_from_disjunctive_weight(
-                          A, v_min12[A]));
-        }
-        return m_result;
-    }
-};
+		implicability<T> operator()(const implicability<T>& b1, const implicability<T>& b2) const {
+			const powerset_btree<T>& v1_definition = b1.inversion(mobius_transformation_form_t::multiplicative);
+			const powerset_btree<T>& v2_definition = b2.inversion(mobius_transformation_form_t::multiplicative);
+			mobius_aggregate<T> b12(
+				weight_fusion(v1_definition, v2_definition),
+				order_relation_t::subset,
+				mobius_transformation_form_t::multiplicative
+			);
+			return *(implicability<T>*) &b12;
+		}
 
-} // namespace bft
 
-} // namespace boost
+		disjunctive_weight<T> operator()(const disjunctive_weight<T>& v1, const disjunctive_weight<T>& v2) const {
+			return disjunctive_weight<T>(weight_fusion(v1.get_definition(), v2.get_definition()));
+		}
 
-#endif // BOOST_BFT_RULE_DISJUNCTIVE_BOLD_HPP
+
+	protected:
+
+		static T max(const T& val1, const T& val2){
+			return std::max(val1, val2);
+		}
+
+		powerset_btree<T> weight_fusion(const powerset_btree<T>& v1_definition, const powerset_btree<T>& v2_definition) const {
+			powerset_btree<T> v12_definition(*v1_definition.fod, v1_definition.block_size);
+			v12_definition.fill_with_union_of_powersets(v1_definition, v2_definition, max, 1);
+			return v12_definition;
+		}
+	};
+
+} // namespace efficient_DST
+
+#endif // EFFICIENT_DST_RULE_DISJUNCTIVE_BOLD_HPP

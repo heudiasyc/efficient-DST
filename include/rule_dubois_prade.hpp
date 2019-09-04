@@ -1,49 +1,43 @@
-// Copyright (c) 2011-2014
-// Marek Kurdej
-//
-// Distributed under the Boost Software License, Version 1.0.
-// See accompanying file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt
+#ifndef EFFICIENT_DST_RULE_DUBOIS_PRADE_HPP
+#define EFFICIENT_DST_RULE_DUBOIS_PRADE_HPP
 
-#ifndef BOOST_BFT_RULE_DUBOIS_PRADE_HPP
-#define BOOST_BFT_RULE_DUBOIS_PRADE_HPP
+#include <mass.hpp>
 
-#include <boost/bft/mass.hpp>
-#include <boost/bft/rule_base.hpp>
+namespace efficient_DST{
 
-namespace boost
-{
-namespace bft
-{
+	template <typename T = double>
+	class rule_Dubois_Prade {
+		std::string to_string() const {
+			return "Dubois-Prade adaptative rule";
+		}
 
-struct rule_dubois_prade : public rule_base
-{
-    std::string to_string() const
-    {
-        return "Dubois-Prade adaptative rule";
-    }
+	public:
 
-    template <class FOD, typename T>
-    mass<FOD, T>
-    operator()(const mass<FOD, T>& m1, const mass<FOD, T>& m2) const
-    {
-        mass<FOD, T> m_result;
+		mass<T> operator()(const mass<T>& m1, const mass<T>& m2) const {
+			const std::vector<set_N_value<T>* >& focal_sets_1 = m1.get_definition().elements();
+			const std::vector<set_N_value<T>* >& focal_sets_2 = m1.get_definition().elements();
+			powerset_btree<T> focal_sets_12(*m1.get_definition().fod, m1.get_definition().block_size);
 
-        for (std::size_t B = 0; B < FOD::powerset_size; ++B) {
-            for (std::size_t C = 0; C < FOD::powerset_size; ++C) {
-                std::size_t A = set_intersection(B, C);
-                if (is_emptyset(A)) {
-                    A = set_union(B, C);
-                }
-                m_result[A] += m1[B] * m2[C];
-            }
-        }
-        return m_result;
-    }
-};
+			for (size_t i1 = 0; i1 < focal_sets_1.size(); ++i1){
+				for (size_t i2 = 0; i2 < focal_sets_2.size(); ++i2){
+					boost::dynamic_bitset<> set = FOD::set_intersection(focal_sets_1[i1]->set, focal_sets_2[i2]->set);
 
-} // namespace bft
+					if(FOD::is_emptyset(set)){
+						set = FOD::set_union(focal_sets_1[i1]->set, focal_sets_2[i2]->set);
+					}
 
-} // namespace boost
+					set_N_value<T>* node = focal_sets_12[set];
+					if (node){
+						node->value += focal_sets_1[i1]->value * focal_sets_2[i2]->value;
+					}else{
+						focal_sets_12.insert(set, focal_sets_1[i1]->value * focal_sets_2[i2]->value);
+					}
+				}
+			}
+			return mass<T>(focal_sets_12);
+		}
+	};
 
-#endif // BOOST_BFT_RULE_DUBOIS_PRADE_HPP
+} // namespace efficient_DST
+
+#endif // EFFICIENT_DST_RULE_DUBOIS_PRADE_HPP
