@@ -17,7 +17,7 @@ namespace efficient_DST{
 		disjunctive_weight(const powerset_btree<T>& focal_log_sets_values) : decomposition_weight<T>(focal_log_sets_values)
 		{}
 
-		disjunctive_weight(const FOD& fod) : decomposition_weight<T>(fod)
+		disjunctive_weight(FOD& fod) : decomposition_weight<T>(fod)
 		{}
 
 		disjunctive_weight(const mobius_aggregate<T>& b) : decomposition_weight<T>(b)
@@ -27,9 +27,6 @@ namespace efficient_DST{
 						<< "\nDoing so, you got the conjunctive weight function instead." << std::endl;
 			}
 			invert_values(this->definition);
-			boost::dynamic_bitset<> emptyset(this->definition.fod->size());
-			// fod is not supposed to be defined in the conjunctive weight function
-			this->definition.nullify(this->definition[emptyset]);
 		}
 
 
@@ -40,18 +37,45 @@ namespace efficient_DST{
 		powerset_btree<T> inverted_definition() const {
 			powerset_btree<T> inverted_definition(this->definition);
 			invert_values(inverted_definition);
-			// The following part ensures that v(emptyset) is defined (as it is not when directly building v).
-			// Indeed, v(emptyset) is required for the computation of the implicability function.
-			boost::dynamic_bitset<> emptyset(inverted_definition.fod->size());
-			// inv_v_fod represents v(emptyset)^{-1}, which is also equal to b(fod) and m(fod).
-			T inv_v_fod = 1;
-			const std::vector<set_N_value<T>* >& supersets = inverted_definition.strict_supersets_of(emptyset);
-			for (size_t i = 0; i < supersets.size(); ++i){
-				// divide by the images of v^{-1} to obtain the product on images of v which corresponds to b(fod)
-				inv_v_fod /= supersets[i]->value;
-			}
-			inverted_definition.insert(emptyset, inv_v_fod);
 			return inverted_definition;
+		}
+
+		void set_values(const std::unordered_map<std::vector<std::string>, T>& values) {
+			for (std::pair<std::vector<std::string>, T> labels_U_value : values){
+				set_value(labels_U_value.first, labels_U_value.second);
+			}
+		}
+
+		void set_value(const std::vector<std::string>& labels, const T& value) {
+			this->definition.insert(labels, value);
+			// The following part ensures that v(emptyset) is defined (as it is not when directly building v).
+			// Indeed, v(emptyset) may be required for the computation of the implicability function.
+			// v(emptyset)^{-1} is equal to the product of all other weights.
+			set_N_value<T>* emptyset = this->definition.sub_fod_of_size(0);
+			if(emptyset){
+				emptyset->value /= value;
+			}else{
+				this->definition.set_value_of_sub_fod_of_size(0, 1/value);
+			}
+		}
+
+		void set_fod_value(const T& value) {
+			set_value(this->definition.get_FOD()->to_set(this->definition.get_FOD()->elements()), value);
+		}
+
+		void nullify(const std::vector<std::string>& labels) {
+			if(this->definition.get_FOD()->to_set(labels).count() == 0)
+				return;
+			set_N_value<T>* A = this->definition[labels];
+			if(A){
+				set_N_value<T>* emptyset = this->definition.sub_fod_of_size(0);
+				if(emptyset){
+					emptyset->value *= A->value;
+				}else{
+					this->definition.set_value_of_sub_fod_of_size(0, A->value);
+				}
+				this->definition.nullify(A);
+			}
 		}
 
 

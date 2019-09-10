@@ -57,7 +57,7 @@ namespace efficient_DST{
 		std::vector<set_N_value<T>* > values = p.elements();
 		std::cerr << std::endl;
 
-		return print<T>(os, values, *p.fod);
+		return print<T>(os, values, *p.get_FOD());
 	}
 
 	enum special_case_t {degenerate, vacuous};
@@ -86,8 +86,8 @@ namespace efficient_DST{
 			definition(definition)
 		{}
 
-		mobius_transform (const FOD& fod) :
-			definition(fod, block_size)
+		mobius_transform (FOD& fod) :
+			definition(&fod, block_size)
 		{}
 
 		virtual ~mobius_transform()
@@ -108,7 +108,7 @@ namespace efficient_DST{
 		}
 
 		const FOD& get_FOD() const {
-			return *(this->definition.fod);
+			return *(this->definition.get_FOD());
 		}
 	};
 }		// namespace efficient_DST

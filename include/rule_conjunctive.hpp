@@ -19,10 +19,10 @@ namespace efficient_DST{
 			const powerset_btree<T>& m1_definition = m1.get_definition();
 			const powerset_btree<T>& m2_definition = m2.get_definition();
 
-			if (m1_definition.size() * m2_definition.size() < 0.5 * m1_definition.fod->size() * pow(2, m1_definition.fod->size())){
+			if (m1_definition.size() * m2_definition.size() < 0.5 * m1_definition.get_FOD_size() * pow(2, m1_definition.get_FOD_size())){
 				const std::vector<set_N_value<T>* >& focal_sets_1 = m1_definition.elements();
 				const std::vector<set_N_value<T>* >& focal_sets_2 = m2_definition.elements();
-				powerset_btree<T> focal_sets_12(*m1_definition.fod, m1_definition.block_size);
+				powerset_btree<T> focal_sets_12(m1_definition.get_FOD(), m1_definition.get_block_size());
 
 				for (size_t i1 = 0; i1 < focal_sets_1.size(); ++i1){
 					for (size_t i2 = 0; i2 < focal_sets_2.size(); ++i2){
@@ -69,7 +69,7 @@ namespace efficient_DST{
 		}
 
 		powerset_btree<T> weight_fusion(const powerset_btree<T>& w1_definition, const powerset_btree<T>& w2_definition) const {
-			powerset_btree<T> w12_definition(*w1_definition.fod, w1_definition.block_size);
+			powerset_btree<T> w12_definition(w1_definition.get_FOD(), w1_definition.get_block_size());
 			w12_definition.fill_with_union_of_powersets(w1_definition, w2_definition, multiply, 1);
 			return w12_definition;
 		}

@@ -12,22 +12,26 @@ namespace efficient_DST{
 
 	template <class T=double>
 	class mobius_aggregate : public mobius_transform<T> {
-	public:
+	protected:
 		scheme_type_t scheme_type;
-		const order_relation_t order_relation;
 		std::vector<boost::dynamic_bitset<> > sequence;
 		powerset_btree<T> dual_definition;
 		powerset_btree<T> original_mobius_transform;
 		mobius_transformation_form_t original_mobius_transform_form;
+		std::unordered_map<size_t, powerset_btree<set_N_value<T>* > > definition_by_cardinality;
+		std::vector<size_t> ordered_cardinalities_in_definition;
 
+	public:
+		const order_relation_t order_relation;
 
 		mobius_aggregate(const mobius_aggregate<T>& mobius_aggregation) :
 			mobius_transform<T>(mobius_aggregation.definition),
 			scheme_type(mobius_aggregation.scheme_type),
-			order_relation(mobius_aggregation.order_relation),
 			dual_definition(mobius_aggregation.dual_definition),
 			original_mobius_transform(mobius_aggregation.original_mobius_transform),
-			original_mobius_transform_form(mobius_aggregation.original_mobius_transform_form)
+			original_mobius_transform_form(mobius_aggregation.original_mobius_transform_form),
+			definition_by_cardinality(mobius_aggregation.definition_by_cardinality),
+			order_relation(mobius_aggregation.order_relation)
 		{}
 
 
@@ -39,14 +43,14 @@ namespace efficient_DST{
 		 */
 		mobius_aggregate(
 				const std::vector<T>& powerset_values,
-				const FOD& fod,
+				FOD& fod,
 				const order_relation_t& order_relation) :
 			mobius_transform<T>(fod),
 			scheme_type(scheme_type_t::other),
-			order_relation(order_relation),
-			dual_definition(fod, mobius_transform<T>::block_size),
-			original_mobius_transform(fod, mobius_transform<T>::block_size),
-			original_mobius_transform_form(mobius_transformation_form_t::additive)
+			dual_definition(&fod, mobius_transform<T>::block_size),
+			original_mobius_transform(&fod, mobius_transform<T>::block_size),
+			original_mobius_transform_form(mobius_transformation_form_t::additive),
+			order_relation(order_relation)
 		{
 			if(powerset_values.size() != pow(2, fod.size())){
 				std::cerr << "\nThe given vector does not feature the same size as the powerset of the given FOD.\n";
@@ -55,8 +59,9 @@ namespace efficient_DST{
 			to_semilattice(
 				powerset_values
 			);
-			this->original_mobius_transform.copy(this->inversion(mobius_transformation_form_t::additive));
-			this->original_mobius_transform_form = mobius_transformation_form_t::additive;
+			set_definition_by_cardinality();
+			//this->original_mobius_transform.copy(this->inversion(mobius_transformation_form_t::additive));
+			//this->original_mobius_transform_form = mobius_transformation_form_t::additive;
 		}
 
 
@@ -70,14 +75,13 @@ namespace efficient_DST{
 				const order_relation_t& order_relation) :
 			mobius_transform<T>(structure),
 			scheme_type(scheme_type_t::other),
-			order_relation(order_relation),
-			dual_definition(*structure.fod, structure.block_size),
-			original_mobius_transform(*structure.fod, structure.block_size),
-			original_mobius_transform_form(mobius_transformation_form_t::additive)
+			dual_definition(structure.get_FOD(), structure.get_block_size()),
+			original_mobius_transform(structure.get_FOD(), structure.get_block_size()),
+			original_mobius_transform_form(mobius_transformation_form_t::additive),
+			order_relation(order_relation)
 		{
 			powerset_btree<T>::reverse_powerset_from_to(this->definition, this->dual_definition);
-			this->original_mobius_transform.copy(this->inversion(mobius_transformation_form_t::additive));
-			this->original_mobius_transform_form = mobius_transformation_form_t::additive;
+			set_definition_by_cardinality();
 		}
 
 
@@ -95,10 +99,10 @@ namespace efficient_DST{
 				const mobius_transformation_form_t& mobius_transformation_form) :
 			mobius_transform<T>(original_structure),
 			scheme_type(scheme_type_t::other),
-			order_relation(order_relation),
-			dual_definition(*original_structure.fod, original_structure.block_size),
-			original_mobius_transform(original_structure),
-			original_mobius_transform_form(mobius_transformation_form)
+			dual_definition(original_structure.get_FOD(), original_structure.get_block_size()),
+			original_mobius_transform(original_structure.get_FOD(), original_structure.get_block_size()),
+			original_mobius_transform_form(mobius_transformation_form),
+			order_relation(order_relation)
 		{
 			T default_value;
 			if (mobius_transformation_form == mobius_transformation_form_t::additive){
@@ -116,6 +120,7 @@ namespace efficient_DST{
 					transformed_structure_dual);
 			this->definition.copy(transformed_structure);
 			this->dual_definition.copy(transformed_structure_dual);
+			set_definition_by_cardinality();
 		}
 
 
@@ -142,22 +147,22 @@ namespace efficient_DST{
 			if(set_value){
 				return set_value->value;
 			}
-			boost::dynamic_bitset<> emptyset(this->definition.fod->size());
-			return compute_aggregation(emptyset);
+			boost::dynamic_bitset<> emptyset(this->definition.get_FOD_size());
+			return find_non_focal_point_image(emptyset);
 		}
 
 		T at_fod() const {
-			set_N_value<T>* set_value = this->definition.sub_fod_of_size(this->definition.fod->size());
+			set_N_value<T>* set_value = this->definition.sub_fod_of_size(this->definition.get_FOD_size());
 			if(set_value){
 				return set_value->value;
 			}
-			boost::dynamic_bitset<> fod(this->definition.fod->size());
+			boost::dynamic_bitset<> fod(this->definition.get_FOD_size());
 			fod.set();
-			return compute_aggregation(fod);
+			return find_non_focal_point_image(fod);
 		}
 
 		T operator[](const std::vector<std::string>& labels) const {
-			return find(this->definition.fod->to_set(labels));
+			return find(this->definition.get_FOD()->to_set(labels));
 		}
 
 		T find(const boost::dynamic_bitset<>& set) const {
@@ -165,31 +170,82 @@ namespace efficient_DST{
 			if(set_value){
 				return set_value->value;
 			}
-			return compute_aggregation(set);
+			return find_non_focal_point_image(set);
 		}
 
 	protected:
 
-		T compute_aggregation(const boost::dynamic_bitset<>& set) const {
-			T sum = 0;
-			std::vector<set_N_value<T>* > elements;
-			std::function<T(const T&, const T&)> range_binary_operator;
+		T find_non_focal_point_image(const boost::dynamic_bitset<>& set) const {
+			set_N_value<set_N_value<T>* >* A = nullptr;
+			size_t card = set.count();
 
-			if (this->order_relation == order_relation_t::subset){
-				elements = this->original_mobius_transform.subsets_of(set);
-			} else {
-				elements = this->original_mobius_transform.supersets_of(set);
+			if(this->order_relation == order_relation_t::subset){
+				if(card >= this->ordered_cardinalities_in_definition.back()){
+					for(size_t c = 0; c < this->ordered_cardinalities_in_definition.size(); ++c){
+						if(this->ordered_cardinalities_in_definition[c] <= card){
+							card = c;
+							break;
+						}
+					}
+					for(size_t c = card; c < this->ordered_cardinalities_in_definition.size(); ++c){
+						const powerset_btree<set_N_value<T>* >& p = this->definition_by_cardinality.at(this->ordered_cardinalities_in_definition[c]);
+						const std::vector<set_N_value<set_N_value<T>* >* >& subsets = p.subsets_of(set);
+
+						if(subsets.size() > 0){
+							A = subsets[0];
+							break;
+						}
+					}
+				}
+			}else{
+				if(card <= this->ordered_cardinalities_in_definition.back()){
+					for(size_t c = 0; c < this->ordered_cardinalities_in_definition.size(); ++c){
+						if(this->ordered_cardinalities_in_definition[c] >= card){
+							card = c;
+							break;
+						}
+					}
+					for(size_t c = card; c < this->ordered_cardinalities_in_definition.size(); ++c){
+						const powerset_btree<set_N_value<T>* >& p = this->definition_by_cardinality.at(this->ordered_cardinalities_in_definition[c]);
+						std::vector<set_N_value<set_N_value<T>* >* > supersets = p.supersets_of(set);
+
+						if(supersets.size() > 0){
+							A = supersets[0];
+							break;
+						}
+					}
+				}
 			}
-			if (this->original_mobius_transform_form == mobius_transformation_form_t::additive){
-				range_binary_operator = addition;
-			} else {
-				range_binary_operator = multiplication;
+			if (A){
+				return A->value->value;
+			}else{
+				if(this->original_mobius_transform_form == mobius_transformation_form_t::additive){
+					return 0;
+				}else{
+					return 1;
+				}
+			}
+		}
+
+
+		void set_definition_by_cardinality(){
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > definition_card_map = this->definition.elements_by_set_cardinality();
+			this->ordered_cardinalities_in_definition = powerset_btree<T>::get_sorted_cardinalities(definition_card_map, *this->definition.get_FOD());
+			if (this->order_relation == order_relation_t::subset) {
+				std::reverse(this->ordered_cardinalities_in_definition.begin(), this->ordered_cardinalities_in_definition.end());
 			}
 
-			for (size_t i = 0; i < elements.size(); ++i) {
-				sum = range_binary_operator(sum, elements[i]->value);
+			this->definition_by_cardinality.reserve(this->ordered_cardinalities_in_definition.size());
+
+			for(size_t c = 0; c < this->ordered_cardinalities_in_definition.size(); ++c){
+				this->definition_by_cardinality.emplace(std::piecewise_construct, std::make_tuple(this->ordered_cardinalities_in_definition[c]),
+						std::make_tuple(this->definition.get_FOD(), this->definition.get_block_size()));
+				powerset_btree<set_N_value<T>* >& p_c = this->definition_by_cardinality[this->ordered_cardinalities_in_definition[c]];
+				const std::vector<set_N_value<T>* >& elements = definition_card_map[this->ordered_cardinalities_in_definition[c]];
+				for(size_t i = 0; i < elements.size(); ++i){
+					p_c.insert(elements[i]->set, elements[i]);
+				}
 			}
-			return sum;
 		}
 
 
@@ -217,7 +273,7 @@ namespace efficient_DST{
 				this->scheme_type = scheme_type_t::other;
 			}else{
 				// sort focal sets in original_structure by increasing cardinality
-				const std::vector<size_t>& original_ordered_cardinalities = powerset_btree<T>::get_sorted_cardinalities(original_structure_card_map, *original_structure.fod);
+				const std::vector<size_t>& original_ordered_cardinalities = powerset_btree<T>::get_sorted_cardinalities(original_structure_card_map, *original_structure.get_FOD());
 
 				std::clog << "Consonance check:" << std::endl;
 				const bool& is_consonant = consonance_check(
@@ -231,7 +287,7 @@ namespace efficient_DST{
 					this->scheme_type = scheme_type_t::consonant;
 				}else{
 					std::clog << "not consonant." << std::endl;
-					if(original_structure.size() < 5 * original_structure.fod->size()){
+					if(original_structure.size() < 5 * original_structure.get_FOD_size()){
 						std::clog << "Number of focal sets equivalent to |FOD|." << std::endl;
 						std::clog << "Transform to semilattice:" << std::endl;
 						to_semilattice(
@@ -240,7 +296,7 @@ namespace efficient_DST{
 							new_elements_in_structure,
 							default_value
 						);
-						if(this->definition.size() < 5 * original_structure.fod->size()){
+						if(this->definition.size() < 5 * original_structure.get_FOD_size()){
 							std::clog << "Number of focal points also equivalent to |FOD|." << std::endl;
 							this->scheme_type = scheme_type_t::other;
 						}else{
@@ -296,7 +352,6 @@ namespace efficient_DST{
 
 			switch (this->scheme_type) {
 				case scheme_type_t::other:
-					std::clog << "other" << std::endl;
 					if (inversion){
 						directly_compute_inversion(
 								range_binary_operator,
@@ -309,7 +364,6 @@ namespace efficient_DST{
 					break;
 
 				case scheme_type_t::consonant:
-					std::clog << "consonant" << std::endl;
 					consonant_computations(
 							working_structure,
 							inversion,
@@ -318,7 +372,6 @@ namespace efficient_DST{
 					break;
 
 				case scheme_type_t::semilattice:
-					std::clog << "semilattice" << std::endl;
 					if (this->order_relation == order_relation_t::subset){
 						EMT_with_lower_semilattice(
 								working_structure_dual,
@@ -336,7 +389,6 @@ namespace efficient_DST{
 					break;
 
 				case scheme_type_t::lattice:
-					std::clog << "lattice" << std::endl;
 					EMT_with_lattice(
 							working_structure,
 							this->sequence,
@@ -397,7 +449,7 @@ namespace efficient_DST{
 				) const {
 			T val;
 			std::unordered_map<size_t, std::vector<set_N_value<T>* > > structure_card_map = transformed_structure.elements_by_set_cardinality();
-			std::vector<size_t> ordered_cardinalities = powerset_btree<T>::get_sorted_cardinalities(structure_card_map, *transformed_structure.fod);
+			std::vector<size_t> ordered_cardinalities = powerset_btree<T>::get_sorted_cardinalities(structure_card_map, *transformed_structure.get_FOD());
 			std::vector<set_N_value<T>* > elements;
 
 			if (this->order_relation == order_relation_t::superset) {
@@ -428,7 +480,7 @@ namespace efficient_DST{
 				const T& default_value
 				) const {
 			std::unordered_map<size_t, std::vector<set_N_value<T>* > > structure_card_map = focal_points_tree.elements_by_set_cardinality();
-			std::vector<size_t> ordered_cardinalities = powerset_btree<T>::get_sorted_cardinalities(structure_card_map, *focal_points_tree.fod);
+			std::vector<size_t> ordered_cardinalities = powerset_btree<T>::get_sorted_cardinalities(structure_card_map, *focal_points_tree.get_FOD());
 			T value, preceding_value = default_value;
 
 			if (this->order_relation == order_relation_t::superset) {
@@ -454,9 +506,9 @@ namespace efficient_DST{
 				const bool& inversion,
 				std::function<T(const T&, const T&)> range_binary_operator
 				) const {
-			powerset_btree<set_N_value<T>* > focal_points_superset_map = focal_points_tree.superset_map();
+			const powerset_btree<set_N_value<T>* >& focal_points_superset_map = focal_points_tree.EMT_superset_map();
 			const std::vector<set_N_value<T>* >& focal_points = focal_points_tree.elements();
-			boost::dynamic_bitset<> fod_cum(focal_points_tree.fod->size());
+			boost::dynamic_bitset<> fod_cum(focal_points_tree.get_FOD_size());
 
 			if (inversion){
 				fod_cum.set();
@@ -553,7 +605,7 @@ namespace efficient_DST{
 					}
 				}
 
-				boost::dynamic_bitset<> fod(this->definition.fod->size());
+				boost::dynamic_bitset<> fod(this->definition.get_FOD_size());
 				fod.set();
 
 				boost::dynamic_bitset<> neg_U = original_structure_except_emptyset[0]->set;
@@ -590,14 +642,14 @@ namespace efficient_DST{
 				original_structure_except_FOD.reserve(this->definition.size()-1);
 
 				for(auto kv : structure_card_map) {
-					if(kv.first < this->definition.fod->size()){
+					if(kv.first < this->definition.get_FOD_size()){
 						for (size_t i = 0; i < kv.second.size(); ++i) {
 							original_structure_except_FOD.emplace_back(kv.second[i]);
 						}
 					}
 				}
 
-				const boost::dynamic_bitset<> emptyset(this->definition.fod->size());
+				const boost::dynamic_bitset<> emptyset(this->definition.get_FOD_size());
 
 				boost::dynamic_bitset<> U = original_structure_except_FOD[0]->set;
 				std::clog << "\nU = "<< original_structure_except_FOD[0]->set;
@@ -699,7 +751,7 @@ namespace efficient_DST{
 			size_t c_init = 0, c_end = original_ordered_cardinalities.size();
 			if (original_ordered_cardinalities[0] == 0)
 				c_init = 1;
-			if (original_ordered_cardinalities.back() == this->definition.fod->size())
+			if (original_ordered_cardinalities.back() == this->definition.get_FOD_size())
 				--c_end;
 
 			// for each cardinality of focal set, from the smallest to the biggest, except emptyset and FOD
@@ -751,7 +803,7 @@ namespace efficient_DST{
 				}
 				const std::vector<boost::dynamic_bitset<> >& dual_operations_with_not_subsets_of_smaller_than = tree_operator_dual(
 						this->dual_definition, ~setA,
-						this->definition.fod->size() - setA.count()-1);
+						this->definition.get_FOD_size() - setA.count()-1);
 
 				// search for sets of higher cardinality that are not supersets of the current set
 				for (size_t ii = 0; ii < dual_operations_with_not_subsets_of_smaller_than.size(); ++ii) {
@@ -774,8 +826,8 @@ namespace efficient_DST{
 		) {
 			std::unordered_map<T, std::vector<boost::dynamic_bitset<> > > focal_points_map;
 
-			for (size_t n = 0; n < pow(2, this->definition.fod->size()); ++n){
-				boost::dynamic_bitset<> set(this->definition.fod->size(), n);
+			for (size_t n = 0; n < pow(2, this->definition.get_FOD_size()); ++n){
+				boost::dynamic_bitset<> set(this->definition.get_FOD_size(), n);
 
 				if (focal_points_map.find(powerset_values[n]) == focal_points_map.end()){
 					focal_points_map.emplace(powerset_values[n], (std::vector<boost::dynamic_bitset<> >) {set});
@@ -786,6 +838,7 @@ namespace efficient_DST{
 						if (this->order_relation == order_relation_t::subset){
 							if (FOD::is_subset_of(set, focal_points[i])){
 								focal_points[i] = set;
+								new_point = false;
 							}else if (FOD::is_subset_of(focal_points[i], set)){
 								new_point = false;
 								break;
@@ -821,10 +874,10 @@ namespace efficient_DST{
 			for (size_t i = 1; i < focal_elements.size(); ++i){
 				core = FOD::set_union(core, focal_elements[i]->set);
 			}
-			this->sequence.reserve(original_structure.fod->size());
+			this->sequence.reserve(original_structure.get_FOD_size());
 			for(size_t i = 0; i < core.size(); ++i){
 				if(core[i]){
-					this->sequence.emplace_back(original_structure.fod->size());
+					this->sequence.emplace_back(original_structure.get_FOD_size());
 					this->sequence.back().set(i);
 				}
 			}
@@ -832,11 +885,10 @@ namespace efficient_DST{
 
 
 		void compute_focal_atoms(const powerset_btree<T>& original_structure){
-			powerset_btree<bool> focal_atoms_tree(*original_structure.fod, original_structure.block_size);
-			const FOD& fod = *original_structure.fod;
+			powerset_btree<bool> focal_atoms_tree(original_structure.get_FOD(), original_structure.get_block_size());
 
-			for (size_t i = 0; i < fod.size(); ++i) {
-				boost::dynamic_bitset<> singleton(fod.size());
+			for (size_t i = 0; i < original_structure.get_FOD_size(); ++i) {
+				boost::dynamic_bitset<> singleton(original_structure.get_FOD_size());
 				singleton.set(i);
 				const std::vector<set_N_value<T>* >& focal_supersets = original_structure.supersets_of(singleton);
 
@@ -857,7 +909,7 @@ namespace efficient_DST{
 				}
 			}
 			std::unordered_map<size_t, std::vector<set_N_value<bool>* > > focal_atoms_card_map = focal_atoms_tree.elements_by_set_cardinality();
-			const std::vector<size_t>& ordered_cardinalities = powerset_btree<bool>::get_sorted_cardinalities(focal_atoms_card_map, *focal_atoms_tree.fod);
+			const std::vector<size_t>& ordered_cardinalities = powerset_btree<bool>::get_sorted_cardinalities(focal_atoms_card_map, *focal_atoms_tree.get_FOD());
 			this->sequence.reserve(focal_atoms_tree.size());
 
 			for (size_t c = 0; c < ordered_cardinalities.size(); ++c) {

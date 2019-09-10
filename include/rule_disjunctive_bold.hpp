@@ -47,7 +47,7 @@ namespace efficient_DST{
 		}
 
 		powerset_btree<T> weight_fusion(const powerset_btree<T>& v1_definition, const powerset_btree<T>& v2_definition) const {
-			powerset_btree<T> v12_definition(*v1_definition.fod, v1_definition.block_size);
+			powerset_btree<T> v12_definition(v1_definition.get_FOD(), v1_definition.get_block_size());
 			v12_definition.fill_with_union_of_powersets(v1_definition, v2_definition, max, 1);
 			return v12_definition;
 		}

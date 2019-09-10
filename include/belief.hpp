@@ -34,7 +34,7 @@ namespace efficient_DST{
 
 		belief(const powerset_btree<T>& focal_points_values) : implicability<T>(focal_points_values)
 		{
-			const boost::dynamic_bitset<> emptyset(focal_points_values.fod->size());
+			const boost::dynamic_bitset<> emptyset(focal_points_values.get_FOD_size());
 			if(focal_points_values[emptyset] != 0){
 				display_invalid_belief_message();
 			}

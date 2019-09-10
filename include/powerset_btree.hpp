@@ -5,9 +5,9 @@
 #include <math.h>
 #include <vector>
 #include <boost/dynamic_bitset.hpp>
-#include <fod.hpp>
-#include <memory_pool.hpp>
 
+#include <memory_pool.hpp>
+#include <fod.hpp>
 
 namespace efficient_DST{
 
@@ -98,11 +98,11 @@ namespace efficient_DST{
 		node<T> *root;
 		set_N_value<T> *emptyset;
 		size_t number_of_non_null_values;
-		const bool mark_every_depth;
+		bool mark_every_depth;
+		FOD *fod;
+		size_t block_size;
 
 	public:
-		const FOD *fod;
-		const size_t block_size;
 
 		/*
 		 * block_size is the number of predicted values to store in tree
@@ -110,28 +110,37 @@ namespace efficient_DST{
 		 * if the number of nodes exceeds block_size, this class will reserve another block of block_size nodes without reallocating the previous one
 		 * in order to preserve pointers and references
 		 */
-		powerset_btree(const FOD& _fod, const size_t _block_size, const bool& mark_every_depth) :
+		powerset_btree(FOD* _fod, const size_t _block_size, const bool& mark_every_depth) :
 			node_pool(_block_size),
 			number_of_non_null_values(0),
 			mark_every_depth(mark_every_depth),
-			fod(&_fod),
+			fod(_fod),
 			block_size(_block_size)
 		{
 			this->root = create_disjunction_node(boost::dynamic_bitset<>(this->fod->size(), 1), 0, nullptr, nullptr, nullptr);
-
-			//std::vector<fod_element*> empty_fod_elements;
 			this->emptyset = this->node_pool.emplace(boost::dynamic_bitset<>(this->fod->size()));
 		}
 
-		powerset_btree(const FOD& _fod, const size_t _block_size) :
+		powerset_btree(FOD* _fod, const size_t _block_size) :
 			powerset_btree(_fod, _block_size, false)
 		{}
 
-		powerset_btree(const powerset_btree<T>& p) : // @suppress("Class members should be properly initialized")
-			powerset_btree(*(p.fod), p.node_pool.get_bock_size(), p.mark_every_depth)
+		powerset_btree(const powerset_btree<T>& p) :
+			powerset_btree(p.fod, p.block_size, p.mark_every_depth)
 		{
 			copy(p);
 		}
+
+		// constructor for default initialization (required in unordered_map)
+		powerset_btree() :
+			node_pool(0),
+			root(nullptr),
+			emptyset(nullptr),
+			number_of_non_null_values(0),
+			mark_every_depth(false),
+			fod(),
+			block_size(0)
+		{}
 
 		/////////////////////////////////////////
 
@@ -174,6 +183,18 @@ namespace efficient_DST{
 						insert(elem[i]->set, default_value);
 				}
 			}
+		}
+
+		FOD* get_FOD() const {
+			return this->fod;
+		}
+
+		size_t get_FOD_size() const {
+			return this->fod->size();
+		}
+
+		const size_t& get_block_size() const {
+			return this->block_size;
 		}
 
 		size_t size() const {
@@ -720,8 +741,8 @@ namespace efficient_DST{
 
 		/////////////////////////////////////////
 
-		powerset_btree<set_N_value<T>* > superset_map() {
-			powerset_btree<set_N_value<T>* > superset_map(*this->fod, this->block_size, true);
+		powerset_btree<set_N_value<T>* > EMT_superset_map() const {
+			powerset_btree<set_N_value<T>* > superset_map(this->fod, this->block_size, true);
 			const std::vector<set_N_value<T>* >& elements = this->elements();
 
 			for (size_t i = 0; i < elements.size(); ++i) {
@@ -734,7 +755,7 @@ namespace efficient_DST{
 			 * powerset_btree of terminal nodes lacking one or two connections in this powerset.
 			 * Each node in terminal_connection_tree is associated with the address of the corresponding node in this powerset.
 			 */
-			powerset_btree<set_N_value<set_N_value<T>* >* > terminal_connection_tree(*this->fod, this->block_size);
+			powerset_btree<set_N_value<set_N_value<T>* >* > terminal_connection_tree(this->fod, this->block_size);
 
 			size_t c = 0;
 			if (ordered_cardinalities[0] == 0){
@@ -747,12 +768,18 @@ namespace efficient_DST{
 				for (size_t i = 0; i < elements.size(); ++i){
 					if(!elements[i]->is_null){
 						const std::vector<set_N_value<set_N_value<set_N_value<T>* >* >* >& subsets = terminal_connection_tree.subsets_of(elements[i]->set);
+						node<set_N_value<T>* >* node_i = (efficient_DST::node<set_N_value<T>* >*) elements[i];
 						for (size_t s = 0; s < subsets.size(); ++s){
-							node<set_N_value<T>* >* node = (efficient_DST::node<set_N_value<T>* >*) subsets[s]->value;
-							node->right = (efficient_DST::node<set_N_value<T>* >*) elements[i];
+							node<set_N_value<T>* >* subset = (efficient_DST::node<set_N_value<T>* >*) subsets[s]->value;
+							if(subset->is_null || node_i->depth > subset->depth){
+								subset->right = node_i;
+							}
 						}
 						for (size_t s = 0; s < subsets.size(); ++s){
-							terminal_connection_tree.nullify(subsets[s]);
+							node<set_N_value<T>* >* subset = (efficient_DST::node<set_N_value<T>* >*) subsets[s]->value;
+							if(subset->is_null || node_i->depth > subset->depth){
+								terminal_connection_tree.nullify(subsets[s]);
+							}
 						}
 					}
 				}
@@ -767,7 +794,7 @@ namespace efficient_DST{
 		}
 
 
-		set_N_value<T>* closest_node_containing(const boost::dynamic_bitset<> set){
+		set_N_value<T>* closest_node_containing(const boost::dynamic_bitset<> set) const {
 			return find(set, get_final_element_number(set), true);
 		}
 
@@ -1049,13 +1076,67 @@ namespace efficient_DST{
 			//insert_node(new_node);
 			++this->number_of_non_null_values;
 			//this->non_null_nodes_by_depth[depth+1].push_back(new_node);
+			if(left_node)
+				new_node->left->parent = new_node;
+			if(right_node)
+				new_node->right->parent = new_node;
 			return new_node;
 		}
 
 		node<T>* create_disjunction_node(const boost::dynamic_bitset<>& set, size_t depth, node<T>* parent_node, node<T>* left_node, node<T>* right_node){
 			node<T>* new_node = this->node_pool.emplace(set, depth, parent_node, left_node, right_node);
+			if(left_node)
+				new_node->left->parent = new_node;
+			if(right_node)
+				new_node->right->parent = new_node;
 			//insert_disjunction_node(new_node);
 			return new_node;
+		}
+
+		void mark_intermediate_depths(node<T>* leaf, node<T>* deeper_leaf){
+			if(leaf->depth+1 >= deeper_leaf->depth){
+				return;
+			}
+			boost::dynamic_bitset<> disjunction_set = (const boost::dynamic_bitset<>&) leaf->set;
+			node<T>* branch_cursor = leaf;
+
+			for(size_t depth = leaf->depth+1; depth < deeper_leaf->depth; ++depth){
+				disjunction_set[depth-1] = deeper_leaf->set[depth-1];
+				disjunction_set[depth] = true;
+
+				if(deeper_leaf->set[depth-1]){
+					branch_cursor->right = create_disjunction_node(disjunction_set, depth, branch_cursor, nullptr, nullptr);
+					branch_cursor = branch_cursor->right;
+				}else{
+					branch_cursor->left = create_disjunction_node(disjunction_set, depth, branch_cursor, nullptr, nullptr);
+					branch_cursor = branch_cursor->left;
+				}
+			}
+			if(branch_cursor->depth+1 == deeper_leaf->depth){
+				if(deeper_leaf->set[branch_cursor->depth]){
+					branch_cursor->right = deeper_leaf;
+				}else{
+					branch_cursor->left = deeper_leaf;
+				}
+				deeper_leaf->parent = branch_cursor;
+			}
+		}
+
+		void mark_subsequent_depths(node<T>* leaf){
+			if(!leaf->right && leaf->depth < this->fod->size()-1){
+				boost::dynamic_bitset<> disjunction_set = (const boost::dynamic_bitset<>&) leaf->set;
+				size_t depth = leaf->depth + 1;
+				disjunction_set[depth] = true;
+				leaf->right = create_disjunction_node(disjunction_set, depth, leaf, nullptr, nullptr);
+				node<T>* branch_cursor = leaf->right;
+				++depth;
+				for(; depth < this->fod->size(); ++depth){
+					disjunction_set[depth-1] = false;
+					disjunction_set[depth] = true;
+					branch_cursor->left = create_disjunction_node(disjunction_set, depth, branch_cursor, nullptr, nullptr);
+					branch_cursor = branch_cursor->left;
+				}
+			}
 		}
 
 		/////////////////////////////////////////
@@ -1081,13 +1162,10 @@ namespace efficient_DST{
 									disjunction_set[k] = false;
 								}
 								leaf = create_disjunction_node(disjunction_set, depth, parent_node, leaf, right_node);
-								leaf->right->parent = leaf;
-								leaf->left->parent = leaf;
 								return right_node;
 							}else{
 								// if (next_set U first different bit) & key == key
 								leaf = create_node(set, value, final_depth, parent_node, leaf, nullptr);
-								leaf->left->parent = leaf;
 								return leaf;
 							}
 						}else{
@@ -1100,15 +1178,12 @@ namespace efficient_DST{
 								disjunction_set[k] = false;
 							}
 							leaf = create_disjunction_node(disjunction_set, depth, parent_node, left_node, leaf);
-							leaf->right->parent = leaf;
-							leaf->left->parent = leaf;
 							return left_node;
 						}
 					}
 					if(depth == final_depth){
 						// if next_set & set == set
 						leaf = create_node(set, value, final_depth, parent_node, nullptr, leaf);
-						leaf->right->parent = leaf;
 						return leaf;
 					}
 					++depth;
@@ -1143,19 +1218,7 @@ namespace efficient_DST{
 					}
 					leaf->value = value;
 					if(this->mark_every_depth){
-						if(!leaf->right && depth < this->fod->size()-1){
-							boost::dynamic_bitset<> disjunction_set = (const boost::dynamic_bitset<>&) leaf->set;
-							++depth;
-							disjunction_set[depth] = true;
-							leaf->right = create_disjunction_node(disjunction_set, depth, leaf, nullptr, nullptr);
-							node<T>* branch_cursor = leaf->right;
-							for(size_t d = depth+1; d < this->fod->size(); ++d){
-								disjunction_set[d-1] = false;
-								disjunction_set[d] = true;
-								branch_cursor->left = create_disjunction_node(disjunction_set, d, branch_cursor, nullptr, nullptr);
-								branch_cursor = branch_cursor->left;
-							}
-						}
+						mark_subsequent_depths(leaf);
 					}
 					return leaf;
 				}
@@ -1183,8 +1246,7 @@ namespace efficient_DST{
 		/////////////////////////////////////////
 
 		set_N_value<T>* find(const boost::dynamic_bitset<>& set, const size_t& final_depth, node<T> *leaf, size_t& depth, const bool& smallest_superset_search) const {
-			//boost::dynamic_bitset<> A(this->fod->size());
-			//A[4] = true;
+
 			if(smallest_superset_search){
 				if(depth > final_depth){
 					if(this->mark_every_depth){
@@ -1210,15 +1272,14 @@ namespace efficient_DST{
 
 			// take skipped depths into account
 			while(depth < leaf->depth && depth < final_depth){
-				if(set[depth] != leaf->set[depth]){
-					if(smallest_superset_search){
-						if(set[depth] && !leaf->set[depth])
-							return nullptr;
-					}else{
+				if(smallest_superset_search){
+					if(set[depth] && !leaf->set[depth])
+						return nullptr;
+				}else{
+					if(set[depth] != leaf->set[depth]){
 						// if there is a disjunction between key and next_set for the element at depth in fod
 						return nullptr;
 					}
-
 				}
 				++depth;
 			}

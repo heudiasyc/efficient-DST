@@ -16,7 +16,7 @@ namespace efficient_DST{
 		mass<T> operator()(const mass<T>& m1, const mass<T>& m2) const {
 			const std::vector<set_N_value<T>* >& focal_sets_1 = m1.get_definition().elements();
 			const std::vector<set_N_value<T>* >& focal_sets_2 = m1.get_definition().elements();
-			powerset_btree<T> focal_sets_12(*m1.get_definition().fod, m1.get_definition().block_size);
+			powerset_btree<T> focal_sets_12(m1.get_definition().get_FOD(), m1.get_definition().get_block_size());
 
 			for (size_t i1 = 0; i1 < focal_sets_1.size(); ++i1){
 				for (size_t i2 = 0; i2 < focal_sets_2.size(); ++i2){

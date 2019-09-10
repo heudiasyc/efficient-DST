@@ -24,10 +24,10 @@ namespace efficient_DST{
 
 		std::vector<T> get_contour() {
 			std::vector<T> contour;
-			contour.reserve(this->definition.fod->size());
-			boost::dynamic_bitset<> singleton(this->definition.fod->size());
+			contour.reserve(this->definition.get_FOD_size());
+			boost::dynamic_bitset<> singleton(this->definition.get_FOD_size());
 
-			for(size_t i = 0; i < this->definition.fod->size(); ++i){
+			for(size_t i = 0; i < this->definition.get_FOD_size(); ++i){
 				singleton[i] = true;
 				contour.emplace_back(find(singleton));
 				singleton[i] = false;
@@ -36,13 +36,13 @@ namespace efficient_DST{
 		}
 
 		T at_emptyset() const {
-			set_N_value<T>* set_value = this->definition.sub_fod_of_size(this->definition.fod->size());
+			set_N_value<T>* set_value = this->definition.sub_fod_of_size(this->definition.get_FOD_size());
 			if(set_value){
 				return 1-set_value->value;
 			}
-			boost::dynamic_bitset<> fod(this->definition.fod->size());
+			boost::dynamic_bitset<> fod(this->definition.get_FOD_size());
 			fod.set();
-			return 1-this->compute_aggregation(fod);
+			return 1-this->find_non_focal_point_image(fod);
 		}
 
 		T at_fod() const {
@@ -50,12 +50,12 @@ namespace efficient_DST{
 			if(set_value){
 				return 1-set_value->value;
 			}
-			boost::dynamic_bitset<> emptyset(this->definition.fod->size());
-			return 1-this->compute_aggregation(emptyset);
+			boost::dynamic_bitset<> emptyset(this->definition.get_FOD_size());
+			return 1-this->find_non_focal_point_image(emptyset);
 		}
 
 		T operator[](const std::vector<std::string>& labels) const {
-			return find(this->definition.fod->to_set(labels));
+			return find(this->definition.get_FOD()->to_set(labels));
 		}
 
 		T find(const boost::dynamic_bitset<>& set) const {
@@ -64,7 +64,7 @@ namespace efficient_DST{
 			if(set_value){
 				return 1-set_value->value;
 			}
-			return 1-this->compute_aggregation(dual_set);
+			return 1-this->find_non_focal_point_image(dual_set);
 		}
 	};
 

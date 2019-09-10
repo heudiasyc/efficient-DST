@@ -17,7 +17,7 @@ namespace efficient_DST{
 		conjunctive_weight(const powerset_btree<T>& focal_log_sets_values) : decomposition_weight<T>(focal_log_sets_values)
 		{}
 
-		conjunctive_weight(const FOD& fod) : decomposition_weight<T>(fod)
+		conjunctive_weight(FOD& fod) : decomposition_weight<T>(fod)
 		{}
 
 		conjunctive_weight(const mobius_aggregate<T>& q) : decomposition_weight<T>(q)
@@ -27,10 +27,6 @@ namespace efficient_DST{
 						<< "\nDoing so, you got the disjunctive weight function instead." << std::endl;
 			}
 			invert_values(this->definition);
-			boost::dynamic_bitset<> fod(this->definition.fod->size());
-			fod.set();
-			// fod is not supposed to be defined in the conjunctive weight function
-			this->definition.nullify(this->definition[fod]);
 		}
 
 
@@ -41,19 +37,45 @@ namespace efficient_DST{
 		powerset_btree<T> inverted_definition() const {
 			powerset_btree<T> inverted_definition(this->definition);
 			invert_values(inverted_definition);
-			// The following part ensures that w(fod) is defined (as it is not when directly building w).
-			// Indeed, w(fod) is required for the computation of the commonality function.
-			boost::dynamic_bitset<> fod(inverted_definition.fod->size());
-			fod.set();
-			// inv_w_fod represents w(fod)^{-1}, which is also equal to q(fod) and m(fod).
-			T inv_w_fod = 1;
-			const std::vector<set_N_value<T>* >& subsets = inverted_definition.strict_subsets_of(fod);
-			for (size_t i = 0; i < subsets.size(); ++i){
-				// divide by the images of w^{-1} to obtain the product on images of w which corresponds to q(fod)
-				inv_w_fod /= subsets[i]->value;
-			}
-			inverted_definition.insert(fod, inv_w_fod);
 			return inverted_definition;
+		}
+
+		void set_values(const std::unordered_map<std::vector<std::string>, T>& values) {
+			for (std::pair<std::vector<std::string>, T> labels_U_value : values){
+				set_value(labels_U_value.first, labels_U_value.second);
+			}
+		}
+
+		void set_value(const std::vector<std::string>& labels, const T& value) {
+			this->definition.insert(labels, value);
+			// The following part ensures that w(fod) is defined (as it is not when directly building w).
+			// Indeed, w(fod) may be required for the computation of the commonality function.
+			// w(fod)^{-1} is equal to the product of all other weights.
+			set_N_value<T>* fod = this->definition.sub_fod_of_size(this->definition.get_FOD_size());
+			if(fod){
+				fod->value /= value;
+			}else{
+				this->definition.set_value_of_sub_fod_of_size(this->definition.get_FOD_size(), 1/value);
+			}
+		}
+
+		void set_emptyset_value(const T& value) {
+			set_value({}, value);
+		}
+
+		void nullify(const std::vector<std::string>& labels) {
+			if(this->definition.get_FOD()->to_set(labels).count() == 1)
+				return;
+			set_N_value<T>* A = this->definition[labels];
+			if(A){
+				set_N_value<T>* fod = this->definition.sub_fod_of_size(this->definition.get_FOD_size());
+				if(fod){
+					fod->value *= A->value;
+				}else{
+					this->definition.set_value_of_sub_fod_of_size(this->definition.get_FOD_size(), A->value);
+				}
+				this->definition.nullify(A);
+			}
 		}
 
 

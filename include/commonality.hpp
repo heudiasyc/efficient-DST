@@ -23,7 +23,7 @@ namespace efficient_DST{
 		commonality(const powerset_btree<T>& focal_points_values) : mobius_aggregate<T>(focal_points_values, order_relation_t::superset)
 		{}
 
-		commonality(const std::vector<T>& powerset_values, const FOD& fod) : mobius_aggregate<T>(powerset_values, fod, order_relation_t::superset)
+		commonality(const std::vector<T>& powerset_values, FOD& fod) : mobius_aggregate<T>(powerset_values, fod, order_relation_t::superset)
 		{}
 
 

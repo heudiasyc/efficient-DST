@@ -16,10 +16,10 @@ namespace efficient_DST{
 		mass(const powerset_btree<T>& focal_sets_values) : mobius_transform<T>(focal_sets_values)
 		{}
 
-		mass(const FOD& fod) : mobius_transform<T>(fod)
+		mass(FOD& fod) : mobius_transform<T>(fod)
 		{}
 
-		mass(const FOD& fod, const special_case_t s_case) : mass(fod)
+		mass(FOD& fod, const special_case_t s_case) : mobius_transform<T>(fod)
 		{
 			switch(s_case){
 				// create a mass function with all mass attributed to the empty set
@@ -35,14 +35,6 @@ namespace efficient_DST{
 			this->normalize();
 		}
 
-/*
-		void erase_elements_containing_fod_element(const std::string& element_label){
-			size_t position = this->fod.to_element(element_label)->position_in_fod;
-			this->definition.erase_elements_containing_fod_element(position);
-			this->fod.erase(position);
-			//powerset_function::erase_elements_containing_fod_element(position);
-		}
-*/
 		template <class fusion_rule>
 		mass<T> apply(const mass<T>& m2) const {
 			const fusion_rule fusion;
@@ -68,7 +60,7 @@ namespace efficient_DST{
 		}
 
 		void set_fod_value(const T& value) {
-			this->definition.set_value_of_sub_fod_of_size(this->definition.fod->size(), value);
+			this->definition.set_value_of_sub_fod_of_size(this->definition.get_FOD_size(), value);
 		}
 
 		T at_emptyset() const {
@@ -80,7 +72,7 @@ namespace efficient_DST{
 		}
 
 		T at_fod() const {
-			set_N_value<T>* set_value = this->definition.sub_fod_of_size(this->definition.fod->size());
+			set_N_value<T>* set_value = this->definition.sub_fod_of_size(this->definition.get_block_size());
 			if(set_value)
 				return set_value->value;
 			else
@@ -88,7 +80,7 @@ namespace efficient_DST{
 		}
 
 		T operator[](const std::vector<std::string>& labels) const {
-			return find(this->definition.fod->to_set(labels));
+			return find(this->definition.get_FOD()->to_set(labels));
 		}
 
 		T find(const boost::dynamic_bitset<>& set) const {
@@ -314,7 +306,7 @@ namespace efficient_DST{
 				}
 				U = FOD::set_union(setj, U);
 			}
-			return U.count() == this->definition.fod->size();
+			return U.count() == this->definition.get_FOD_size();
 		}
 
 		/// Mass function without internal conflict is a one where all pairs of
