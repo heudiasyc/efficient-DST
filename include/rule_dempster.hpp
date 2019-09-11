@@ -18,8 +18,7 @@ namespace efficient_DST{
 
 		mass<T> operator()(const mass<T>& m1, const mass<T>& m2) const {
 			mass<T> m12 = rule_conjunctive<T>::operator ()(m1, m2);
-			m12.nullify({});
-			m12.normalize();
+			m12.regularize();
 			return m12;
 		}
 
@@ -31,8 +30,7 @@ namespace efficient_DST{
 
 		conjunctive_weight<T> operator()(const conjunctive_weight<T>& w1, const conjunctive_weight<T>& w2) const {
 			conjunctive_weight<T> w12 = rule_conjunctive<T>::operator ()(w1, w2);
-			w12.nullify({});
-			w12.normalize();
+			w12.regularize();
 			return w12;
 		}
 	};

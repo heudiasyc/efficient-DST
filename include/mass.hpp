@@ -91,6 +91,11 @@ namespace efficient_DST{
 				return 0;
 		}
 
+		void regularize() {
+			this->nullify({});
+			this->normalize();
+		}
+
 		void normalize() {
 			T sum = 0;
 			const std::vector<set_N_value<T>* >& elements = this->definition.elements();

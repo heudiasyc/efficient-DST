@@ -55,6 +55,11 @@ namespace efficient_DST{
 				return 1;
 		}
 
+		void regularize() {
+			this->definition.nullify(this->definition[std::vector<std::string>{}]);
+			this->normalize();
+		}
+
 		void normalize() {
 			T prod = 1;
 			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
