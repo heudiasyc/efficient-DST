@@ -10,3 +10,9 @@ But, beware of the number of focal sets resulting from multiple fusions. Using t
 
 
 The core of this implementation uses the class dynamic\_bitset (a dynamic contiguous sequence of bits) of the library BOOST to represent sets, along with a special dynamic binary tree of my design.
+
+# Usage
+
+- Copy the include repository into your C++ project,
+- Link it to your compilation process,
+- See main.cpp to get an example of usage.
