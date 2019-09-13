@@ -15,4 +15,4 @@ The core of this implementation uses the class dynamic\_bitset (a dynamic contig
 
 - Copy the include repository into your C++ project,
 - Link it to your compilation process,
-- See main.cpp to get an example of usage.
+- See src/main.cpp to get an example of usage.
