@@ -10,6 +10,8 @@ namespace efficient_DST{
 
 	template <typename T = double>
 	class rule_Dempster : public rule_conjunctive<T> {
+	public:
+
 		std::string to_string() const {
 			return "Dempster's rule";
 		}

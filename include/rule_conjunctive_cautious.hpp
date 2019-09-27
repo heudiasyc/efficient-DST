@@ -9,11 +9,11 @@ namespace efficient_DST{
 
 	template <typename T = double>
 	class rule_conjunctive_cautious {
+	public:
+
 		std::string to_string() const {
 			return "Cautious conjunctive rule";
 		}
-
-	public:
 
 		mass<T> operator()(const mass<T>& m1, const mass<T>& m2) const {
 			mobius_aggregate<T> q1(m1.get_definition(), order_relation_t::superset, mobius_transformation_form_t::additive);
@@ -24,14 +24,9 @@ namespace efficient_DST{
 
 
 		commonality<T> operator()(const commonality<T>& q1, const commonality<T>& q2) const {
-			const powerset_btree<T>& w1_definition = q1.inversion(mobius_transformation_form_t::multiplicative);
-			const powerset_btree<T>& w2_definition = q2.inversion(mobius_transformation_form_t::multiplicative);
-			mobius_aggregate<T> q12(
-				weight_fusion(w1_definition, w2_definition),
-				order_relation_t::superset,
-				mobius_transformation_form_t::multiplicative
-			);
-			return *(commonality<T>*) &q12;
+			const conjunctive_weight<T>& w1(q1);
+			const conjunctive_weight<T>& w2(q2);
+			return commonality<T>(operator ()(w1, w2));
 		}
 
 

@@ -9,11 +9,11 @@ namespace efficient_DST{
 
 	template <typename T = double>
 	class rule_disjunctive_bold {
+	public:
+
 		std::string to_string() const {
 			return "Bold disjunctive rule";
 		}
-
-	public:
 
 		mass<T> operator()(const mass<T>& m1, const mass<T>& m2) const {
 			mobius_aggregate<T> b1(m1.get_definition(), order_relation_t::subset, mobius_transformation_form_t::additive);
@@ -24,14 +24,9 @@ namespace efficient_DST{
 
 
 		implicability<T> operator()(const implicability<T>& b1, const implicability<T>& b2) const {
-			const powerset_btree<T>& v1_definition = b1.inversion(mobius_transformation_form_t::multiplicative);
-			const powerset_btree<T>& v2_definition = b2.inversion(mobius_transformation_form_t::multiplicative);
-			mobius_aggregate<T> b12(
-				weight_fusion(v1_definition, v2_definition),
-				order_relation_t::subset,
-				mobius_transformation_form_t::multiplicative
-			);
-			return *(implicability<T>*) &b12;
+			const disjunctive_weight<T>& v1(b1);
+			const disjunctive_weight<T>& v2(b2);
+			return implicability<T>(operator ()(v1, v2));
 		}
 
 

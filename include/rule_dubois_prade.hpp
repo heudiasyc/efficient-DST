@@ -7,11 +7,11 @@ namespace efficient_DST{
 
 	template <typename T = double>
 	class rule_Dubois_Prade {
+	public:
+
 		std::string to_string() const {
 			return "Dubois-Prade adaptative rule";
 		}
-
-	public:
 
 		mass<T> operator()(const mass<T>& m1, const mass<T>& m2) const {
 			const std::vector<set_N_value<T>* >& focal_sets_1 = m1.get_definition().elements();
