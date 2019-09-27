@@ -69,15 +69,36 @@ namespace efficient_DST{
 			set_N_value<T>* A = this->definition[labels];
 			if(A){
 				set_N_value<T>* fod = this->definition.sub_fod_of_size(this->definition.get_FOD_size());
-				if(fod){
-					fod->value *= A->value;
-				}else{
-					this->definition.set_value_of_sub_fod_of_size(this->definition.get_FOD_size(), A->value);
+				if(A != fod){
+					if(fod){
+						fod->value *= A->value;
+					}else{
+						this->definition.set_value_of_sub_fod_of_size(this->definition.get_FOD_size(), A->value);
+					}
 				}
 				this->definition.nullify(A);
 			}
 		}
 
+		void compute_fod_value_from_definition(){
+			compute_fod_value_from_definition(this->definition);
+		}
+
+		static void compute_fod_value_from_definition(powerset_btree<T>& definition){
+			boost::dynamic_bitset<> fod(definition.get_FOD_size());
+			fod.set();
+			const std::vector<set_N_value<T>* >& focal_log_elements = definition.strict_subsets_of(fod);
+			T val = 1;
+			for (size_t i = 0; i < focal_log_elements.size(); ++i){
+				val /= focal_log_elements[i]->value;
+			}
+			set_N_value<T>* fod_set_N_value = definition.sub_fod_of_size(definition.get_FOD_size());
+			if(fod_set_N_value){
+				fod_set_N_value->value = val;
+			}else{
+				definition.set_value_of_sub_fod_of_size(definition.get_FOD_size(), val);
+			}
+		}
 
 		template <class fusion_rule>
 		conjunctive_weight<T> apply(const conjunctive_weight<T>& w2) const {

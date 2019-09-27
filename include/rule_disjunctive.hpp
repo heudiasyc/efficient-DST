@@ -35,7 +35,10 @@ namespace efficient_DST{
 						}
 					}
 				}
-				return mass<T>(focal_sets_12);
+				mass<T> m12(focal_sets_12);
+				m12.remove_negligible_values();
+				m12.normalize();
+				return m12;
 			}else{
 				mobius_aggregate<T> b1(m1_definition, order_relation_t::subset, mobius_transformation_form_t::additive);
 				mobius_aggregate<T> b2(m2_definition, order_relation_t::subset, mobius_transformation_form_t::additive);
@@ -71,6 +74,8 @@ namespace efficient_DST{
 		powerset_btree<T> weight_fusion(const powerset_btree<T>& v1_definition, const powerset_btree<T>& v2_definition) const {
 			powerset_btree<T> v12_definition(v1_definition.get_FOD(), v1_definition.get_block_size());
 			v12_definition.fill_with_union_of_powersets(v1_definition, v2_definition, multiply, 1);
+			decomposition_weight<T>::remove_negligible_values(v12_definition);
+			decomposition_weight<T>::normalize(v12_definition);
 			return v12_definition;
 		}
 	};

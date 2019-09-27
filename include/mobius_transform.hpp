@@ -66,6 +66,9 @@ namespace efficient_DST{
 
 	template <typename T = double>
 	class mobius_transform {
+	private:
+		static constexpr T zero = 0;
+
 	protected:
 		/*
 		 * Only sets necessary to the definition of this Möbius transform
@@ -73,14 +76,14 @@ namespace efficient_DST{
 		 */
 		powerset_btree<T> definition;
 
-		inline bool is_equivalent_to_zero(const T& value) const {
-			return (value < static_cast<T>(0) ? -value : value) <= precision;
+		static inline bool is_equivalent_to_zero(const T& value) {
+			return (value < zero ? -value : value) <= precision;
 		}
 
 	public:
 		// allow user to configure the floating-point tolerance
 		static const size_t block_size = 100;
-		const T precision = 1e-10;
+		static constexpr T precision = 1e-10;
 
 		mobius_transform (const powerset_btree<T>& definition) :
 			definition(definition)
@@ -109,6 +112,10 @@ namespace efficient_DST{
 
 		const FOD& get_FOD() const {
 			return *(this->definition.get_FOD());
+		}
+
+		const size_t& get_block_size() const {
+			return this->definition.get_block_size();
 		}
 	};
 }		// namespace efficient_DST

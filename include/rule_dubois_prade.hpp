@@ -34,7 +34,10 @@ namespace efficient_DST{
 					}
 				}
 			}
-			return mass<T>(focal_sets_12);
+			mass<T> m12(focal_sets_12);
+			m12.remove_negligible_values();
+			m12.normalize();
+			return m12;
 		}
 	};
 

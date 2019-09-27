@@ -108,7 +108,7 @@ int main(){
 
 	std::vector<double> contour_pl = pl.get_contour();
 	for (size_t i = 0; i < contour_pl.size(); ++i){
-		std::cout << contour_pl[i] << std::endl;
+		std::cout << contour_pl[i] << "\t <- {" << fod.elements()[i]->label << "}" << std::endl;
 	}
 
 	std::cout << "\n============================================\n";
@@ -119,7 +119,7 @@ int main(){
 
 	std::vector<double> contour_bet = bet_p.get_contour();
 	for (size_t i = 0; i < contour_bet.size(); ++i){
-		std::cout << contour_bet[i] << std::endl;
+		std::cout << contour_bet[i] << "\t <- {" << fod.elements()[i]->label << "}" << std::endl;
 	}
 
     std::cout << "\n============================================\n";

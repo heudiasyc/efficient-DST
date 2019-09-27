@@ -49,6 +49,8 @@ namespace efficient_DST{
 		powerset_btree<T> weight_fusion(const powerset_btree<T>& v1_definition, const powerset_btree<T>& v2_definition) const {
 			powerset_btree<T> v12_definition(v1_definition.get_FOD(), v1_definition.get_block_size());
 			v12_definition.fill_with_union_of_powersets(v1_definition, v2_definition, max, 1);
+			decomposition_weight<T>::remove_negligible_values(v12_definition);
+			disjunctive_weight<T>::compute_emptyset_value_from_definition(v12_definition);
 			return v12_definition;
 		}
 	};

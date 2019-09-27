@@ -49,6 +49,8 @@ namespace efficient_DST{
 		powerset_btree<T> weight_fusion(const powerset_btree<T>& w1_definition, const powerset_btree<T>& w2_definition) const {
 			powerset_btree<T> w12_definition(w1_definition.get_FOD(), w1_definition.get_block_size());
 			w12_definition.fill_with_union_of_powersets(w1_definition, w2_definition, min, 1);
+			decomposition_weight<T>::remove_negligible_values(w12_definition);
+			conjunctive_weight<T>::compute_fod_value_from_definition(w12_definition);
 			return w12_definition;
 		}
 	};

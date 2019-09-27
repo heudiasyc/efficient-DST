@@ -61,8 +61,12 @@ namespace efficient_DST{
 		}
 
 		void normalize() {
+			normalize(this->definition);
+		}
+
+		static void normalize(powerset_btree<T>& definition) {
 			T prod = 1;
-			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
+			const std::vector<set_N_value<T>* >& elements = definition.elements();
 			for (size_t i = 0; i < elements.size(); ++i) {
 				prod *= elements[i]->value;
 			}
@@ -81,10 +85,14 @@ namespace efficient_DST{
 		}
 
 		void remove_negligible_values() {
-			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
+			remove_negligible_values(this->definition);
+		}
+
+		static void remove_negligible_values(powerset_btree<T>& definition) {
+			const std::vector<set_N_value<T>* >& elements = definition.elements();
 			for (size_t i = 0; i < elements.size(); ++i) {
-				if(this->is_equivalent_to_zero(1-elements[i]->value)){
-					this->definition.nullify(elements[i]);
+				if(mobius_transform<T>::is_equivalent_to_zero(1-elements[i]->value)){
+					definition.nullify(elements[i]);
 				}
 			}
 		}

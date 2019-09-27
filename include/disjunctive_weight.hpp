@@ -69,15 +69,35 @@ namespace efficient_DST{
 			set_N_value<T>* A = this->definition[labels];
 			if(A){
 				set_N_value<T>* emptyset = this->definition.sub_fod_of_size(0);
-				if(emptyset){
-					emptyset->value *= A->value;
-				}else{
-					this->definition.set_value_of_sub_fod_of_size(0, A->value);
+				if(A != emptyset){
+					if(emptyset){
+						emptyset->value *= A->value;
+					}else{
+						this->definition.set_value_of_sub_fod_of_size(0, A->value);
+					}
 				}
 				this->definition.nullify(A);
 			}
 		}
 
+		void compute_emptyset_value_from_definition(){
+			compute_emptyset_value_from_definition(this->definition);
+		}
+
+		static void compute_emptyset_value_from_definition(powerset_btree<T>& definition){
+			boost::dynamic_bitset<> emptyset(definition.get_FOD_size());
+			const std::vector<set_N_value<T>* >& focal_log_elements = definition.strict_supersets_of(emptyset);
+			T val = 1;
+			for (size_t i = 0; i < focal_log_elements.size(); ++i){
+				val /= focal_log_elements[i]->value;
+			}
+			set_N_value<T>* emptyset_set_N_value = definition.sub_fod_of_size(0);
+			if(emptyset_set_N_value){
+				emptyset_set_N_value->value = val;
+			}else{
+				definition.set_value_of_sub_fod_of_size(0, val);
+			}
+		}
 
 		template <class fusion_rule>
 		disjunctive_weight<T> apply(const disjunctive_weight<T>& v2) const {
