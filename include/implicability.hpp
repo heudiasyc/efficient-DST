@@ -3,27 +3,27 @@
 
 #include <mass.hpp>
 #include <disjunctive_weight.hpp>
-#include <mobius_aggregate.hpp>
+#include <zeta_transform.hpp>
 
 namespace efficient_DST{
 
 	template <typename T = double>
-	class implicability : public mobius_aggregate<T> {
+	class implicability : public zeta_transform<T> {
 	public:
 
-		implicability(const mass<T>& m) : mobius_aggregate<T>(m.get_definition(), order_relation_t::subset, mobius_transformation_form_t::additive)
+		implicability(const mass<T>& m) : zeta_transform<T>(m.get_definition(), order_relation_t::subset, operation_t::addition)
 		{}
 
-		implicability(const disjunctive_weight<T>& v) : mobius_aggregate<T>(v.inverted_definition(), order_relation_t::subset, mobius_transformation_form_t::multiplicative)
+		implicability(const disjunctive_weight<T>& v) : zeta_transform<T>(v.inverted_definition(), order_relation_t::subset, operation_t::multiplication)
 		{}
 
-		implicability(const implicability<T>& b) : mobius_aggregate<T>(b)
+		implicability(const implicability<T>& b) : zeta_transform<T>(b)
 		{}
 
-		implicability(const powerset_btree<T>& focal_points_values) : mobius_aggregate<T>(focal_points_values, order_relation_t::subset)
+		implicability(const powerset_btree<T>& focal_points_values) : zeta_transform<T>(focal_points_values, order_relation_t::subset)
 		{}
 
-		implicability(const std::vector<T>& powerset_values, const FOD& fod) : mobius_aggregate<T>(powerset_values, fod, order_relation_t::subset)
+		implicability(const std::vector<T>& powerset_values, const FOD& fod) : zeta_transform<T>(powerset_values, fod, order_relation_t::subset)
 		{}
 
 

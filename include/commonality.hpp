@@ -3,27 +3,27 @@
 
 #include <mass.hpp>
 #include <conjunctive_weight.hpp>
-#include <mobius_aggregate.hpp>
+#include <zeta_transform.hpp>
 
 namespace efficient_DST{
 
 	template <typename T = double>
-	class commonality : public mobius_aggregate<T> {
+	class commonality : public zeta_transform<T> {
 	public:
 
-		commonality(const mass<T>& m) : mobius_aggregate<T>(m.get_definition(), order_relation_t::superset, mobius_transformation_form_t::additive)
+		commonality(const mass<T>& m) : zeta_transform<T>(m.get_definition(), order_relation_t::superset, operation_t::addition)
 		{}
 
-		commonality(const conjunctive_weight<T>& w) : mobius_aggregate<T>(w.inverted_definition(), order_relation_t::superset, mobius_transformation_form_t::multiplicative)
+		commonality(const conjunctive_weight<T>& w) : zeta_transform<T>(w.inverted_definition(), order_relation_t::superset, operation_t::multiplication)
 		{}
 
-		commonality(const commonality<T>& q) : mobius_aggregate<T>(q)
+		commonality(const commonality<T>& q) : zeta_transform<T>(q)
 		{}
 
-		commonality(const powerset_btree<T>& focal_points_values) : mobius_aggregate<T>(focal_points_values, order_relation_t::superset)
+		commonality(const powerset_btree<T>& focal_points_values) : zeta_transform<T>(focal_points_values, order_relation_t::superset)
 		{}
 
-		commonality(const std::vector<T>& powerset_values, FOD& fod) : mobius_aggregate<T>(powerset_values, fod, order_relation_t::superset)
+		commonality(const std::vector<T>& powerset_values, FOD& fod) : zeta_transform<T>(powerset_values, fod, order_relation_t::superset)
 		{}
 
 

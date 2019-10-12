@@ -552,7 +552,10 @@ namespace efficient_DST{
 
 		std::vector<set_N_value<T>* > elements(const bool& include_disjunction_nodes) const {
 			std::vector<set_N_value<T>* > all_values;
-			all_values.reserve(this->size());
+			if (include_disjunction_nodes)
+				all_values.reserve(this->node_pool.number_of_occupants());
+			else
+				all_values.reserve(this->size());
 
 			if(include_disjunction_nodes || !this->emptyset->is_null){
 				//std::clog << "\nEMPTYSET : " << this->emptyset->value;
@@ -562,6 +565,17 @@ namespace efficient_DST{
 			elements<std::vector<set_N_value<T>* > >(this->root, all_values, add_to_values, include_disjunction_nodes);
 			//std::clog << std::endl;
 
+			return all_values;
+		}
+
+		std::vector<T> values() const {
+			std::vector<T> all_values;
+			all_values.reserve(this->size());
+
+			if(!this->emptyset->is_null){
+				all_values.emplace_back(this->emptyset->value);
+			}
+			values(this->root, all_values);
 			return all_values;
 		}
 
@@ -726,7 +740,7 @@ namespace efficient_DST{
 
 		/////////////////////////////////////////
 
-		static void reverse_powerset_from_to(const powerset_btree<T>& powerset1, powerset_btree<T>& powerset2){
+		static void flip_powerset_from_to(const powerset_btree<T>& powerset1, powerset_btree<T>& powerset2){
 			const std::vector<set_N_value<T>* >& powerset1_list = powerset1.elements();
 
 			for (size_t i = 0; i < powerset1_list.size(); ++i) {
@@ -739,58 +753,45 @@ namespace efficient_DST{
 			}
 		}
 
+		static void flip_powerset_from_to(const powerset_btree<T>& powerset1, powerset_btree<set_N_value<T>* >& powerset2){
+			const std::vector<set_N_value<T>* >& powerset1_list = powerset1.elements();
+
+			for (size_t i = 0; i < powerset1_list.size(); ++i) {
+				powerset2.insert(
+						powerset1.fod->set_negate(
+								powerset1_list[i]->set
+					),
+					powerset1_list[i]
+				);
+			}
+		}
+
 		/////////////////////////////////////////
 
-		powerset_btree<set_N_value<T>* > EMT_superset_map() const {
-			powerset_btree<set_N_value<T>* > superset_map(this->fod, this->block_size, true);
-			const std::vector<set_N_value<T>* >& elements = this->elements();
+		static powerset_btree<set_N_value<T>* > EMT_superset_map(const powerset_btree<set_N_value<T>* >& pointer_powerset) {
+			powerset_btree<set_N_value<T>* > superset_map(pointer_powerset.get_FOD(), pointer_powerset.get_block_size(), true);
+			const std::vector<set_N_value<set_N_value<T>* >* >& elements = pointer_powerset.elements();
+
+			for (size_t i = 0; i < elements.size(); ++i) {
+				superset_map.insert(elements[i]->set, elements[i]->value);
+			}
+			build_EMT_superset_map(superset_map);
+			return superset_map;
+		}
+
+		static powerset_btree<set_N_value<T>* > EMT_superset_map(const powerset_btree<T>& powerset) {
+			powerset_btree<set_N_value<T>* > superset_map(powerset.fod, powerset.block_size, true);
+			const std::vector<set_N_value<T>* >& elements = powerset.elements();
 
 			for (size_t i = 0; i < elements.size(); ++i) {
 				superset_map.insert(elements[i]->set, elements[i]);
 			}
-
-			std::unordered_map<size_t, std::vector<set_N_value<set_N_value<T>* >* > > card_map = superset_map.elements_by_set_cardinality(true);
-			std::vector<size_t> ordered_cardinalities = powerset_btree<set_N_value<T>* >::get_sorted_cardinalities(card_map, *this->fod);
-			/*
-			 * powerset_btree of terminal nodes lacking one or two connections in this powerset.
-			 * Each node in terminal_connection_tree is associated with the address of the corresponding node in this powerset.
-			 */
-			powerset_btree<set_N_value<set_N_value<T>* >* > terminal_connection_tree(this->fod, this->block_size);
-
-			size_t c = 0;
-			if (ordered_cardinalities[0] == 0){
-				c = 1;
-			}
-
-			for (; c < ordered_cardinalities.size(); ++c){
-				const std::vector<set_N_value<set_N_value<T>* >* >& elements = card_map[ordered_cardinalities[c]];
-
-				for (size_t i = 0; i < elements.size(); ++i){
-					if(!elements[i]->is_null){
-						const std::vector<set_N_value<set_N_value<set_N_value<T>* >* >* >& subsets = terminal_connection_tree.subsets_of(elements[i]->set);
-						node<set_N_value<T>* >* node_i = (efficient_DST::node<set_N_value<T>* >*) elements[i];
-						for (size_t s = 0; s < subsets.size(); ++s){
-							node<set_N_value<T>* >* subset = (efficient_DST::node<set_N_value<T>* >*) subsets[s]->value;
-							if(subset->is_null || node_i->depth > subset->depth){
-								subset->right = node_i;
-							}
-						}
-						for (size_t s = 0; s < subsets.size(); ++s){
-							node<set_N_value<T>* >* subset = (efficient_DST::node<set_N_value<T>* >*) subsets[s]->value;
-							if(subset->is_null || node_i->depth > subset->depth){
-								terminal_connection_tree.nullify(subsets[s]);
-							}
-						}
-					}
-				}
-				for (size_t i = 0; i < elements.size(); ++i){
-					node<set_N_value<T>* >* node = (efficient_DST::node<set_N_value<T>* >*) elements[i];
-					if (!node->right){
-						terminal_connection_tree.insert(elements[i]->set, elements[i]);
-					}
-				}
-			}
+			build_EMT_superset_map(superset_map);
 			return superset_map;
+		}
+
+		powerset_btree<set_N_value<T>* > EMT_superset_map() const {
+			return EMT_superset_map(this);
 		}
 
 
@@ -1403,6 +1404,19 @@ namespace efficient_DST{
 		}
 
 
+		void values(node<T>* leaf, std::vector<T>& all_values) const {
+			if(!leaf->is_null){
+				all_values.emplace_back(leaf->value);
+			}
+			if(leaf->left){
+				values(leaf->left, all_values);
+			}
+			if(leaf->right){
+				values(leaf->right, all_values);
+			}
+		}
+
+
 		/*
 		 * Complexity O(S), where S is the number of subsets assigned by user of the set defined by key
 		 * All subsets of key are of depth <= final_depth and don't contain any other elements than the ones of key
@@ -1812,6 +1826,51 @@ namespace efficient_DST{
 									depth+1,
 									union_operation,
 									found_sets);
+				}
+			}
+		}
+
+
+		static void build_EMT_superset_map(powerset_btree<set_N_value<T>* >& superset_map){
+			std::unordered_map<size_t, std::vector<set_N_value<set_N_value<T>* >* > > card_map = superset_map.elements_by_set_cardinality(true);
+			std::vector<size_t> ordered_cardinalities = powerset_btree<set_N_value<T>* >::get_sorted_cardinalities(card_map, *superset_map.get_FOD());
+			/*
+			 * powerset_btree of terminal nodes lacking one or two connections in this powerset.
+			 * Each node in terminal_connection_tree is associated with the address of the corresponding node in this powerset.
+			 */
+			powerset_btree<set_N_value<set_N_value<T>* >* > terminal_connection_tree(superset_map.get_FOD(), superset_map.get_block_size());
+
+			size_t c = 0;
+			if (ordered_cardinalities[0] == 0){
+				c = 1;
+			}
+
+			for (; c < ordered_cardinalities.size(); ++c){
+				const std::vector<set_N_value<set_N_value<T>* >* >& elements = card_map[ordered_cardinalities[c]];
+
+				for (size_t i = 0; i < elements.size(); ++i){
+					if(!elements[i]->is_null){
+						const std::vector<set_N_value<set_N_value<set_N_value<T>* >* >* >& subsets = terminal_connection_tree.subsets_of(elements[i]->set);
+						node<set_N_value<T>* >* node_i = (efficient_DST::node<set_N_value<T>* >*) elements[i];
+						for (size_t s = 0; s < subsets.size(); ++s){
+							node<set_N_value<T>* >* subset = (efficient_DST::node<set_N_value<T>* >*) subsets[s]->value;
+							if(subset->is_null || node_i->depth > subset->depth){
+								subset->right = node_i;
+							}
+						}
+						for (size_t s = 0; s < subsets.size(); ++s){
+							node<set_N_value<T>* >* subset = (efficient_DST::node<set_N_value<T>* >*) subsets[s]->value;
+							if(subset->is_null || node_i->depth > subset->depth){
+								terminal_connection_tree.nullify(subsets[s]);
+							}
+						}
+					}
+				}
+				for (size_t i = 0; i < elements.size(); ++i){
+					node<set_N_value<T>* >* node = (efficient_DST::node<set_N_value<T>* >*) elements[i];
+					if (!node->right){
+						terminal_connection_tree.insert(elements[i]->set, elements[i]);
+					}
 				}
 			}
 		}

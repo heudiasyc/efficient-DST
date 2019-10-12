@@ -23,8 +23,8 @@ namespace efficient_DST{
 			if (m1_definition.size() * m2_definition.size() < 0.5 * m1_definition.get_FOD_size() * pow(2, m1_definition.get_FOD_size())){
 				return rule_classic_general<T>::operator ()(m1, m2, FOD::set_union);
 			}else{
-				mobius_aggregate<T> b1(m1_definition, order_relation_t::subset, mobius_transformation_form_t::additive);
-				mobius_aggregate<T> b2(m2_definition, order_relation_t::subset, mobius_transformation_form_t::additive);
+				zeta_transform<T> b1(m1_definition, order_relation_t::subset, operation_t::addition);
+				zeta_transform<T> b2(m2_definition, order_relation_t::subset, operation_t::addition);
 				implicability<T> b12 = operator()(*(implicability<T>*) &b1, *(implicability<T>*) &b2);
 				return mass<T>(b12);
 			}
@@ -32,12 +32,12 @@ namespace efficient_DST{
 
 
 		implicability<T> operator()(const implicability<T>& b1, const implicability<T>& b2) const {
-			const powerset_btree<T>& v1_inverted_definition = b1.inversion(mobius_transformation_form_t::multiplicative);
-			const powerset_btree<T>& v2_inverted_definition = b2.inversion(mobius_transformation_form_t::multiplicative);
-			mobius_aggregate<T> b12(
+			const powerset_btree<T>& v1_inverted_definition = b1.inversion(operation_t::multiplication);
+			const powerset_btree<T>& v2_inverted_definition = b2.inversion(operation_t::multiplication);
+			zeta_transform<T> b12(
 				rule_classic_general<T>::weight_fusion(v1_inverted_definition, v2_inverted_definition),
 				order_relation_t::subset,
-				mobius_transformation_form_t::multiplicative
+				operation_t::multiplication
 			);
 			return *(implicability<T>*) &b12;
 		}

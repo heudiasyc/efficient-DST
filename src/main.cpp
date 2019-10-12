@@ -58,29 +58,31 @@ int main(){
 	std::cout << "\n============================================\n";
 
     mass<> m(fod);
-
+/*
     m.set_emptyset_value(0.18);
     m.set_value({"f", "g"}, 0.06);
     m.set_value({"f", "j"}, 0.41);
     m.set_value({"e", "f", "i", "o"}, 0.07);
     m.set_value({"f", "l"}, 0.27);
     m.set_fod_value(0.01);
+*/
 
-/*
     m.set_emptyset_value(0.18);
     m.set_value({"e", "f", "g", "i", "j", "l", "o"}, 0.06);
     m.set_value({"e", "f", "g", "i"}, 0.38);
     m.set_value({"e", "f", "j", "l", "o"}, 0.1);
     m.set_value({"f", "g", "i", "j", "l"}, 0.27);
     m.set_fod_value(0.01);
-
+/*
 	m.set_emptyset_value(0.01);
     m.set_value({"h"}, 0.06);
     m.set_value({"h", "j", "l", "o"}, 0.38);
     m.set_value({"g", "h", "i"}, 0.1);
     m.set_value({"e", "h", "o"}, 0.27);
     m.set_fod_value(0.18);
-	*/
+*/
+
+
     FOD fod_vec({"a", "b", "c", "d"});
 
     //q_vec corresponds to the mass function {0.01, 0.06, 0, 0, 0.38, 0, 0.05, 0, 0, 0, 0, 0.05, 0.27, 0, 0, 0.18}.

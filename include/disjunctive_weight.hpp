@@ -3,7 +3,7 @@
 
 #include <decomposition_weight.hpp>
 #include <mobius_transform.hpp>
-#include <mobius_aggregate.hpp>
+#include <zeta_transform.hpp>
 
 namespace efficient_DST{
 
@@ -20,7 +20,7 @@ namespace efficient_DST{
 		disjunctive_weight(FOD& fod) : decomposition_weight<T>(fod)
 		{}
 
-		disjunctive_weight(const mobius_aggregate<T>& b) : decomposition_weight<T>(b)
+		disjunctive_weight(const zeta_transform<T>& b) : decomposition_weight<T>(b)
 		{
 			if (b.order_relation != order_relation_t::subset) {
 				std::cerr << "The given Möbius aggregate is not the implicability function and thus can only be the commonality one. "

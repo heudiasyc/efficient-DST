@@ -23,8 +23,8 @@ namespace efficient_DST{
 			if (m1_definition.size() * m2_definition.size() < 0.5 * m1_definition.get_FOD_size() * pow(2, m1_definition.get_FOD_size())){
 				return rule_classic_general<T>::operator ()(m1, m2, FOD::set_intersection);
 			}else{
-				mobius_aggregate<T> q1(m1_definition, order_relation_t::superset, mobius_transformation_form_t::additive);
-				mobius_aggregate<T> q2(m2_definition, order_relation_t::superset, mobius_transformation_form_t::additive);
+				zeta_transform<T> q1(m1_definition, order_relation_t::superset, operation_t::addition);
+				zeta_transform<T> q2(m2_definition, order_relation_t::superset, operation_t::addition);
 				commonality<T> q12 = operator()(*(commonality<T>*) &q1, *(commonality<T>*) &q2);
 				return mass<T>(q12);
 			}
@@ -32,12 +32,12 @@ namespace efficient_DST{
 
 
 		commonality<T> operator()(const commonality<T>& q1, const commonality<T>& q2) const {
-			const powerset_btree<T>& w1_inverted_definition = q1.inversion(mobius_transformation_form_t::multiplicative);
-			const powerset_btree<T>& w2_inverted_definition = q2.inversion(mobius_transformation_form_t::multiplicative);
-			mobius_aggregate<T> q12(
+			const powerset_btree<T>& w1_inverted_definition = q1.inversion(operation_t::multiplication);
+			const powerset_btree<T>& w2_inverted_definition = q2.inversion(operation_t::multiplication);
+			zeta_transform<T> q12(
 				rule_classic_general<T>::weight_fusion(w1_inverted_definition, w2_inverted_definition),
 				order_relation_t::superset,
-				mobius_transformation_form_t::multiplicative
+				operation_t::multiplication
 			);
 			return *(commonality<T>*) &q12;
 		}

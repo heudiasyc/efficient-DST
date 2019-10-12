@@ -2,7 +2,7 @@
 #define EFFICIENT_DST_MASS_HPP
 
 #include <mobius_transform.hpp>
-#include <mobius_aggregate.hpp>
+#include <zeta_transform.hpp>
 
 namespace efficient_DST{
 
@@ -29,7 +29,7 @@ namespace efficient_DST{
 			}
 		}
 
-		mass(const mobius_aggregate<T>& ma) : mobius_transform<T>(ma.inversion(mobius_transformation_form_t::additive))
+		mass(const zeta_transform<T>& z) : mobius_transform<T>(z.inversion(operation_t::addition))
 		{
 			this->remove_negligible_values();
 			this->normalize();

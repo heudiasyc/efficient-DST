@@ -2,7 +2,7 @@
 #define EFFICIENT_DST_DECOMPOSITION_WEIGHT_HPP
 
 #include <mobius_transform.hpp>
-#include <mobius_aggregate.hpp>
+#include <zeta_transform.hpp>
 
 namespace efficient_DST{
 
@@ -17,7 +17,7 @@ namespace efficient_DST{
 		decomposition_weight(FOD& fod) : mobius_transform<T>(fod)
 		{}
 
-		decomposition_weight(const mobius_aggregate<T>& ma) : mobius_transform<T>(ma.inversion(mobius_transformation_form_t::multiplicative))
+		decomposition_weight(const zeta_transform<T>& z) : mobius_transform<T>(z.inversion(operation_t::multiplication))
 		{
 			this->remove_negligible_values();
 			this->normalize();

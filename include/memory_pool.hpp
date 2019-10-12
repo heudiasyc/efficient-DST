@@ -38,8 +38,16 @@ namespace efficient_DST{
 
 		/////////////////////////////////////////
 
-		const size_t& get_bock_size() const {
+		const size_t& get_block_size() const {
 			return this->block_size;
+		}
+
+		size_t number_of_occupants() const {
+			size_t size = 0;
+			for (size_t b = 0; b < this->slots.size(); ++b){
+				size += this->slots[b].size() - this->reusable_slots[b].size();
+			}
+			return size;
 		}
 
 		template<typename... Ts>
@@ -55,8 +63,8 @@ namespace efficient_DST{
 			if(b == this->slots.size()){
 				// if there is none, create a new slot
 
-				size_t b = this->slots.size()-1;
-				if(this->slots.back().size() == this->block_size){
+				--b;
+				if(this->slots[b].size() == this->block_size){
 					// if the last block is full, create a new one
 					add_new_block();
 					++b;

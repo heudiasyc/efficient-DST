@@ -61,8 +61,6 @@ namespace efficient_DST{
 	}
 
 	enum special_case_t {degenerate, vacuous};
-	enum class order_relation_t: bool { subset, superset };
-	enum class mobius_transformation_form_t: bool { additive, multiplicative };
 
 	template <typename T = double>
 	class mobius_transform {
