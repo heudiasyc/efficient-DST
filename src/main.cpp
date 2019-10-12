@@ -104,6 +104,15 @@ int main(){
 
 	std::cout << "\n============================================\n";
 
+    std::cout << "\nMass values from commonality by FMT " << std::endl;
+
+    const std::vector<double>& m_values = zeta_transform<double>::FMT(q_vec, 4, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
+	for (size_t i = 0; i < m_values.size(); ++i){
+		std::cout << m_values[i] << "\t <- " << fod_vec.to_string(boost::dynamic_bitset<>(4, i)) << std::endl;
+	}
+
+	std::cout << "\n============================================\n";
+
     plausibility<> pl(m);
 
 	std::cout << "\nPlausibility contour from mass " << std::endl;

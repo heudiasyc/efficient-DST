@@ -8,6 +8,7 @@
 
 namespace efficient_DST{
 
+	enum class transform_type_t: bool { zeta, Mobius };
 	enum class order_relation_t: bool { subset, superset };
 	enum class operation_t: bool { addition, multiplication };
 
@@ -16,7 +17,6 @@ namespace efficient_DST{
 	public:
 		enum class scheme_type_t: int8_t { direct, consonant, semilattice, lattice };
 		enum class version_t: bool { regular, dual };
-		enum class transform_type_t: bool { zeta, Mobius };
 
 	protected:
 		scheme_type_t scheme_type;
@@ -177,6 +177,54 @@ namespace efficient_DST{
 				return set_value->value;
 			}
 			return find_non_focal_point_image(set);
+		}
+
+		static std::vector<T> FMT(
+				const std::vector<T>& powerset_values,
+				const size_t& N,
+				const transform_type_t& transform_type,
+				const order_relation_t& order_relation,
+				const operation_t& transform_operation
+				) {
+			if(powerset_values.size() != pow(2, N)){
+				std::cerr << "\nThe size of the given vector is not 2^N, where N is the given size corresponding to the considered FOD.\n";
+				return powerset_values;
+			}
+			std::function<T(const T&, const T&)> range_binary_operator;
+
+			if (transform_operation == operation_t::addition){
+				if (transform_type == transform_type_t::zeta)
+					range_binary_operator = addition;
+				else
+					range_binary_operator = subtraction;
+			} else{
+				if (transform_type == transform_type_t::zeta)
+					range_binary_operator = multiplication;
+				else
+					range_binary_operator = division;
+			}
+
+			std::vector<T> transform(powerset_values);
+			size_t sub_powerset_size, sub_powerset_dual_size, index;
+			for (size_t i = 1; i <= N; ++i){
+
+				sub_powerset_size = pow(2, i);
+				for (size_t j = 1; j <= sub_powerset_size; j += 2){
+
+					sub_powerset_dual_size = pow(2, N - i);
+					for (size_t k = 0; k <= sub_powerset_dual_size-1; ++k){
+
+						if (order_relation == order_relation_t::subset){
+							index = j * sub_powerset_dual_size + k;
+							transform[index] = range_binary_operator(transform[index], transform[(j-1) * sub_powerset_dual_size + k]);
+						}else{
+							index = (j-1) * sub_powerset_dual_size + k;
+							transform[index] = range_binary_operator(transform[index], transform[j * sub_powerset_dual_size + k]);
+						}
+					}
+				}
+			}
+			return transform;
 		}
 
 	protected:
@@ -1008,7 +1056,7 @@ namespace efficient_DST{
 				}
 				++i;
 			}
-			std::clog << "\nFocal points found: \n";
+			std::clog << "\nFocal points: \n";
 			print<T>(std::clog, this->definition);
 		}
 
