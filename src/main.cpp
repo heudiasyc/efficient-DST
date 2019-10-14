@@ -106,7 +106,7 @@ int main(){
 
     std::cout << "\nMass values from commonality by FMT " << std::endl;
 
-    const std::vector<double>& m_values = zeta_transform<double>::FMT(q_vec, 4, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
+    const std::vector<double>& m_values = computation_scheme<double>::FMT(q_vec, 4, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
 	for (size_t i = 0; i < m_values.size(); ++i){
 		std::cout << m_values[i] << "\t <- " << fod_vec.to_string(boost::dynamic_bitset<>(4, i)) << std::endl;
 	}

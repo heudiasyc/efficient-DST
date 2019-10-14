@@ -2,7 +2,7 @@
 #define EFFICIENT_DST_CONJUNCTIVE_WEIGHT_HPP
 
 #include <decomposition_weight.hpp>
-#include <mobius_transform.hpp>
+#include <powerset_function.hpp>
 #include <zeta_transform.hpp>
 
 namespace efficient_DST{
@@ -40,14 +40,12 @@ namespace efficient_DST{
 			return inverted_definition;
 		}
 
-		void set_values(const std::unordered_map<std::vector<std::string>, T>& values) {
-			for (std::pair<std::vector<std::string>, T> labels_U_value : values){
-				set_value(labels_U_value.first, labels_U_value.second);
-			}
+		void set_value(const std::vector<std::string>& labels, const T& value) {
+			set_value_directly(this->definition.get_FOD()->to_set(labels), value);
 		}
 
-		void set_value(const std::vector<std::string>& labels, const T& value) {
-			this->definition.insert(labels, value);
+		void set_value_directly(const boost::dynamic_bitset<>& set, const T& value) {
+			this->definition.insert(set, value);
 			// The following part ensures that w(fod) is defined (as it is not when directly building w).
 			// Indeed, w(fod) may be required for the computation of the commonality function.
 			// w(fod)^{-1} is equal to the product of all other weights.
@@ -60,7 +58,7 @@ namespace efficient_DST{
 		}
 
 		void set_emptyset_value(const T& value) {
-			set_value({}, value);
+			set_value_directly(boost::dynamic_bitset<>(this->definition.get_FOD_size()), value);
 		}
 
 		void nullify(const std::vector<std::string>& labels) {

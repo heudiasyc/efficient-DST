@@ -1,121 +1,61 @@
 #ifndef EFFICIENT_DST_MOBIUS_TRANSFORM_HPP
 #define EFFICIENT_DST_MOBIUS_TRANSFORM_HPP
 
-#include <boost/dynamic_bitset.hpp>
-#include <vector>
-#include <unordered_map>
-#include <boost/functional/hash.hpp>
-#include <iostream>
-#include <iomanip>
-
-#include <fod.hpp>
-#include <powerset_btree.hpp>
-
-
-namespace std {
-
-	template <size_t N>
-	struct hash< array<string, N> >{
-		size_t operator()(const array<string, N>& key) const{
-			size_t seed = 0;
-			for (size_t i = 0; i < key.size(); ++i) {
-				boost::hash_combine<string>(seed, key[i]);
-			}
-			return seed;
-		}
-	};
-
-	template<>
-	struct hash< vector<string> >{
-		size_t operator()(vector<string>& key) const{
-			size_t seed = 0;
-			for (size_t i = 0; i < key.size(); ++i) {
-				boost::hash_combine<string>(seed, key[i]);
-			}
-			return seed;
-		}
-	};
-}
+#include <powerset_function.hpp>
+#include <zeta_transform.hpp>
 
 namespace efficient_DST{
 
-	template <class T = double>
-	static std::string to_string(const set_N_value<T>& s, const FOD& fod) {
-		return to_string<T>(s.value) + "\t <- " + fod.to_string(s.set);
-	}
-
-	template <class T = double>
-	std::ostream& print(std::ostream& os, const std::vector<set_N_value<T>* >& values, const FOD& fod) {
-		for (size_t i = 0; i < values.size(); ++i) {
-			os << to_string<T>(*(values[i]), fod) << std::endl;
-		}
-		return os;
-	}
-
-	template <class T = double>
-	std::ostream& print(std::ostream& os, const powerset_btree<T>& p) {
-		std::vector<set_N_value<T>* > values = p.elements();
-		std::cerr << std::endl;
-
-		return print<T>(os, values, *p.get_FOD());
-	}
-
-	enum special_case_t {degenerate, vacuous};
-
 	template <typename T = double>
-	class mobius_transform {
-	private:
-		static constexpr T zero = 0;
-
-	protected:
-		/*
-		 * Only sets necessary to the definition of this Möbius transform
-		 * and their respective images are stored. Their data structure is a binary tree.
-		 */
-		powerset_btree<T> definition;
-
-		static inline bool is_equivalent_to_zero(const T& value) {
-			return (value < zero ? -value : value) <= precision;
-		}
-
+	class mobius_transform : public powerset_function<T>{
 	public:
-		// allow user to configure the floating-point tolerance
-		static const size_t block_size = 100;
-		static constexpr T precision = 1e-10;
 
-		mobius_transform (const powerset_btree<T>& definition) :
-			definition(definition)
+		mobius_transform(const powerset_btree<T>& support_values) : powerset_function<T>(support_values)
 		{}
 
-		mobius_transform (FOD& fod) :
-			definition(&fod, block_size)
+		mobius_transform(FOD& fod) : powerset_function<T>(fod)
 		{}
 
-		virtual ~mobius_transform()
+		mobius_transform(const zeta_transform<T>& z, operation_t transform_operation) : powerset_function<T>(z.inversion(transform_operation))
 		{}
 
-		// =============================================================================
 
-		virtual T at_emptyset() const = 0;
-
-		virtual T at_fod() const = 0;
-
-		virtual T operator[](const std::vector<std::string>& labels) const = 0;
-
-		virtual T find(const boost::dynamic_bitset<>& set) const = 0;
-
-		const powerset_btree<T>& get_definition() const {
-			return this->definition;
+		void nullify(const std::vector<std::string>& labels) {
+			this->definition.nullify(this->definition[labels]);
 		}
 
-		const FOD& get_FOD() const {
-			return *(this->definition.get_FOD());
+		static void remove_negligible_values(powerset_btree<T>& definition, const T& neutral_value) {
+			const std::vector<set_N_value<T>* >& elements = definition.elements();
+			for (size_t i = 0; i < elements.size(); ++i) {
+				if(powerset_function<T>::is_equivalent_to_zero(elements[i]->value - neutral_value)){
+					definition.nullify(elements[i]);
+				}
+			}
 		}
 
-		const size_t& get_block_size() const {
-			return this->definition.get_block_size();
+		void set_values(const std::unordered_map<std::vector<std::string>, T>& values) {
+			for (std::pair<std::vector<std::string>, T> labels_U_value : values){
+				set_value(labels_U_value.first, labels_U_value.second);
+			}
+		}
+
+		void set_value(const std::vector<std::string>& labels, const T& value) {
+			set_value_directly(this->definition.get_FOD()->to_set(labels), value);
+		}
+
+		void set_value_directly(const boost::dynamic_bitset<>& set, const T& value) {
+			this->definition.insert(set, value);
+		}
+
+		void set_emptyset_value(const T& value) {
+			this->definition.set_value_of_sub_fod_of_size(0, value);
+		}
+
+		void set_fod_value(const T& value) {
+			this->definition.set_value_of_sub_fod_of_size(this->definition.get_FOD_size(), value);
 		}
 	};
-}		// namespace efficient_DST
+
+} // namespace efficient_DST
 
 #endif // EFFICIENT_DST_MOBIUS_TRANSFORM_HPP

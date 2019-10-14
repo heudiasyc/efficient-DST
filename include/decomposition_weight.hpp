@@ -17,42 +17,29 @@ namespace efficient_DST{
 		decomposition_weight(FOD& fod) : mobius_transform<T>(fod)
 		{}
 
-		decomposition_weight(const zeta_transform<T>& z) : mobius_transform<T>(z.inversion(operation_t::multiplication))
+		decomposition_weight(const zeta_transform<T>& z) : mobius_transform<T>(z, operation_t::multiplication)
 		{
 			this->remove_negligible_values();
 			this->normalize();
 		}
 
-
 		virtual ~decomposition_weight(){}
 
 
 		T at_emptyset() const {
-			set_N_value<T>* set_value = this->definition.sub_fod_of_size(0);
-			if(set_value)
-				return set_value->value;
-			else
-				return 1;
+			return powerset_function<T>::at_emptyset(1);
 		}
 
 		T at_fod() const {
-			set_N_value<T>* set_value = this->definition.sub_fod_of_size(this->definition.get_FOD_size());
-			if(set_value)
-				return set_value->value;
-			else
-				return 1;
+			return powerset_function<T>::at_fod(1);
 		}
 
 		T operator[](const std::vector<std::string>& labels) const {
 			return find(this->definition.get_FOD()->to_set(labels));
 		}
 
-		T find(const boost::dynamic_bitset<>& key) const {
-			set_N_value<T>* set_value = this->definition[key];
-			if(set_value)
-				return set_value->value;
-			else
-				return 1;
+		T find(const boost::dynamic_bitset<>& set) const {
+			return powerset_function<T>::find(set, 1);
 		}
 
 		void regularize() {
@@ -89,12 +76,7 @@ namespace efficient_DST{
 		}
 
 		static void remove_negligible_values(powerset_btree<T>& definition) {
-			const std::vector<set_N_value<T>* >& elements = definition.elements();
-			for (size_t i = 0; i < elements.size(); ++i) {
-				if(mobius_transform<T>::is_equivalent_to_zero(1-elements[i]->value)){
-					definition.nullify(elements[i]);
-				}
-			}
+			mobius_transform<T>::remove_negligible_values(definition, 1);
 		}
 	};
 
