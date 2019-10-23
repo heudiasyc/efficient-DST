@@ -1,6 +1,10 @@
 #ifndef EFFICIENT_DST_ZETA_TRANSFORM_HPP
 #define EFFICIENT_DST_ZETA_TRANSFORM_HPP
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include <powerset_function.hpp>
 #include <computation_scheme.hpp>
 
@@ -11,7 +15,7 @@ namespace efficient_DST{
 	class zeta_transform : public powerset_function<T> {
 	protected:
 		scheme_type_t scheme_type;
-		std::vector<size_t> iota_fiber_sequence;	// fod element indices
+		//std::vector<size_t> iota_fiber_sequence;	// fod element indices
 		std::vector<boost::dynamic_bitset<> > iota_sequence;
 		powerset_btree<set_N_value<T>* > dual_definition;
 		powerset_btree<T> original_mobius_transform;
@@ -50,7 +54,7 @@ namespace efficient_DST{
 			original_operation(operation_t::addition),
 			order_relation(order_relation)
 		{
-			computation_scheme<T>::to_semilattice_support(
+			computation_scheme<T>::extract_semilattice_support(
 				powerset_values,
 				this->definition,
 				this->dual_definition,
@@ -59,8 +63,8 @@ namespace efficient_DST{
 			computation_scheme<T>::set_semilattice_computation_scheme(
 					this->definition,
 					order_relation,
-					this->iota_sequence,
-					this->iota_fiber_sequence
+					this->iota_sequence
+					//this->iota_fiber_sequence
 			);
 			set_definition_by_cardinality();
 		}
@@ -87,8 +91,8 @@ namespace efficient_DST{
 			computation_scheme<T>::set_semilattice_computation_scheme(
 					this->definition,
 					order_relation,
-					this->iota_sequence,
-					this->iota_fiber_sequence
+					this->iota_sequence
+					//this->iota_fiber_sequence
 			);
 			set_definition_by_cardinality();
 		}
@@ -114,7 +118,7 @@ namespace efficient_DST{
 			original_operation(transform_operation),
 			order_relation(order_relation)
 		{
-			computation_scheme<T>::execute(
+			computation_scheme<T>::build_and_execute(
 					support,
 					this->definition,
 					this->dual_definition,
@@ -122,8 +126,8 @@ namespace efficient_DST{
 					order_relation,
 					transform_operation,
 					this->iota_sequence,
-					this->iota_fiber_sequence,
-					scheme_type
+					//this->iota_fiber_sequence,
+					this->scheme_type
 			);
 			set_definition_by_cardinality();
 		}
@@ -147,14 +151,14 @@ namespace efficient_DST{
 			original_operation(transform_operation),
 			order_relation(order_relation)
 		{
-			computation_scheme<T>::autoset(
+			computation_scheme<T>::autoset_and_build(
 					support,
 					this->definition,
 					this->dual_definition,
 					this->order_relation,
 					transform_operation,
 					this->iota_sequence,
-					this->iota_fiber_sequence,
+					//this->iota_fiber_sequence,
 					this->scheme_type
 			);
 			computation_scheme<T>::execute(
@@ -164,7 +168,7 @@ namespace efficient_DST{
 					this->order_relation,
 					transform_operation,
 					this->iota_sequence,
-					this->iota_fiber_sequence,
+					//this->iota_fiber_sequence,
 					this->scheme_type
 			);
 			set_definition_by_cardinality();
@@ -172,13 +176,15 @@ namespace efficient_DST{
 
 
 		powerset_btree<T> inversion(const operation_t& transform_operation) const {
+			clock_t t = clock();
 			if (transform_operation == this->original_operation && this->original_mobius_transform.size() > 0){
-				return this->original_mobius_transform;
+				//return this->original_mobius_transform;
 			}
 			powerset_btree<T> mobius_transform_definition(this->definition);
 			powerset_btree<set_N_value<T>* > mobius_transform_dual_definition(this->definition.get_FOD(), this->definition.get_block_size());
 			powerset_btree<T>::flip_powerset_from_to(mobius_transform_definition, mobius_transform_dual_definition);
-
+			t = clock() - t;
+			std::cout << "time spent calling = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
 			computation_scheme<T>::execute(
 					mobius_transform_definition,
 					mobius_transform_dual_definition,
@@ -186,7 +192,7 @@ namespace efficient_DST{
 					this->order_relation,
 					transform_operation,
 					this->iota_sequence,
-					this->iota_fiber_sequence,
+					//this->iota_fiber_sequence,
 					this->scheme_type
 			);
 			return mobius_transform_definition;

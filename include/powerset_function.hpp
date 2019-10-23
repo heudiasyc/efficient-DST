@@ -103,7 +103,7 @@ namespace efficient_DST{
 
 	public:
 		// allow user to configure the floating-point tolerance
-		static const size_t block_size = 100;
+		static const size_t block_size = 1000;
 		static constexpr T precision = 1e-10;
 
 		powerset_function (const powerset_btree<T>& definition) :

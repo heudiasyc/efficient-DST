@@ -50,6 +50,42 @@ namespace efficient_DST{
 		return os;
 	}
 
+/*	class cardinality_distribution {
+	private:
+		long double unit_proportion;
+
+		static size_t comb(size_t n, const size_t& k){
+			if (k > n) return 0;
+			if (k * 2 > n) k = n-k;
+			if (k == 0) return 1;
+
+			size_t result = n;
+			for (size_t i = 2; i <= k; ++i){
+				result *= --n;
+				result /= i;
+			}
+			return result;
+		}
+
+		double comb_proportion(size_t n, const size_t& k) const {
+			if (k > n) return 0;
+			if (k * 2 > n) k = n-k;
+			if (k == 0) return this->unit_proportion;
+
+			double result = n/2;
+			for (size_t i = 2; i <= k; ++i){
+				result *= --n;
+				result /= 2*i;
+			}
+			result *= this->unit_proportion / pow(0.5, k);
+			return result;
+		}
+	public:
+		cardinality_distribution(size_t n){
+			this->unit_proportion = pow(0.5, n);
+		}
+	};*/
+
 	class FOD {
 	protected:
 		static const size_t fod_elements_block_size = 50;

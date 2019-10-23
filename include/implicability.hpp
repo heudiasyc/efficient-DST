@@ -23,7 +23,7 @@ namespace efficient_DST{
 		implicability(const powerset_btree<T>& focal_points_values) : zeta_transform<T>(focal_points_values, order_relation_t::subset)
 		{}
 
-		implicability(const std::vector<T>& powerset_values, const FOD& fod) : zeta_transform<T>(powerset_values, fod, order_relation_t::subset)
+		implicability(const std::vector<T>& powerset_values, FOD& fod) : zeta_transform<T>(powerset_values, fod, order_relation_t::subset)
 		{}
 
 
