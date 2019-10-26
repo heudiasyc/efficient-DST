@@ -17,7 +17,6 @@ namespace efficient_DST{
 		scheme_type_t scheme_type;
 		//std::vector<size_t> iota_fiber_sequence;	// fod element indices
 		std::vector<boost::dynamic_bitset<> > iota_sequence;
-		powerset_btree<set_N_value<T>* > dual_definition;
 		powerset_btree<T> original_mobius_transform;
 		operation_t original_operation;
 		std::unordered_map<size_t, powerset_btree<set_N_value<T>* > > definition_by_cardinality;
@@ -29,7 +28,6 @@ namespace efficient_DST{
 		zeta_transform(const zeta_transform<T>& z) :
 			powerset_function<T>(z.definition),
 			scheme_type(z.scheme_type),
-			dual_definition(z.dual_definition),
 			original_mobius_transform(z.original_mobius_transform),
 			original_operation(z.original_operation),
 			definition_by_cardinality(z.definition_by_cardinality),
@@ -49,22 +47,24 @@ namespace efficient_DST{
 				const order_relation_t& order_relation) :
 			powerset_function<T>(fod),
 			scheme_type(scheme_type_t::semilattice),
-			dual_definition(&fod, powerset_function<T>::block_size),
 			original_mobius_transform(&fod, powerset_function<T>::block_size),
 			original_operation(operation_t::addition),
 			order_relation(order_relation)
 		{
+			std::unordered_map<size_t, T> focal_points_register;
 			computation_scheme<T>::extract_semilattice_support(
 				powerset_values,
-				this->definition,
-				this->dual_definition,
+				fod.size(),
+				focal_points_register,
 				order_relation
 			);
+			for (auto kv : focal_points_register){
+				this->definition.insert(boost::dynamic_bitset<>(fod.size(), kv.first), kv.second);
+			}
 			computation_scheme<T>::set_semilattice_computation_scheme(
 					this->definition,
 					order_relation,
 					this->iota_sequence
-					//this->iota_fiber_sequence
 			);
 			set_definition_by_cardinality();
 		}
@@ -80,7 +80,6 @@ namespace efficient_DST{
 				const order_relation_t& order_relation) :
 			powerset_function<T>(focal_points_tree),
 			scheme_type(scheme_type_t::semilattice),
-			dual_definition(focal_points_tree.get_FOD(), focal_points_tree.get_block_size()),
 			original_mobius_transform(focal_points_tree.get_FOD(), focal_points_tree.get_block_size()),
 			original_operation(operation_t::addition),
 			order_relation(order_relation)
@@ -113,7 +112,6 @@ namespace efficient_DST{
 				const scheme_type_t scheme_type) :
 			powerset_function<T>(support),
 			scheme_type(scheme_type),
-			dual_definition(support.get_FOD(), support.get_block_size()),
 			original_mobius_transform(support),
 			original_operation(transform_operation),
 			order_relation(order_relation)
@@ -121,7 +119,6 @@ namespace efficient_DST{
 			computation_scheme<T>::build_and_execute(
 					support,
 					this->definition,
-					this->dual_definition,
 					transform_type_t::zeta,
 					order_relation,
 					transform_operation,
@@ -146,7 +143,6 @@ namespace efficient_DST{
 				const operation_t& transform_operation) :
 			powerset_function<T>(support),
 			scheme_type(scheme_type_t::direct),
-			dual_definition(support.get_FOD(), support.get_block_size()),
 			original_mobius_transform(support),
 			original_operation(transform_operation),
 			order_relation(order_relation)
@@ -154,7 +150,6 @@ namespace efficient_DST{
 			computation_scheme<T>::autoset_and_build(
 					support,
 					this->definition,
-					this->dual_definition,
 					this->order_relation,
 					transform_operation,
 					this->iota_sequence,
@@ -163,7 +158,6 @@ namespace efficient_DST{
 			);
 			computation_scheme<T>::execute(
 					this->definition,
-					this->dual_definition,
 					transform_type_t::zeta,
 					this->order_relation,
 					transform_operation,
@@ -181,13 +175,10 @@ namespace efficient_DST{
 				//return this->original_mobius_transform;
 			}
 			powerset_btree<T> mobius_transform_definition(this->definition);
-			powerset_btree<set_N_value<T>* > mobius_transform_dual_definition(this->definition.get_FOD(), this->definition.get_block_size());
-			powerset_btree<T>::flip_powerset_from_to(mobius_transform_definition, mobius_transform_dual_definition);
 			t = clock() - t;
 			std::cout << "time spent calling = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
 			computation_scheme<T>::execute(
 					mobius_transform_definition,
-					mobius_transform_dual_definition,
 					transform_type_t::Mobius,
 					this->order_relation,
 					transform_operation,
@@ -290,9 +281,10 @@ namespace efficient_DST{
 
 		void set_definition_by_cardinality(){
 			std::unordered_map<size_t, std::vector<set_N_value<T>* > > definition_card_map = this->definition.elements_by_set_cardinality();
-			this->ordered_cardinalities_in_definition = powerset_btree<T>::get_sorted_cardinalities(definition_card_map, *this->definition.get_FOD());
 			if (this->order_relation == order_relation_t::subset) {
-				std::reverse(this->ordered_cardinalities_in_definition.begin(), this->ordered_cardinalities_in_definition.end());
+				this->definition.get_FOD()->sort_cardinalities(this->ordered_cardinalities_in_definition, definition_card_map, order_t::descending);
+			}else{
+				this->definition.get_FOD()->sort_cardinalities(this->ordered_cardinalities_in_definition, definition_card_map, order_t::ascending);
 			}
 
 			this->definition_by_cardinality.reserve(this->ordered_cardinalities_in_definition.size());

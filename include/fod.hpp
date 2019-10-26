@@ -11,6 +11,8 @@
 
 namespace efficient_DST{
 
+	enum class order_t: bool {ascending, descending};
+
 	class fod_element{
 	public:
 		size_t position_in_fod;
@@ -245,6 +247,42 @@ namespace efficient_DST{
 			return to_elements(
 				set_negate(to_set(elements))
 			);
+		}
+
+		template<typename value_type>
+		void sort_cardinalities(std::vector<size_t>& ordered_cardinalities, const std::unordered_map<size_t, value_type>& map, order_t order) const {
+			const size_t& F_card = map.size();
+			ordered_cardinalities.reserve(F_card);
+
+			if(F_card > 0 && this->size() <= F_card*log2(F_card)){
+				if (order == order_t::ascending){
+					for(size_t c = 0; c <= this->size(); ++c) {
+						if(map.find(c) != map.end()){
+							ordered_cardinalities.push_back(c);
+						}
+					}
+				}else{
+					for(size_t c = this->size(); c > 0; --c) {
+						if(map.find(c) != map.end()){
+							ordered_cardinalities.push_back(c);
+						}
+					}
+					if(map.find(0) != map.end()){
+						ordered_cardinalities.push_back(0);
+					}
+				}
+			}else{
+				for(auto kv : map) {
+					ordered_cardinalities.push_back(kv.first);
+				}
+				if (order == order_t::ascending){
+					// sort cardinalities in ascending order
+					std::sort(ordered_cardinalities.begin(), ordered_cardinalities.end());
+				}else{
+					// sort cardinalities in descending order
+					std::sort(ordered_cardinalities.begin(), ordered_cardinalities.end(), std::greater<size_t>());
+				}
+			}
 		}
 
 		static bool is_emptyset(const boost::dynamic_bitset<>& set) {

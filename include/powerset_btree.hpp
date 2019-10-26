@@ -968,29 +968,6 @@ namespace efficient_DST{
 
 		/////////////////////////////////////////
 
-		static const std::vector<size_t> get_sorted_cardinalities(const std::unordered_map<size_t, std::vector<set_N_value<T>* > >& map, const FOD& fod) {
-			const size_t& F_card = map.size();
-			std::vector<size_t> ordered_cardinalities;
-			ordered_cardinalities.reserve(F_card);
-
-			if(F_card > 0 && fod.size() <= F_card*log2(F_card)){
-				for(size_t c = 0; c <= fod.size(); ++c) {
-					if(map.find(c) != map.end()){
-						ordered_cardinalities.push_back(c);
-					}
-				}
-			}else{
-				for(auto kv : map) {
-					ordered_cardinalities.push_back(kv.first);
-				}
-				// sort cardinalities in ascending order
-				std::sort(ordered_cardinalities.begin(), ordered_cardinalities.end());
-			}
-			return ordered_cardinalities;
-		}
-
-		/////////////////////////////////////////
-
 		static const std::vector<boost::dynamic_bitset<> > unions_with_not_subsets_of_smaller_than(
 				const powerset_btree<T>& powerset,
 				const boost::dynamic_bitset<>& set,
