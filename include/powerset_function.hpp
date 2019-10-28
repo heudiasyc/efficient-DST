@@ -110,6 +110,10 @@ namespace efficient_DST{
 			definition(definition)
 		{}
 
+		powerset_function (FOD* fod, const size_t& block_size) :
+			definition(fod, block_size)
+		{}
+
 		powerset_function (FOD& fod) :
 			definition(&fod, block_size)
 		{}

@@ -88,6 +88,7 @@ namespace efficient_DST{
 		}
 	};*/
 
+	//template<size_t N>
 	class FOD {
 	protected:
 		static const size_t fod_elements_block_size = 50;
@@ -117,6 +118,12 @@ namespace efficient_DST{
 		}
 
 	public:
+
+		//typedef std::bitset<N> set;
+
+		//FOD(std::string* element_labels) : fod_element_pool(fod_elements_block_size) {
+		//	set_elements(element_labels);
+		//}
 
 		FOD(const std::vector<std::string>& element_labels) : fod_element_pool(fod_elements_block_size) {
 			set_elements(element_labels);

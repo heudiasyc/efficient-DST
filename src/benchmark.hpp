@@ -78,7 +78,7 @@ namespace efficient_DST{
 		print<>(std::cout, m.get_definition());
 
 		std::cout << "\n============================================\n";
-/*
+
 		std::cout << "\nCommonality values from mass by FMT " << std::endl;
 
 		t = clock();
@@ -89,23 +89,27 @@ namespace efficient_DST{
 		//for (size_t i = 0; i < q_vec.size(); ++i){
 		//	std::cout << q_vec[i] << "\t <- " << fod.to_string(boost::dynamic_bitset<>(fod.size(), i)) << std::endl;
 		//}
-*/
+
 		std::cout << "\nCommonality values from mass by EMT " << std::endl;
 
 		t = clock();
-		zeta_transform<double> q(m.get_definition(), order_relation_t::superset, operation_t::addition, scheme_type_t::lattice);
+		zeta_transform<double> q(m.get_definition(), order_relation_t::superset, operation_t::addition, scheme_type_t::semilattice);
 		const powerset_btree<double>& q_def = q.get_definition();
 		//const powerset_btree<double>& q_def = computation_scheme<double>::EMT_with_lattice(m.get_definition(), transform_type_t::zeta, order_relation_t::superset, operation_t::addition);
 		t = clock() - t;
 		std::cout << "time spent = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
 		std::cout << "size = " << q_def.size() << std::endl;
-		//print<>(std::cout, q_def);
-/*
+		print<>(std::cout, q_def);
+
 		std::cout << "\n============================================\n";
 
 		std::cout << "\nMass values from commonality by FMT " << std::endl;
 
-		//const std::vector<double>& m_back_vec = computation_scheme<double>::FMT(q_vec, fod.size(), transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
+		t = clock();
+		const std::vector<double>& m_back_vec = computation_scheme<double>::FMT(q_vec, fod.size(), transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
+		t = clock() - t;
+		std::cout << "time spent = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
+		std::cout << "size = " << q_vec.size() << std::endl;
 		//for (size_t i = 0; i < m_back_vec.size(); ++i){
 		//	std::cout << m_back_vec[i] << "\t <- " << fod.to_string(boost::dynamic_bitset<>(fod.size(), i)) << std::endl;
 		//}
@@ -113,11 +117,12 @@ namespace efficient_DST{
 		std::cout << "\nMass values from commonality by EMT " << std::endl;
 
 		t = clock();
-		const powerset_btree<double>& m_back_def = q.inversion(operation_t::addition);
+		const mass<double>& m_back_def(q);
+		//const powerset_btree<double>& m_back_def = q.inversion(operation_t::addition);
 		//const powerset_btree<double>& m_back_def = computation_scheme<double>::EMT_with_lattice(q_def, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
 		t = clock() - t;
 		std::cout << "time spent = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
-		std::cout << "size = " << m_back_def.size() << std::endl;
-		print<>(std::cout, m_back_def);*/
+		std::cout << "size = " << m_back_def.get_definition().size() << std::endl;
+		print<>(std::cout, m_back_def.get_definition());
 	}
 }

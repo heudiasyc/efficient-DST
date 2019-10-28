@@ -48,13 +48,11 @@ namespace efficient_DST{
 				neutral_value = 1;
 			}
 
-			std::unordered_map<size_t, T> focal_points_register;
-
 			// check if original_structure is almost Bayesian
 			DEBUG(std::clog << "Linear analysis:" << std::endl;);
 			const bool& is_almost_bayesian = linear_analysis_of_support(
 					support,
-					focal_points_register,
+					focal_points_tree,
 					order_relation,
 					neutral_value
 			);
@@ -63,28 +61,12 @@ namespace efficient_DST{
 				DEBUG(std::clog << "almost Bayesian." << std::endl;);
 				scheme_type = scheme_type_t::direct;
 			}else{
-				focal_points_register.clear();
-
-				// Cardinality map of focal sets in original_structure
-				std::unordered_map<size_t, std::vector<set_N_value<T>* > > support_card_map = support.elements_by_set_cardinality();
-				std::vector<size_t> support_ordered_cardinalities;
-				order_t order = order_t::ascending;
-				if (order_relation == order_relation_t::subset){
-					order = order_t::descending;
-					support.get_FOD()->sort_cardinalities(support_ordered_cardinalities, support_card_map, order);
-				}else{
-					support.get_FOD()->sort_cardinalities(support_ordered_cardinalities, support_card_map, order);
-				}
-
 				DEBUG(std::clog << "Consonance check:" << std::endl;);
-				const bool& is_consonant = consonance_check(
-					support_card_map,
-					support_ordered_cardinalities,
-					order
-				);
+				const bool& is_consonant = consonance_check(support);
 
 				if(is_consonant){
 					DEBUG(std::clog << "consonant." << std::endl;);
+					focal_points_tree.copy(support);
 					scheme_type = scheme_type_t::consonant;
 				}else{
 					DEBUG(std::clog << "not consonant." << std::endl;);
@@ -97,7 +79,7 @@ namespace efficient_DST{
 
 						build_semilattice_support(
 								support,
-								focal_points_register,
+								focal_points_tree,
 								order_relation,
 								neutral_value
 						);
@@ -124,13 +106,15 @@ namespace efficient_DST{
 
 						if (order_relation == order_relation_t::subset){
 							build_lattice_support_upper_closure(
-									focal_points_register,
+									support,
+									focal_points_tree,
 									iota_sequence,
 									neutral_value
 							);
 						}else{
 							build_lattice_support_lower_closure(
-									focal_points_register,
+									support,
+									focal_points_tree,
 									iota_sequence,
 									neutral_value
 							);
@@ -161,10 +145,10 @@ namespace efficient_DST{
 
 		static void extract_semilattice_support(
 			const std::vector<T>& powerset_values,
-			const size_t& fod_size,
-			std::unordered_map<size_t ,T>& focal_points_register,
+			powerset_btree<T>& focal_points_tree,
 			const order_relation_t& order_relation
 		) {
+			const size_t& fod_size = focal_points_tree.get_FOD_size();
 			size_t powerset_size = pow(2, fod_size);
 			if(powerset_values.size() != powerset_size){
 				std::cerr << "\nThe given vector does not feature the same size as the powerset of the given FOD.\n";
@@ -210,10 +194,10 @@ namespace efficient_DST{
 			for (auto kv : focal_points_map){
 				to_reserve += kv.second.size();
 			}
-			focal_points_register.reserve(to_reserve);
+			//focal_points_register.reserve(to_reserve);
 			for (auto kv : focal_points_map){
 				for (size_t i = 0; i < kv.second.size(); ++i){
-					focal_points_register.emplace(kv.second[i].to_ulong(), (T) kv.first);
+					focal_points_tree.insert(kv.second[i], kv.first);
 				}
 			}
 		}
@@ -355,13 +339,12 @@ namespace efficient_DST{
 				const order_relation_t& order_relation,
 				const operation_t& transform_operation
 		) {
-			powerset_btree<T> focal_points_tree(support);
-			powerset_btree<set_N_value<T>* > focal_points_dual_tree(support.get_FOD(), support.get_block_size());
+			powerset_btree<T> focal_points_tree(support.get_FOD(), 2 * support.size());
+			focal_points_tree.copy(support);
 			scheme_type_t scheme_type;
 			build_and_execute_direct_transformation(
 					support,
 					focal_points_tree,
-					focal_points_dual_tree,
 					transform_type,
 					order_relation,
 					transform_operation,
@@ -377,8 +360,8 @@ namespace efficient_DST{
 				const order_relation_t& order_relation,
 				const operation_t& transform_operation
 		) {
-			powerset_btree<T> focal_points_tree(support);
-			powerset_btree<set_N_value<T>* > focal_points_dual_tree(support.get_FOD(), support.get_block_size());
+			powerset_btree<T> focal_points_tree(support.get_FOD(), support.get_FOD_size() * support.size());
+			focal_points_tree.copy(support);
 			std::vector<boost::dynamic_bitset<> > iota_sequence;
 			//std::vector<size_t> iota_fiber_sequence;
 			build_and_execute_EMT_with_semilattice(
@@ -403,14 +386,13 @@ namespace efficient_DST{
 				const order_relation_t& order_relation,
 				const operation_t& transform_operation
 		) {
-			powerset_btree<T> cropped_lattice_support(support);
-			powerset_btree<set_N_value<T>* > cropped_lattice_support_dual(support.get_FOD(), support.get_block_size());
+			powerset_btree<T> cropped_lattice_support(support.get_FOD(), support.get_FOD_size() * support.size());
+			cropped_lattice_support.copy(support);
 			std::vector<boost::dynamic_bitset<> > iota_sequence;
 			//std::vector<size_t> iota_fiber_sequence;
 			build_and_execute_EMT_with_lattice(
 					support,
 					cropped_lattice_support,
-					cropped_lattice_support_dual,
 					transform_type,
 					order_relation,
 					transform_operation,
@@ -428,11 +410,8 @@ namespace efficient_DST{
 				const order_relation_t& order_relation,
 				const operation_t& transform_operation
 		) {
-			powerset_btree<T> focal_points(&fod, powerset_function<T>::block_size);
-			powerset_btree<set_N_value<T>* > focal_points_dual(&fod, powerset_function<T>::block_size);
-			extract_semilattice_support(vec, focal_points, focal_points_dual, order_relation);
-			powerset_btree<T> cropped_lattice_support(focal_points);
-			powerset_btree<set_N_value<T>* > cropped_lattice_support_dual(&fod, powerset_function<T>::block_size);
+			powerset_btree<T> cropped_lattice_support(&fod, vec.size());
+			extract_semilattice_support(vec, cropped_lattice_support, order_relation);
 			std::vector<boost::dynamic_bitset<> > iota_sequence;
 			std::function<T(const T&, const T&)> range_binary_operator;
 
@@ -563,9 +542,6 @@ namespace efficient_DST{
 					focal_points_tree.get_FOD()->sort_cardinalities(focal_points_ordered_cardinalities, focal_points_card_map, order_t::descending);
 				}
 
-				if (order_relation == order_relation_t::superset) {
-					std::reverse(focal_points_ordered_cardinalities.begin(), focal_points_ordered_cardinalities.end());
-				}
 				for (size_t c = 0; c < focal_points_ordered_cardinalities.size(); ++c) {
 					const std::vector<set_N_value<T>* >& focal_points = focal_points_card_map[focal_points_ordered_cardinalities[c]];
 					for (size_t i = 0; i < focal_points.size(); ++i) {
@@ -640,50 +616,30 @@ namespace efficient_DST{
 				neutral_value = 1;
 			}
 
-			// Cardinality map of focal sets in original_structure
-			std::unordered_map<size_t, std::vector<set_N_value<T>* > > support_card_map = support.elements_by_set_cardinality();
-			std::unordered_map<size_t, T> focal_points_register;
-
 			// check if original_structure is almost Bayesian
 			const bool& is_almost_bayesian = linear_analysis_of_support(
 					support,
-					focal_points_register,
+					focal_points_tree,
 					order_relation,
 					neutral_value
 			);
 
 			scheme_type = scheme_type_t::direct;
 
-			if (is_almost_bayesian){
-				for (auto kv : focal_points_register){
-					focal_points_tree.insert(boost::dynamic_bitset<>(support.get_FOD_size(), kv.first), kv.second);
-				}
-			}else{
-				// sort sets in support by increasing cardinality
-				std::vector<size_t> support_ordered_cardinalities;
-				support.get_FOD()->sort_cardinalities(support_ordered_cardinalities, support_card_map, order_t::ascending);
-
+			if (!is_almost_bayesian){
 				DEBUG(std::clog << "Consonance check:" << std::endl;);
-				const bool& is_consonant = consonance_check(
-					support_card_map,
-					support_ordered_cardinalities,
-					order_t::ascending
-				);
+				const bool& is_consonant = consonance_check(support);
 
 				if(is_consonant){
-					scheme_type = scheme_type_t::consonant;
 					focal_points_tree.copy(support);
+					scheme_type = scheme_type_t::consonant;
 				}else{
-					focal_points_register.clear();
 					build_semilattice_support(
 							support,
-							focal_points_register,
+							focal_points_tree,
 							order_relation,
 							neutral_value
 					);
-					for (auto kv : focal_points_register){
-						focal_points_tree.insert(boost::dynamic_bitset<>(support.get_FOD_size(), kv.first), kv.second);
-					}
 				}
 			}
 
@@ -705,8 +661,8 @@ namespace efficient_DST{
 
 
 		static void execute_EMT_with_lower_semilattice(
-				std::unordered_map<size_t, T>& focal_points_register,
-				FOD* fod,
+				powerset_btree<T>& focal_points_tree,
+				//std::unordered_map<size_t, T>& focal_points_register,
 				const transform_type_t& transform_type,
 				std::function<T(const T&, const T&)> range_binary_operator,
 				const std::vector<boost::dynamic_bitset<> >& iota_sequence
@@ -718,28 +674,29 @@ namespace efficient_DST{
 			sync_sequence.reserve(iota_sequence.size());
 
 			sync_sequence.emplace_back(iota_sequence[0]);
-			for (size_t o = 1; o < iota_sequence.size(); ++o){
-				sync_sequence.emplace_back(sync_sequence[o-1] | iota_sequence[o]);
+			for (size_t i = 1; i < iota_sequence.size(); ++i){
+				sync_sequence.emplace_back(sync_sequence[i-1] | iota_sequence[i]);
 			}
 
-			std::unordered_map<size_t, size_t> proxy_map;
-			build_proxy_map(proxy_map, fod, focal_points_register, iota_sequence, order_relation_t::superset);
+			std::unordered_map<size_t, set_N_value<T>* > proxy_map;
+			build_proxy_superset_map(proxy_map, focal_points_tree, iota_sequence);
 
 			//boost::dynamic_bitset<> emptyset(focal_points_tree.get_FOD_size());
 			//emptyset.set(1);
 
 			size_t iota_index;
-			for (size_t o = 0; o < iota_sequence.size(); ++o){
+			const std::vector<set_N_value<T>* >& focal_points = focal_points_tree.elements();
+			for (size_t i = 0; i < iota_sequence.size(); ++i){
 				if (transform_type == transform_type_t::zeta)
-					iota_index = o;
+					iota_index = i;
 				else
-					iota_index = iota_sequence.size()-1 - o;
+					iota_index = iota_sequence.size()-1 - i;
 
-				for (auto kv : focal_points_register){
-					const size_t& set_B = (boost::dynamic_bitset<>(fod->size(), kv.first) | iota_sequence[iota_index]).to_ulong();
+				for (size_t e = 0; e < focal_points.size(); ++e){
+					const boost::dynamic_bitset<>& set_B = focal_points[e]->set | iota_sequence[iota_index];
 
-					if (kv.first != set_B){
-						const size_t& X = proxy_map[set_B];
+					if (focal_points[e]->set != set_B){
+						const set_N_value<T>* X = proxy_map[set_B.to_ulong()];
 
 						/*if(focal_points[i]->set == iota_element){
 							std::clog << focal_points[i]->set << " + " << iota_sequence[iota_index] << " = " << set_B << std::endl;
@@ -747,9 +704,8 @@ namespace efficient_DST{
 								std::clog << " => " << X->value->value << "\t <- " << focal_points_tree.get_FOD()->to_string(X->set) << std::endl;
 						}*/
 
-						if (FOD::is_or_is_subset_of(boost::dynamic_bitset<>(fod->size(), X), (boost::dynamic_bitset<>(fod->size(), kv.first) | sync_sequence[iota_index]))){
-							T& val = focal_points_register[kv.first];
-							val = range_binary_operator(val, focal_points_register[X]);
+						if (FOD::is_or_is_subset_of(X->set, focal_points[e]->set | sync_sequence[iota_index])){
+							focal_points[e]->value = range_binary_operator(focal_points[e]->value, X->value);
 						}
 					}
 				}
@@ -758,9 +714,8 @@ namespace efficient_DST{
 
 
 		static void execute_EMT_with_upper_semilattice(
-				//powerset_btree<T>& focal_points_tree,
-				std::unordered_map<size_t, T>& focal_points_register,
-				FOD* fod,
+				powerset_btree<T>& focal_points_tree,
+				//std::unordered_map<size_t, T>& focal_points_register,
 				const transform_type_t& transform_type,
 				std::function<T(const T&, const T&)> range_binary_operator,
 				const std::vector<boost::dynamic_bitset<> >& iota_sequence
@@ -772,29 +727,31 @@ namespace efficient_DST{
 			sync_sequence.reserve(iota_sequence.size());
 
 			sync_sequence.emplace_back(iota_sequence[0]);
-			for (size_t o = 1; o < iota_sequence.size(); ++o){
-				sync_sequence.emplace_back(sync_sequence[o-1] & iota_sequence[o]);
+			for (size_t i = 1; i < iota_sequence.size(); ++i){
+				sync_sequence.emplace_back(sync_sequence[i-1] & iota_sequence[i]);
 			}
 
-			std::unordered_map<size_t, size_t> proxy_map;
-			build_proxy_map(proxy_map, fod, focal_points_register, iota_sequence, order_relation_t::subset);
+			std::unordered_map<size_t, set_N_value<T>* > proxy_map;
+			build_proxy_subset_map(proxy_map, focal_points_tree, iota_sequence);
+			//build_proxy_map(proxy_map, fod, focal_points_register, iota_sequence, order_relation_t::subset);
 
 			//boost::dynamic_bitset<> iota_element(fod->size());
 			//iota_element.set(1);
 			//iota_element.flip();
 
 			size_t iota_index;
-			for (size_t o = 0; o < iota_sequence.size(); ++o){
+			const std::vector<set_N_value<T>* >& focal_points = focal_points_tree.elements();
+			for (size_t i = 0; i < iota_sequence.size(); ++i){
 				if (transform_type == transform_type_t::zeta)
-					iota_index = o;
+					iota_index = i;
 				else
-					iota_index = iota_sequence.size()-1 - o;
+					iota_index = iota_sequence.size()-1 - i;
 
-				for (auto kv : focal_points_register){
-					const size_t& set_B = (boost::dynamic_bitset<>(fod->size(), kv.first) & iota_sequence[iota_index]).to_ulong();
+				for (size_t e = 0; e < focal_points.size(); ++e){
+					const boost::dynamic_bitset<>& set_B = focal_points[e]->set & iota_sequence[iota_index];
 
-					if (kv.first != set_B){
-						const size_t& X = proxy_map[set_B];
+					if (focal_points[e]->set != set_B){
+						const set_N_value<T>* X = proxy_map[set_B.to_ulong()];
 
 						/*if(focal_points[i]->set == iota_element){
 							std::clog << focal_points[i]->set << " + " << iota_sequence[iota_index] << " = " << set_B << std::endl;
@@ -802,9 +759,8 @@ namespace efficient_DST{
 								std::clog << " => " << X->value->value << "\t <- " << focal_points_tree.get_FOD()->to_string(X->set) << std::endl;
 						}*/
 
-						if (FOD::is_or_is_superset_of(boost::dynamic_bitset<>(fod->size(), X), (boost::dynamic_bitset<>(fod->size(), kv.first) & sync_sequence[iota_index]))){
-							T& val = focal_points_register[kv.first];
-							val = range_binary_operator(val, focal_points_register[X]);
+						if (FOD::is_or_is_superset_of(X->set, focal_points[e]->set & sync_sequence[iota_index])){
+							focal_points[e]->value = range_binary_operator(focal_points[e]->value, X->value);
 						}
 					}
 				}
@@ -933,33 +889,27 @@ namespace efficient_DST{
 				compute_iota_elements(version_t::regular, support, iota_sequence); //iota_fiber_sequence);
 			}
 
-			std::unordered_map<size_t, T> focal_points_register;
 			build_semilattice_support(
 					support,
-					focal_points_register,
+					focal_points_tree,
 					order_relation,
 					neutral_value
 			);
 
 			if (order_relation == order_relation_t::subset){
 				execute_EMT_with_upper_semilattice(
-						focal_points_register,
-						support.get_FOD(),
+						focal_points_tree,
 						transform_type,
 						range_binary_operator,
 						iota_sequence
 				);
 			}else{
 				execute_EMT_with_lower_semilattice(
-						focal_points_register,
-						support.get_FOD(),
+						focal_points_tree,
 						transform_type,
 						range_binary_operator,
 						iota_sequence
 				);
-			}
-			for (auto kv : focal_points_register){
-				focal_points_tree.insert(boost::dynamic_bitset<>(support.get_FOD_size(), kv.first), kv.second);
 			}
 		}
 
@@ -1053,70 +1003,78 @@ namespace efficient_DST{
 		}*/
 
 
-		static void build_proxy_map(
-				std::unordered_map<size_t, size_t>& proxy_map,
+		/*static void build_proxy_map(
+				std::unordered_map<size_t, set_N_value<T>* >& proxy_map,
 				FOD* fod,
-				std::unordered_map<size_t, T>& focal_points_register,
+				const powerset_btree<T>& focal_points_tree,
+				//std::unordered_map<size_t, T>& focal_points_register,
 				const std::vector<boost::dynamic_bitset<> >& iota_sequence,
 				const order_relation_t& order_relation
 		) {
-			proxy_map.reserve(iota_sequence.size() * focal_points_register.size());
+			proxy_map.reserve(iota_sequence.size() * focal_points_tree.size());
 
-			std::unordered_map<size_t, std::vector<size_t> > focal_points_register_card_map;
-			focal_points_register_card_map.reserve(fod->size());
-			for (auto kv : focal_points_register){
-				proxy_map.emplace(kv.first, kv.first);
-				const size_t& card = boost::dynamic_bitset<>(fod->size(), kv.first).count();
-				if (focal_points_register_card_map.find(card) == focal_points_register_card_map.end()){
-					focal_points_register_card_map[card] = std::vector<size_t>();
-					if (card == 1)
-						focal_points_register_card_map[card].reserve(1);
-					else
-						focal_points_register_card_map[card].reserve(focal_points_register.size());
-				}
-				focal_points_register_card_map[card].emplace_back(kv.first);
+			//std::unordered_map<size_t, std::vector<size_t> > focal_points_register_card_map;
+			//focal_points_register_card_map.reserve(fod->size());
+
+			const std::vector<set_N_value<T>* >& focal_points = focal_points_tree.elements();
+			for (size_t e = 0; e < focal_points.size(); ++e){
+				proxy_map.emplace(focal_points[e]->set.to_ulong(), focal_points[e]);
+
+				//const size_t& card = boost::dynamic_bitset<>(fod->size(), kv.first).count();
+				//if (focal_points_register_card_map.find(card) == focal_points_register_card_map.end()){
+				//	focal_points_register_card_map[card] = std::vector<size_t>();
+				//	if (card == 1)
+				//		focal_points_register_card_map[card].reserve(1);
+				//	else
+				//		focal_points_register_card_map[card].reserve(focal_points_register.size());
+				//}
+				//focal_points_register_card_map[card].emplace_back(kv.first);
 			}
 
 			if (order_relation == order_relation_t::subset)
-				build_proxy_subset_map(proxy_map, fod, focal_points_register, iota_sequence, focal_points_register_card_map);
+				build_proxy_subset_map(proxy_map, fod, focal_points_tree, iota_sequence);
 			else
-				build_proxy_superset_map(proxy_map, fod, focal_points_register, iota_sequence, focal_points_register_card_map);
-		}
+				build_proxy_superset_map(proxy_map, fod, focal_points_tree, iota_sequence);
+		}*/
 
 
 		static void build_proxy_subset_map(
-				std::unordered_map<size_t, size_t>& proxy_map,
-				FOD* fod,
-				const std::unordered_map<size_t, T>& focal_points_register,
-				const std::vector<boost::dynamic_bitset<> >& iota_sequence,
-				std::unordered_map<size_t, std::vector<size_t> >& focal_points_register_card_map
+				std::unordered_map<size_t, set_N_value<T>* >& proxy_map,
+				const powerset_btree<T>& focal_points_tree,
+				const std::vector<boost::dynamic_bitset<> >& iota_sequence
 		) {
-			powerset_btree<bool> sets_missing_proxies(fod, iota_sequence.size() * focal_points_register.size());
-			//std::vector<size_t> set_sequence;
-			//set_sequence.reserve(iota_sequence.size() * focal_points_register.size());
+			proxy_map.reserve(iota_sequence.size() * focal_points_tree.size());
+			const std::vector<set_N_value<T>* >& focal_points = focal_points_tree.elements();
+
+			for (size_t e = 0; e < focal_points.size(); ++e){
+				proxy_map.emplace(focal_points[e]->set.to_ulong(), focal_points[e]);
+			}
+
+			powerset_btree<bool> sets_missing_proxies(focal_points_tree.get_FOD(), iota_sequence.size() * focal_points_tree.size());
 
 			for (size_t i = 0; i < iota_sequence.size(); ++i) {
-				for (auto kv : focal_points_register) {
-					const boost::dynamic_bitset<>& set = boost::dynamic_bitset<>(fod->size(), kv.first) & iota_sequence[i];
-					bool insertion = proxy_map.emplace(set.to_ulong(), 0).second;
+				for (size_t e = 0; e < focal_points.size(); ++e){
+					const boost::dynamic_bitset<>& set = focal_points[e]->set & iota_sequence[i];
+					bool insertion = proxy_map.emplace(set.to_ulong(), nullptr).second;
 					//set_sequence.emplace_back(set.to_ulong());
 					if (insertion)
 						sets_missing_proxies.insert(set, true);
 				}
 			}
 
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > focal_points_card_map = focal_points_tree.elements_by_set_cardinality();
 			std::vector<size_t> ordered_cardinalities;
-			sets_missing_proxies.get_FOD()->sort_cardinalities(ordered_cardinalities, focal_points_register_card_map, order_t::descending);
+			sets_missing_proxies.get_FOD()->sort_cardinalities(ordered_cardinalities, focal_points_card_map, order_t::descending);
 
 			size_t c = 0;
 			if (ordered_cardinalities[0] == sets_missing_proxies.get_FOD_size()){
 				c = 1;
 			}
 			for (; c < ordered_cardinalities.size(); ++c){
-				const std::vector<size_t>& focal_points_with_same_size = focal_points_register_card_map[ordered_cardinalities[c]];
+				const std::vector<set_N_value<T>* >& focal_points_with_same_size = focal_points_card_map[ordered_cardinalities[c]];
 
 				for (size_t i = 0; i < focal_points_with_same_size.size(); ++i){
-					const std::vector<set_N_value<bool>* >& supersets = sets_missing_proxies.supersets_of(boost::dynamic_bitset<>(sets_missing_proxies.get_FOD_size(), focal_points_with_same_size[i]));
+					const std::vector<set_N_value<bool>* >& supersets = sets_missing_proxies.supersets_of(focal_points_with_same_size[i]->set);
 
 					for (size_t s = 0; s < supersets.size(); ++s){
 						proxy_map[supersets[s]->set.to_ulong()] = focal_points_with_same_size[i];
@@ -1128,27 +1086,31 @@ namespace efficient_DST{
 
 
 		static void build_proxy_superset_map(
-				std::unordered_map<size_t, size_t>& proxy_map,
-				FOD* fod,
-				const std::unordered_map<size_t, T>& focal_points_register,
-				const std::vector<boost::dynamic_bitset<> >& iota_sequence,
-				std::unordered_map<size_t, std::vector<size_t> >& focal_points_register_card_map
+				std::unordered_map<size_t, set_N_value<T>* >& proxy_map,
+				const powerset_btree<T>& focal_points_tree,
+				const std::vector<boost::dynamic_bitset<> >& iota_sequence
 		) {
-			powerset_btree<bool> sets_missing_proxies(fod, iota_sequence.size() * focal_points_register.size());
-			//std::vector<size_t> set_sequence;
-			//set_sequence.reserve(iota_sequence.size() * focal_points_register.size());
+			proxy_map.reserve(iota_sequence.size() * focal_points_tree.size());
+			const std::vector<set_N_value<T>* >& focal_points = focal_points_tree.elements();
+
+			for (size_t e = 0; e < focal_points.size(); ++e){
+				proxy_map.emplace(focal_points[e]->set.to_ulong(), focal_points[e]);
+			}
+
+			powerset_btree<bool> sets_missing_proxies(focal_points_tree.get_FOD(), iota_sequence.size() * focal_points_tree.size());
 
 			for (size_t i = 0; i < iota_sequence.size(); ++i) {
-				for (auto kv : focal_points_register) {
-					const boost::dynamic_bitset<>& set = boost::dynamic_bitset<>(fod->size(), kv.first) | iota_sequence[i];
-					bool insertion = proxy_map.emplace(set.to_ulong(), 0).second;
+				for (size_t e = 0; e < focal_points.size(); ++e){
+					const boost::dynamic_bitset<>& set = focal_points[e]->set | iota_sequence[i];
+					bool insertion = proxy_map.emplace(set.to_ulong(), nullptr).second;
 					//set_sequence.emplace_back(set.to_ulong());
 					if (insertion)
 						sets_missing_proxies.insert(set, true);
 				}
 			}
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > focal_points_card_map = focal_points_tree.elements_by_set_cardinality();
 			std::vector<size_t> ordered_cardinalities;
-			sets_missing_proxies.get_FOD()->sort_cardinalities(ordered_cardinalities, focal_points_register_card_map, order_t::ascending);
+			sets_missing_proxies.get_FOD()->sort_cardinalities(ordered_cardinalities, focal_points_card_map, order_t::ascending);
 
 			size_t c = 0;
 			if (ordered_cardinalities[0] == 0){
@@ -1156,10 +1118,10 @@ namespace efficient_DST{
 			}
 
 			for (; c < ordered_cardinalities.size(); ++c){
-				const std::vector<size_t>& focal_points_with_same_size = focal_points_register_card_map[ordered_cardinalities[c]];
+				const std::vector<set_N_value<T>* >& focal_points_with_same_size = focal_points_card_map[ordered_cardinalities[c]];
 
 				for (size_t i = 0; i < focal_points_with_same_size.size(); ++i){
-					const std::vector<set_N_value<bool>* >& subsets = sets_missing_proxies.subsets_of(boost::dynamic_bitset<>(sets_missing_proxies.get_FOD_size(), focal_points_with_same_size[i]));
+					const std::vector<set_N_value<bool>* >& subsets = sets_missing_proxies.subsets_of(focal_points_with_same_size[i]->set);
 
 					for (size_t s = 0; s < subsets.size(); ++s){
 						proxy_map[subsets[s]->set.to_ulong()] = focal_points_with_same_size[i];
@@ -1185,7 +1147,7 @@ namespace efficient_DST{
 			}
 			build_EMT_subset_map(subset_map);
 			return subset_map;
-		}*/
+		}
 
 
 		static void build_EMT_subset_map(powerset_btree<set_N_value<T>* >& subset_map){
@@ -1231,19 +1193,25 @@ namespace efficient_DST{
 					}
 				}
 			}
-		}
+		}*/
 
 
 		static void execute_EMT_with_lattice_upper_closure(
-				//powerset_btree<T>& lattice_support,
-				std::unordered_map<size_t, T>& focal_points_register,
-				const size_t& fod_size,
+				powerset_btree<T>& lattice_support,
+				//std::unordered_map<size_t, T>& focal_points_register,
+				//const size_t& fod_size,
 				const transform_type_t& transform_type,
 				std::function<T(const T&, const T&)> range_binary_operator,
 				const std::vector<boost::dynamic_bitset<> >& iota_sequence
 		) {
 			clock_t t = clock();
-			//const std::vector<set_N_value<T>* >& lattice_support_elements = lattice_support.elements();
+			std::unordered_map<size_t, set_N_value<T>* > focal_points_register;
+			focal_points_register.reserve(lattice_support.size());
+
+			const std::vector<set_N_value<T>* >& lattice_support_elements = lattice_support.elements();
+			for (size_t e = 0; e < lattice_support_elements.size(); ++e){
+				focal_points_register[lattice_support_elements[e]->set.to_ulong()] = lattice_support_elements[e];
+			}
 
 			size_t iota_index;
 			for (size_t o = 0; o < iota_sequence.size(); ++o){
@@ -1252,7 +1220,7 @@ namespace efficient_DST{
 				else
 					iota_index = iota_sequence.size()-1 - o;
 
-				for (auto kv : focal_points_register){
+				/*for (auto kv : focal_points_register){
 					const size_t& set_B = (boost::dynamic_bitset<>(fod_size, kv.first) | iota_sequence[iota_index]).to_ulong();
 
 					if (set_B != kv.first){
@@ -1263,20 +1231,18 @@ namespace efficient_DST{
 						}
 					}
 				}
-				/*
+				*/
 				for (size_t i = 0; i < lattice_support_elements.size(); ++i){
 					const boost::dynamic_bitset<>& set_B = lattice_support_elements[i]->set | iota_sequence[iota_index];
 
 					if (set_B != lattice_support_elements[i]->set){
-						auto& B = focal_points_register.find(set_B.to_ulong());
-						//set_N_value<T>* B = focal_points_register[set_B];
+						auto B = focal_points_register.find(set_B.to_ulong());
 
 						if (B != focal_points_register.end()){
-							//B->value = range_binary_operator(B->value, lattice_support_elements[i]->value);
-							B->second = range_binary_operator(B->second, lattice_support_elements[i]->value);
+							B->second->value = range_binary_operator(B->second->value, lattice_support_elements[i]->value);
 						}
 					}
-				}*/
+				}
 			}
 			t = clock() - t;
 			std::cout << "time spent computing = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
@@ -1284,15 +1250,21 @@ namespace efficient_DST{
 
 
 		static void execute_EMT_with_lattice_lower_closure(
-				//powerset_btree<T>& lattice_support,
-				std::unordered_map<size_t, T>& focal_points_register,
-				const size_t& fod_size,
+				powerset_btree<T>& lattice_support,
+				//std::unordered_map<size_t, T>& focal_points_register,
+				//const size_t& fod_size,
 				const transform_type_t& transform_type,
 				std::function<T(const T&, const T&)> range_binary_operator,
 				const std::vector<boost::dynamic_bitset<> >& iota_sequence
 		) {
 			clock_t t = clock();
-			//const std::vector<set_N_value<T>* >& lattice_support_elements = lattice_support.elements();
+			std::unordered_map<size_t, set_N_value<T>* > focal_points_register;
+			focal_points_register.reserve(lattice_support.size());
+
+			const std::vector<set_N_value<T>* >& lattice_support_elements = lattice_support.elements();
+			for (size_t e = 0; e < lattice_support_elements.size(); ++e){
+				focal_points_register[lattice_support_elements[e]->set.to_ulong()] = lattice_support_elements[e];
+			}
 
 			size_t iota_index;
 			for (size_t o = 0; o < iota_sequence.size(); ++o){
@@ -1301,20 +1273,19 @@ namespace efficient_DST{
 				else
 					iota_index = iota_sequence.size()-1 - o;
 
-				/*for (size_t i = 0; i < lattice_support_elements.size(); ++i){
-					const boost::dynamic_bitset<>& set_B = FOD::set_intersection(lattice_support_elements[i]->set, iota_sequence[iota_index]);
+				for (size_t i = 0; i < lattice_support_elements.size(); ++i){
+					const boost::dynamic_bitset<>& set_B = lattice_support_elements[i]->set & iota_sequence[iota_index];
 
 					if (set_B != lattice_support_elements[i]->set){
-						set_N_value<T>* B = lattice_support[set_B];
+						auto B = focal_points_register.find(set_B.to_ulong());
 
-						if (B){
-							B->value = range_binary_operator(B->value, lattice_support_elements[i]->value);
+						if (B != focal_points_register.end()){
+							B->second->value = range_binary_operator(B->second->value, lattice_support_elements[i]->value);
 						}
 					}
-				}*/
+				}
 
-
-				for (auto kv : focal_points_register){
+				/*for (auto kv : focal_points_register){
 					const size_t& set_B = (boost::dynamic_bitset<>(fod_size, kv.first) & iota_sequence[iota_index]).to_ulong();
 
 					if (set_B != kv.first){
@@ -1324,7 +1295,7 @@ namespace efficient_DST{
 							B->second = range_binary_operator(B->second, kv.second);
 						}
 					}
-				}
+				}*/
 			}
 			t = clock() - t;
 			std::cout << "time spent computing = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
@@ -1357,12 +1328,10 @@ namespace efficient_DST{
 				neutral_value = 1;
 			}
 
-			std::unordered_map<size_t, T> focal_points_register;
-
 			if (order_relation == order_relation_t::subset){
 				build_lattice_support_upper_closure(
 						support,
-						focal_points_register,
+						cropped_lattice_support,
 						iota_sequence,
 						neutral_value
 				);
@@ -1370,8 +1339,7 @@ namespace efficient_DST{
 				std::cout << "time spent building = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
 				t = clock();
 				execute_EMT_with_lattice_upper_closure(
-						focal_points_register,
-						support.get_FOD_size(),
+						cropped_lattice_support,
 						transform_type,
 						range_binary_operator,
 						iota_sequence
@@ -1381,7 +1349,7 @@ namespace efficient_DST{
 			}else{
 				build_lattice_support_lower_closure(
 						support,
-						focal_points_register,
+						cropped_lattice_support,
 						iota_sequence,
 						neutral_value
 				);
@@ -1389,17 +1357,13 @@ namespace efficient_DST{
 				std::cout << "time spent building = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
 				t = clock();
 				execute_EMT_with_lattice_lower_closure(
-						focal_points_register,
-						support.get_FOD_size(),
+						cropped_lattice_support,
 						transform_type,
 						range_binary_operator,
 						iota_sequence
 				);
 				t = clock() - t;
 				std::cout << "time spent calling the computation = " << ((float)t)/CLOCKS_PER_SEC << " sec" << std::endl;
-			}
-			for (auto kv : focal_points_register){
-				cropped_lattice_support.insert(boost::dynamic_bitset<>(support.get_FOD_size(), kv.first), kv.second);
 			}
 		}
 
@@ -1454,18 +1418,16 @@ namespace efficient_DST{
 
 		static bool linear_analysis_of_support(
 				const powerset_btree<T>& support,
-				//std::vector<boost::dynamic_bitset<> >& focal_points,
-				std::unordered_map<size_t, T>& focal_points_register,
+				powerset_btree<T>& focal_points_tree,
 				const order_relation_t& order_relation,
 				T& neutral_value
 		){
+			std::unordered_set<size_t> focal_points_register;
 			focal_points_register.reserve(support.size() + support.get_FOD_size() + 1);
 			const std::vector<set_N_value<T>* >& elements = support.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
-				//bool insertion =
-				focal_points_register.emplace(elements[i]->set.to_ulong(), elements[i]->value);
-				//if (insertion)
-				//	focal_points.emplace_back(neg_I);
+				focal_points_register.emplace(elements[i]->set.to_ulong());
+				focal_points_tree.insert(elements[i]->set, elements[i]->value);
 			}
 
 			if(order_relation == order_relation_t::subset){
@@ -1490,17 +1452,15 @@ namespace efficient_DST{
 						DEBUG(std::clog << "=> Linear analysis aborted.\n";);
 						return false;
 					}else if(I_card == 1){
-						//bool insertion =
-						focal_points_register.emplace(neg_I.to_ulong(), neutral_value);
-						//if (insertion)
-						//	focal_points.emplace_back(neg_I);
+						bool insertion = focal_points_register.emplace(neg_I.to_ulong()).second;
+						if (insertion)
+							focal_points_tree.insert(neg_I, neutral_value);
 					}
 					neg_U &= A;
 				}
-				//bool insertion =
-				focal_points_register.emplace(fod.to_ulong(), neutral_value);
-				//if (insertion)
-				//	focal_points.emplace_back(fod);
+				bool insertion = focal_points_register.emplace(fod.to_ulong()).second;
+				if (insertion)
+					focal_points_tree.insert(fod, neutral_value);
 			}else{
 				boost::dynamic_bitset<> fod(support.get_FOD_size());
 				fod.set();
@@ -1523,27 +1483,28 @@ namespace efficient_DST{
 						DEBUG(std::clog << "=> Linear analysis aborted.\n";);
 						return false;
 					}else if(I_card == 1){
-						//bool insertion =
-						focal_points_register.emplace(I.to_ulong(), neutral_value);
-						//if (insertion)
-						//	focal_points.emplace_back(I);
+						bool insertion = focal_points_register.emplace(I.to_ulong()).second;
+						if (insertion)
+							focal_points_tree.insert(I, neutral_value);
 					}
 					U |= A;
 				}
-				//bool insertion =
-				focal_points_register.emplace(emptyset.to_ulong(), neutral_value);
-				//if (insertion)
-				//	focal_points.emplace_back(emptyset);
+				bool insertion = focal_points_register.emplace(emptyset.to_ulong()).second;
+				if (insertion)
+					focal_points_tree.insert(emptyset, neutral_value);
 			}
 			return true;
 		}
 
 
 		static bool consonance_check(
-				std::unordered_map<size_t, std::vector<set_N_value<T>* > >& support_card_map,
-				const std::vector<size_t>& support_ordered_cardinalities,
-				const order_t order
+				const powerset_btree<T>& support
 		){
+			// Cardinality map of focal sets in original_structure
+			std::unordered_map<size_t, std::vector<set_N_value<T>* > > support_card_map = support.elements_by_set_cardinality();
+			std::vector<size_t> support_ordered_cardinalities;
+			support.get_FOD()->sort_cardinalities(support_ordered_cardinalities, support_card_map, order_t::ascending);
+
 			// if at least one focal point has already been discovered
 			// OR if there are at least two elements with the same 0-indexed cardinality (i.e. the least one) in structure,
 			// then structure cannot be consonant
@@ -1556,22 +1517,12 @@ namespace efficient_DST{
 				// then structure cannot be consonant
 				if (support_card_map[support_ordered_cardinalities[i]].size() > 1 )
 					return false;
-				if (order == order_t::ascending){
-					if(!FOD::is_or_is_subset_of(
-							support_card_map[support_ordered_cardinalities[i-1]][0]->set,
-							support_card_map[support_ordered_cardinalities[i]][0]->set
-						  )
-					){
-						return false;
-					}
-				}else{
-					if(!FOD::is_or_is_superset_of(
-							support_card_map[support_ordered_cardinalities[i-1]][0]->set,
-							support_card_map[support_ordered_cardinalities[i]][0]->set
-						  )
-					){
-						return false;
-					}
+				if(!FOD::is_or_is_subset_of(
+						support_card_map[support_ordered_cardinalities[i-1]][0]->set,
+						support_card_map[support_ordered_cardinalities[i]][0]->set
+					  )
+				){
+					return false;
 				}
 			}
 			return true;
@@ -1661,7 +1612,7 @@ namespace efficient_DST{
 			for (size_t c = 0; c < ordered_cardinalities.size(); ++c) {
 				const std::vector<boost::dynamic_bitset<> >& iota_elements_c = iota_elements_card_map[ordered_cardinalities[c]];
 				for (size_t i = 0; i < iota_elements_c.size(); ++i) {
-					DEBUG(std::clog << iota_elements_nodes[i]->set << std::endl;);
+					DEBUG(std::clog << iota_elements_c[i] << std::endl;);
 					iota_sequence.emplace_back(iota_elements_c[i]);
 				}
 			}
@@ -1798,44 +1749,53 @@ namespace efficient_DST{
 		 */
 		static void build_semilattice_support(
 				const powerset_btree<T>& support,
-				std::unordered_map<size_t, T>& focal_points_register,
+				powerset_btree<T>& focal_points_tree,
 				const order_relation_t& order_relation,
 				const T& neutral_value
 		) {
+			std::unordered_set<size_t> focal_points_register;
 			std::vector<boost::dynamic_bitset<> > focal_points;
 			const std::vector<set_N_value<T>* >& support_elements = support.elements();
 			focal_points_register.reserve(2 * support.get_FOD_size() * support.size());
 			focal_points.reserve(2 * support.get_FOD_size() * support.size());
 
 			for (size_t i = 0; i < support_elements.size(); ++i){
-				focal_points_register.emplace(support_elements[i]->set.to_ulong(), support_elements[i]->value);
+				focal_points_register.emplace(support_elements[i]->set.to_ulong());
 				focal_points.emplace_back(support_elements[i]->set);
+				focal_points_tree.insert(support_elements[i]->set, support_elements[i]->value);
 			}
 
 			if(order_relation == order_relation_t::subset){
 				for (size_t i = 0; i < support_elements.size(); ++i){
 					for (size_t ii = i+1; ii < focal_points.size(); ++ii){
 						const boost::dynamic_bitset<>& focal_point = support_elements[i]->set | focal_points[ii];
-						bool insertion = focal_points_register.emplace(focal_point.to_ulong(), neutral_value).second;
-						if (insertion)
+						bool insertion = focal_points_register.emplace(focal_point.to_ulong()).second;
+						if (insertion){
 							focal_points.emplace_back(focal_point);
+							focal_points_tree.insert(focal_point, neutral_value);
+							DEBUG({
+								std::clog << "\nNEW INSERTED FOCAL POINT :\n";
+								std::clog << focal_point << std::endl;
+							});
+						}
 					}
 				}
 			}else{
 				for (size_t i = 0; i < support_elements.size(); ++i){
 					for (size_t ii = i+1; ii < focal_points.size(); ++ii){
 						const boost::dynamic_bitset<>& focal_point = support_elements[i]->set & focal_points[ii];
-						bool insertion = focal_points_register.emplace(focal_point.to_ulong(), neutral_value).second;
-						if (insertion)
+						bool insertion = focal_points_register.emplace(focal_point.to_ulong()).second;
+						if (insertion){
 							focal_points.emplace_back(focal_point);
+							focal_points_tree.insert(focal_point, neutral_value);
+							DEBUG({
+								std::clog << "\nNEW INSERTED FOCAL POINT :\n";
+								std::clog << focal_point << std::endl;
+							});
+						}
 					}
 				}
 			}
-
-			DEBUG({
-				std::clog << "\nFocal points: \n";
-				print<T>(std::clog, focal_points_tree);
-			});
 		}
 
 
@@ -1915,7 +1875,7 @@ namespace efficient_DST{
 		 */
 		static void build_lattice_support_upper_closure(
 				const powerset_btree<T>& support,
-				std::unordered_map<size_t, T>& focal_points_register,
+				powerset_btree<T>& cropped_lattice_support,
 				std::vector<boost::dynamic_bitset<> >& iota_sequence,
 				const T& neutral_value
 		){
@@ -1925,81 +1885,83 @@ namespace efficient_DST{
 					iota_sequence
 			);
 
+			std::unordered_set<size_t> focal_points_register;
 			std::vector<boost::dynamic_bitset<> > focal_points;
 			focal_points.reserve(2 * support.get_FOD_size() * support.size());
 			focal_points_register.reserve(2 * support.get_FOD_size() * support.size());
 
 			const std::vector<set_N_value<T>* >& elements = support.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
-				focal_points_register.emplace(elements[i]->set.to_ulong(), elements[i]->value);
+				focal_points_register.emplace(elements[i]->set.to_ulong());
 				focal_points.emplace_back(elements[i]->set);
 			}
 
 			for (size_t o = 0; o < iota_sequence.size(); ++o) {
 				for (size_t i = 0; i < focal_points.size(); ++i) {
 					boost::dynamic_bitset<> new_set = iota_sequence[o] | focal_points[i];
-					bool insertion = focal_points_register.emplace(new_set.to_ulong(), neutral_value).second;
+					bool insertion = focal_points_register.emplace(new_set.to_ulong()).second;
 					if (insertion){
 						focal_points.emplace_back(new_set);
+						cropped_lattice_support.insert(new_set, neutral_value);
 						DEBUG({
 							std::clog << "\nNEW INSERTED FOCAL POINT :\n";
-							std::clog << focal_points.back() << std::endl;
+							std::clog << new_set << std::endl;
 						});
 					}
 				}
 			}
 			DEBUG({
 				std::clog << "\nCropped lattice support: \n";
-				print<T>(std::clog, focal_points_tree);
+				print<T>(std::clog, cropped_lattice_support);
 			});
 		}
 
 
 		static void build_lattice_support_upper_closure(
 				const std::vector<T>& vec,
-				const FOD& fod,
-				std::unordered_map<size_t, T>& focal_points_register,
+				powerset_btree<T>& cropped_lattice_support,
 				std::vector<boost::dynamic_bitset<> >& iota_sequence
 		){
 			extract_semilattice_support(
 					vec,
-					fod.size(),
-					focal_points_register,
+					cropped_lattice_support,
 					order_relation_t::subset
 			);
 
 			std::vector<boost::dynamic_bitset<> > focal_points;
-			focal_points.reserve(2 * fod.size() * focal_points_register.size());
-			focal_points_register.reserve(2 * fod.size() * focal_points_register.size());
-			powerset_btree<T> focal_points_tree(&fod, focal_points_register.size());
+			std::unordered_set<size_t> focal_points_register;
+			focal_points.reserve(2 * cropped_lattice_support.get_FOD_size() * cropped_lattice_support.size());
+			focal_points_register.reserve(2 * cropped_lattice_support.get_FOD_size() * cropped_lattice_support.size());
 
-			for (auto kv : focal_points_register){
-				focal_points.emplace_back(fod.size(), kv.first);
-				focal_points_tree.insert(boost::dynamic_bitset<>(fod.size(), kv.first), kv.second);
+			const std::vector<set_N_value<T>* >& focal_points_elements = cropped_lattice_support.elements();
+			for (size_t e = 0; e < focal_points_elements.size(); ++e){
+				focal_points.emplace_back(focal_points_elements[e]->set);
+				focal_points_register.emplace(focal_points_elements[e]->set.to_ulong());
 			}
 
 			compute_iota_elements(
 					version_t::regular,
-					focal_points_tree,
+					cropped_lattice_support,
 					iota_sequence
 			);
 
-			for (size_t o = 0; o < iota_sequence.size(); ++o) {
-				for (size_t i = 0; i < focal_points.size(); ++i) {
-					boost::dynamic_bitset<> new_set = iota_sequence[o] | focal_points[i];
-					bool insertion = focal_points_register.emplace(new_set.to_ulong(), vec[new_set.to_ulong()]).second;
+			for (size_t i = 0; i < iota_sequence.size(); ++i) {
+				for (size_t e = 0; e < focal_points.size(); ++e) {
+					boost::dynamic_bitset<> new_set = iota_sequence[i] | focal_points[e];
+					bool insertion = focal_points_register.emplace(new_set.to_ulong()).second;
 					if(insertion){
 						focal_points.emplace_back(new_set);
+						cropped_lattice_support.insert(new_set, vec[new_set.to_ulong()]);
 						DEBUG({
 							std::clog << "\nNEW INSERTED FOCAL POINT :\n";
-							std::clog << focal_points.back() << std::endl;
+							std::clog << new_set << std::endl;
 						});
 					}
 				}
 			}
 			DEBUG({
 				std::clog << "\nCropped lattice support: \n";
-				print<T>(std::clog, focal_points_tree);
+				print<T>(std::clog, cropped_lattice_support);
 			});
 		}
 
@@ -2009,7 +1971,7 @@ namespace efficient_DST{
 		 */
 		static void build_lattice_support_lower_closure(
 				const powerset_btree<T>& support,
-				std::unordered_map<size_t, T>& focal_points_register,
+				powerset_btree<T>& cropped_lattice_support,
 				std::vector<boost::dynamic_bitset<> >& iota_sequence,
 				const T& neutral_value
 		){
@@ -2020,12 +1982,13 @@ namespace efficient_DST{
 			);
 
 			std::vector<boost::dynamic_bitset<> > focal_points;
+			std::unordered_set<size_t> focal_points_register;
 			focal_points.reserve(2 * support.get_FOD_size() * support.size());
 			focal_points_register.reserve(2 * support.get_FOD_size() * support.size());
 
 			const std::vector<set_N_value<T>* >& elements = support.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
-				focal_points_register.emplace(elements[i]->set.to_ulong(), elements[i]->value);
+				focal_points_register.emplace(elements[i]->set.to_ulong());
 				focal_points.emplace_back(elements[i]->set);
 			}
 
@@ -2036,9 +1999,14 @@ namespace efficient_DST{
 				for (size_t i = 0; i < focal_points.size(); ++i) {
 					boost::dynamic_bitset<> new_set = iota_sequence[o] & focal_points[i];
 					t = clock();
-					bool insertion = focal_points_register.emplace(new_set.to_ulong(), neutral_value).second;
+					bool insertion = focal_points_register.emplace(new_set.to_ulong()).second;
 					if(insertion){
 						focal_points.emplace_back(new_set);
+						cropped_lattice_support.insert(new_set, neutral_value);
+						DEBUG({
+							std::clog << "\nNEW INSERTED FOCAL POINT :\n";
+							std::clog << new_set << std::endl;
+						});
 					}
 					t = clock() - t;
 					count += t;
@@ -2057,53 +2025,56 @@ namespace efficient_DST{
 					}
 				}
 			}
-			 */
+			*/
 			DEBUG({
 				std::clog << "\nCropped lattice support: \n";
-				print<T>(std::clog, focal_points_tree);
+				print<T>(std::clog, cropped_lattice_support);
 			});
 		}
 
 
 		static void build_lattice_support_lower_closure(
 				const std::vector<T>& vec,
-				const FOD& fod,
-				std::unordered_map<size_t, T>& focal_points_register,
+				powerset_btree<T>& cropped_lattice_support,
 				std::vector<boost::dynamic_bitset<> >& iota_sequence
 		){
 			extract_semilattice_support(
 					vec,
-					fod.size(),
-					focal_points_register,
+					cropped_lattice_support,
 					order_relation_t::superset
 			);
 
 			std::vector<boost::dynamic_bitset<> > focal_points;
-			focal_points.reserve(2 * fod.size() * focal_points_register.size());
-			focal_points_register.reserve(2 * fod.size() * focal_points_register.size());
-			powerset_btree<T> focal_points_tree(&fod, focal_points_register.size());
+			std::unordered_set<size_t> focal_points_register;
+			focal_points.reserve(2 * cropped_lattice_support.get_FOD_size() * cropped_lattice_support.size());
+			focal_points_register.reserve(2 * cropped_lattice_support.get_FOD_size() * cropped_lattice_support.size());
 
-			for (auto kv : focal_points_register){
-				focal_points.emplace_back(fod.size(), kv.first);
-				focal_points_tree.insert(boost::dynamic_bitset<>(fod.size(), kv.first), kv.second);
+			const std::vector<set_N_value<T>* >& focal_points_elements = cropped_lattice_support.elements();
+			for (size_t e = 0; e < focal_points_elements.size(); ++e){
+				focal_points.emplace_back(focal_points_elements[e]->set);
+				focal_points_register.emplace(focal_points_elements[e]->set.to_ulong());
 			}
 
 			compute_iota_elements(
 					version_t::dual,
-					focal_points_tree,
+					cropped_lattice_support,
 					iota_sequence
-					//iota_fiber_sequence_dual
 			);
 			clock_t t, count, counte;
 			counte = 0;
 			count = 0;
 			clock_t tl = clock();
-			for (size_t o = 0; o < iota_sequence.size(); ++o) {
-				for (size_t i = 0; i < focal_points.size(); ++i) {
-					boost::dynamic_bitset<> new_set = iota_sequence[o] & focal_points[i];
-					bool insertion = focal_points_register.emplace(new_set.to_ulong(), vec[new_set.to_ulong()]).second;
+			for (size_t i = 0; i < iota_sequence.size(); ++i) {
+				for (size_t e = 0; e < focal_points.size(); ++e) {
+					boost::dynamic_bitset<> new_set = iota_sequence[i] & focal_points[e];
+					bool insertion = focal_points_register.emplace(new_set.to_ulong()).second;
 					if(insertion){
 						focal_points.emplace_back(new_set);
+						cropped_lattice_support.insert(new_set, vec[new_set.to_ulong()]);
+						DEBUG({
+							std::clog << "\nNEW INSERTED FOCAL POINT :\n";
+							std::clog << new_set << std::endl;
+						});
 					}
 				}
 			}
@@ -2120,11 +2091,10 @@ namespace efficient_DST{
 						insert_dual_focal_point(focal_points_tree, focal_points_dual_tree, new_set, neutral_value);
 					}
 				}
-			}
-			 */
+			}*/
 			DEBUG({
 				std::clog << "\nCropped lattice support: \n";
-				print<T>(std::clog, focal_points_tree);
+				print<T>(std::clog, cropped_lattice_support);
 			});
 		}
 	};

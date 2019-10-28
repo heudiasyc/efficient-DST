@@ -23,7 +23,7 @@ void demo(){
     using namespace efficient_DST;
 
     FOD fod({"e", "f", "g", "h", "i", "j", "l", "o"});
-/*
+
     conjunctive_weight<> w0(fod);
 
     w0.set_emptyset_value(0.82);
@@ -56,7 +56,7 @@ void demo(){
     print<>(std::cout, w0_back.get_definition());
 
 	std::cout << "\n============================================\n";
-*/
+
     mass<> m(fod);
 /*
     m.set_emptyset_value(0.18);
