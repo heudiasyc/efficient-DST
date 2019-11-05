@@ -5,8 +5,8 @@
 
 namespace efficient_DST{
 
-	template <typename T = double>
-	class belief : public implicability<T> {
+	template <typename T, size_t N>
+	class belief : public implicability<T, N> {
 	protected:
 
 		static void display_invalid_belief_message(){
@@ -16,31 +16,28 @@ namespace efficient_DST{
 
 	public:
 
-		belief(const mass<T>& m) : implicability<T>(m)
+		belief(const mass<T, N>& m) : implicability<T, N>(m)
 		{
-			const boost::dynamic_bitset<> emptyset(m.get_FOD().size());
-			if(m.find(emptyset) != 0){
+			if(m.at_emptyset() != 0){
 				display_invalid_belief_message();
 			}
 		}
 
-		belief(const implicability<T>& b) : implicability<T>(b)
+		belief(const implicability<T, N>& b) : implicability<T, N>(b)
 		{
-			const boost::dynamic_bitset<> emptyset(b.get_FOD().size());
-			if(b[emptyset] != 0){
+			if(b.at_emptyset() != 0){
 				display_invalid_belief_message();
 			}
 		}
 
-		belief(const powerset_btree<T>& focal_points_values) : implicability<T>(focal_points_values)
+		belief(const powerset_btree<T, N>& focal_points_values) : implicability<T, N>(focal_points_values)
 		{
-			const boost::dynamic_bitset<> emptyset(focal_points_values.get_FOD_size());
-			if(focal_points_values[emptyset] != 0){
+			if(focal_points_values.sub_fod_of_size(0)){
 				display_invalid_belief_message();
 			}
 		}
 
-		belief(const std::vector<T>& powerset_values, const FOD& fod) : implicability<T>(powerset_values, fod)
+		belief(const std::vector<T>& powerset_values, const FOD<N>& fod) : implicability<T, N>(powerset_values, fod)
 		{
 			if(powerset_values[0] != 0){
 				display_invalid_belief_message();
@@ -49,7 +46,7 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		belief<T> apply(const belief<T>& b2) const {
+		belief<T, N> apply(const belief<T, N>& b2) const {
 			const fusion_rule fusion;
 			return fusion(*this, b2);
 		}

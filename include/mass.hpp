@@ -8,20 +8,20 @@ namespace efficient_DST{
 
 	enum class special_case_t: bool { degenerate, vacuous };
 
-	template <typename T = double>
-	class mass : public mobius_transform<T>{
+	template <typename T, size_t N>
+	class mass : public mobius_transform<T, N>{
 	public:
 
-		mass(const mass<T>& m) : mobius_transform<T>(m.get_definition())
+		mass(const mass<T, N>& m) : mobius_transform<T, N>(m.get_definition())
 		{}
 
-		mass(const powerset_btree<T>& focal_sets_values) : mobius_transform<T>(focal_sets_values)
+		mass(const powerset_btree<T, N>& focal_sets_values) : mobius_transform<T, N>(focal_sets_values)
 		{}
 
-		mass(FOD& fod) : mobius_transform<T>(fod)
+		mass(FOD<N>& fod) : mobius_transform<T, N>(fod)
 		{}
 
-		mass(FOD& fod, const special_case_t s_case) : mobius_transform<T>(fod)
+		mass(FOD<N>& fod, const special_case_t s_case) : mobius_transform<T, N>(fod)
 		{
 			switch(s_case){
 				// create a mass function with all mass attributed to the empty set
@@ -31,32 +31,32 @@ namespace efficient_DST{
 			}
 		}
 
-		mass(const zeta_transform<T>& z) : mobius_transform<T>(z, operation_t::addition)
+		mass(const zeta_transform<T, N>& z) : mobius_transform<T, N>(z, operation_t::addition)
 		{
 			this->remove_negligible_values();
 			this->normalize();
 		}
 
 		template <class fusion_rule>
-		mass<T> apply(const mass<T>& m2) const {
+		mass<T, N> apply(const mass<T, N>& m2) const {
 			const fusion_rule fusion;
 			return fusion(*this, m2);
 		}
 
 		T at_emptyset() const {
-			return powerset_function<T>::at_emptyset(0);
+			return powerset_function<T, N>::at_emptyset(0);
 		}
 
 		T at_fod() const {
-			return powerset_function<T>::at_fod(0);
+			return powerset_function<T, N>::at_fod(0);
 		}
 
 		T operator[](const std::vector<std::string>& labels) const {
 			return find(this->definition.get_FOD()->to_set(labels));
 		}
 
-		T find(const boost::dynamic_bitset<>& set) const {
-			return powerset_function<T>::find(set, 0);
+		T find(const std::bitset<N>& set) const {
+			return powerset_function<T, N>::find(set, 0);
 		}
 
 		void regularize() {
@@ -68,9 +68,9 @@ namespace efficient_DST{
 			normalize(this->definition);
 		}
 
-		static void normalize(powerset_btree<T>& definition) {
+		static void normalize(powerset_btree<T, N>& definition) {
 			T sum = 0;
-			const std::vector<set_N_value<T>* >& elements = definition.elements();
+			const std::vector<set_N_value<T, N>* >& elements = definition.elements();
 			for (size_t i = 0; i < elements.size(); ++i) {
 				sum += elements[i]->value;
 			}
@@ -92,8 +92,8 @@ namespace efficient_DST{
 			remove_negligible_values(this->definition);
 		}
 
-		static void remove_negligible_values(powerset_btree<T>& definition) {
-			mobius_transform<T>::remove_negligible_values(definition, 0);
+		static void remove_negligible_values(powerset_btree<T, N>& definition) {
+			mobius_transform<T, N>::remove_negligible_values(definition, 0);
 		}
 
 
@@ -102,7 +102,7 @@ namespace efficient_DST{
 
 		/// Check if this mass function is valid (i.e. if the sum of all its images is 1)
 		bool is_valid() const {
-			const std::vector<set_N_value<T>* >& f_elements = this->definition.elements();
+			const std::vector<set_N_value<T, N>* >& f_elements = this->definition.elements();
 			T sum = 0;
 			for (size_t i = 0; i < f_elements.size(); ++i) {
 				if(f_elements[i]->value < 0 && !this->is_equivalent_to_zero(f_elements[i]->value))
@@ -114,7 +114,7 @@ namespace efficient_DST{
 		}
 
 		/// A focal set has a non-zero mass attributed.
-		bool is_focal(const boost::dynamic_bitset<>& set) const {
+		bool is_focal(const std::bitset<N>& set) const {
 			return !this->is_equivalent_to_zero(find(set));
 		}
 
@@ -165,7 +165,7 @@ namespace efficient_DST{
 		/// Simple mass function has at most two focal sets, and if it has two,
 		/// Omega is one of them.
 		bool is_simple() const {
-			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
+			const std::vector<set_N_value<T, N>* >& elements = this->definition.elements();
 
 			if(elements.size() == 2){
 				return at_fod() != nullptr;
@@ -179,7 +179,7 @@ namespace efficient_DST{
 		/// In bayesian mass function, all focal sets are singletons.
 		bool is_bayesian() const {
 			T belief = 0;
-			const std::vector<set_N_value<T>* >& singletons = this->definition.singletons();
+			const std::vector<set_N_value<T, N>* >& singletons = this->definition.singletons();
 
 			for (size_t i = 0; i < singletons.size(); ++i) {
 				belief += singletons[i]->value;
@@ -195,7 +195,7 @@ namespace efficient_DST{
 		/// whose elements are
 		/// included in the next larger set and so on.
 		bool is_consonant() const {
-			std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_cardinality = this->definition.elements_by_set_cardinality();
+			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > elements_by_cardinality = this->definition.elements_by_set_cardinality();
 
 			for(auto kv : elements_by_cardinality) {
 				if(kv.second.size() > 1)
@@ -205,10 +205,10 @@ namespace efficient_DST{
 			// at this point, the structure has at most one element per cardinality
 
 			// sort indices in ascending order to check if each focal set is contained in all bigger focal sets
-			const std::vector<std::vector<set_N_value<T>* >* >& ordered_cardinalities = this->definition.get_sorted_cardinalities(elements_by_cardinality);
+			const std::vector<std::vector<set_N_value<T, N>* >* >& ordered_cardinalities = this->definition.get_sorted_cardinalities(elements_by_cardinality);
 			size_t c = 0;
 			while(c < ordered_cardinalities.size()-1){
-				if (!FOD::is_or_is_subset_of(
+				if (!FOD<N>::is_or_is_subset_of(
 						elements_by_cardinality[ordered_cardinalities[c]][0]->set,
 						elements_by_cardinality[ordered_cardinalities[c+1]][0]->set)) {
 					return false;
@@ -222,9 +222,9 @@ namespace efficient_DST{
 		/// Mass function is consistent when there is at least one focal set that is
 		/// common to all focal sets.
 		bool is_consistent() const {
-			std::unordered_map<size_t, std::vector<set_N_value<T>* > > elements_by_cardinality = this->definition.elements_by_set_cardinality();
+			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > elements_by_cardinality = this->definition.elements_by_set_cardinality();
 			// sort indices in ascending order to check if the smallest focal set is contained in all bigger focal sets
-			const std::vector<std::vector<set_N_value<T>* >* >& ordered_cardinalities = this->definition.get_sorted_cardinalities(elements_by_cardinality);
+			const std::vector<std::vector<set_N_value<T, N>* >* >& ordered_cardinalities = this->definition.get_sorted_cardinalities(elements_by_cardinality);
 
 			if(ordered_cardinalities[0]->size() > 1)
 				// if there is more than one element of smallest cardinality, it is
@@ -235,7 +235,7 @@ namespace efficient_DST{
 
 			for (size_t c = 1; c < ordered_cardinalities.size(); ++c) {
 				for (size_t i = 0; i < ordered_cardinalities.size(); ++i) {
-					if (!FOD::is_or_is_subset_of(
+					if (!FOD<N>::is_or_is_subset_of(
 							elements_by_cardinality[ordered_cardinalities[0]][0]->set,
 							elements_by_cardinality[ordered_cardinalities[c]][i]->set)) {
 						return false;
@@ -256,15 +256,15 @@ namespace efficient_DST{
 		/// In other words, the intersection of each focal set with the union of other focal sets is empty.
 		bool is_disjoint() const {
 
-			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
-			const boost::dynamic_bitset<>& U = elements[0]->set;
+			const std::vector<set_N_value<T, N>* >& elements = this->definition.elements();
+			const std::bitset<N>& U = elements[0]->set;
 
 			for (size_t j = 1; j < elements.size(); ++j) {
-				const boost::dynamic_bitset<>& setj = elements[j]->set;
-				if (!FOD::are_disjoint(setj, U)) {
+				const std::bitset<N>& setj = elements[j]->set;
+				if (!FOD<N>::are_disjoint(setj, U)) {
 					return false;
 				}
-				U = FOD::set_union(setj, U);
+				U |= setj;
 			}
 			return true;
 		}
@@ -274,17 +274,17 @@ namespace efficient_DST{
 		/// In other words, the union of all focal elements is the FOD,
 		/// and the intersection of each focal set with the union of other focal sets is empty.
 		bool is_partitioned() const {
-			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
-			const boost::dynamic_bitset<>& U = elements[0]->set;
+			const std::vector<set_N_value<T, N>* >& elements = this->definition.elements();
+			const std::bitset<N>& U = elements[0]->set;
 
 			for (size_t j = 1; j < elements.size(); ++j) {
-				const boost::dynamic_bitset<>& setj = elements[j]->set;
-				if (!FOD::are_disjoint(setj, U)) {
+				const std::bitset<N>& setj = elements[j]->set;
+				if (!FOD<N>::are_disjoint(setj, U)) {
 					return false;
 				}
-				U = FOD::set_union(setj, U);
+				U |= setj;
 			}
-			return U.count() == this->definition.get_FOD_size();
+			return U.count() == N;
 		}
 
 		/// Mass function without internal conflict is a one where all pairs of
@@ -295,13 +295,13 @@ namespace efficient_DST{
 		/// Therefore, there is internal conflict when there is at least one empty intersection between pairs of focal sets,
 		/// i.e. when the intersection of all focal elements is empty.
 		bool has_internal_conflict() const {
-			const std::vector<set_N_value<T>* >& elements = this->definition.elements();
-			const boost::dynamic_bitset<>& I = elements[0]->set;
+			const std::vector<set_N_value<T, N>* >& elements = this->definition.elements();
+			const std::bitset<N>& I = elements[0]->set;
 
 			for (size_t j = 1; j < elements.size(); ++j) {
-				const boost::dynamic_bitset<>& setj = elements[j]->set;
-				I = FOD::set_intersection(I, setj);
-				if (FOD::is_emptyset(I)){
+				const std::bitset<N>& setj = elements[j]->set;
+				I &= setj;
+				if (FOD<N>::is_emptyset(I)){
 					return true;
 				}
 			}

@@ -6,28 +6,31 @@
 
 namespace efficient_DST{
 
-	template <typename T = double>
-	class mobius_transform : public powerset_function<T>{
+	template <typename T, size_t N>
+	class mobius_transform : public powerset_function<T, N>{
 	public:
 
-		mobius_transform(const powerset_btree<T>& support_values) : powerset_function<T>(support_values)
+		mobius_transform(const powerset_btree<T, N>& support_values) : powerset_function<T, N>(support_values)
 		{}
 
-		mobius_transform(FOD& fod) : powerset_function<T>(fod)
+		mobius_transform(FOD<N>& fod) : powerset_function<T, N>(fod)
 		{}
 
-		mobius_transform(const zeta_transform<T>& z, operation_t transform_operation) : powerset_function<T>(z.inversion(transform_operation))
+		mobius_transform(const zeta_transform<T, N>& z, operation_t transform_operation) : powerset_function<T, N>(z.inversion(transform_operation))
 		{}
 
+		void clear() {
+			this->definition.nullify();
+		}
 
 		void nullify(const std::vector<std::string>& labels) {
 			this->definition.nullify(this->definition[labels]);
 		}
 
-		static void remove_negligible_values(powerset_btree<T>& definition, const T& neutral_value) {
-			const std::vector<set_N_value<T>* >& elements = definition.elements();
+		static void remove_negligible_values(powerset_btree<T, N>& definition, const T& neutral_value) {
+			const std::vector<set_N_value<T, N>* >& elements = definition.elements();
 			for (size_t i = 0; i < elements.size(); ++i) {
-				if(powerset_function<T>::is_equivalent_to_zero(elements[i]->value - neutral_value)){
+				if(powerset_function<T, N>::is_equivalent_to_zero(elements[i]->value - neutral_value)){
 					definition.nullify(elements[i]);
 				}
 			}
@@ -43,16 +46,16 @@ namespace efficient_DST{
 			set_value_directly(this->definition.get_FOD()->to_set(labels), value);
 		}
 
-		void set_value_directly(const boost::dynamic_bitset<>& set, const T& value) {
+		void set_value_directly(const std::bitset<N>& set, const T& value) {
 			this->definition.insert(set, value);
 		}
 
 		void set_emptyset_value(const T& value) {
-			this->definition.set_value_of_sub_fod_of_size(0, value);
+			this->definition.insert(std::bitset<N>(0), value);
 		}
 
 		void set_fod_value(const T& value) {
-			this->definition.set_value_of_sub_fod_of_size(this->definition.get_FOD_size(), value);
+			this->definition.insert(~std::bitset<N>(0), value);
 		}
 	};
 

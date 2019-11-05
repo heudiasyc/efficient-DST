@@ -7,7 +7,7 @@
 
 namespace efficient_DST{
 
-	template <typename T = double>
+	template <typename T, size_t N>
 	class rule_conjunctive_cautious {
 	public:
 
@@ -15,23 +15,23 @@ namespace efficient_DST{
 			return "Cautious conjunctive rule";
 		}
 
-		mass<T> operator()(const mass<T>& m1, const mass<T>& m2) const {
-			zeta_transform<T> q1(m1.get_definition(), order_relation_t::superset, operation_t::addition);
-			zeta_transform<T> q2(m2.get_definition(), order_relation_t::superset, operation_t::addition);
-			commonality<T> q12 = operator()(*(commonality<T>*) &q1, *(commonality<T>*) &q2);
-			return mass<T>(q12);
+		mass<T, N> operator()(const mass<T, N>& m1, const mass<T, N>& m2) const {
+			zeta_transform<T, N> q1(m1.get_definition(), order_relation_t::superset, operation_t::addition);
+			zeta_transform<T, N> q2(m2.get_definition(), order_relation_t::superset, operation_t::addition);
+			commonality<T, N> q12 = operator()(*(commonality<T, N>*) &q1, *(commonality<T, N>*) &q2);
+			return mass<T, N>(q12);
 		}
 
 
-		commonality<T> operator()(const commonality<T>& q1, const commonality<T>& q2) const {
-			const conjunctive_weight<T>& w1(q1);
-			const conjunctive_weight<T>& w2(q2);
-			return commonality<T>(operator ()(w1, w2));
+		commonality<T, N> operator()(const commonality<T, N>& q1, const commonality<T, N>& q2) const {
+			const conjunctive_weight<T, N>& w1(q1);
+			const conjunctive_weight<T, N>& w2(q2);
+			return commonality<T, N>(operator ()(w1, w2));
 		}
 
 
-		conjunctive_weight<T> operator()(const conjunctive_weight<T>& w1, const conjunctive_weight<T>& w2) const {
-			return conjunctive_weight<T>(weight_fusion(w1.get_definition(), w2.get_definition()));
+		conjunctive_weight<T, N> operator()(const conjunctive_weight<T, N>& w1, const conjunctive_weight<T, N>& w2) const {
+			return conjunctive_weight<T, N>(weight_fusion(w1.get_definition(), w2.get_definition()));
 		}
 
 
@@ -41,11 +41,11 @@ namespace efficient_DST{
 			return std::min(val1, val2);
 		}
 
-		powerset_btree<T> weight_fusion(const powerset_btree<T>& w1_definition, const powerset_btree<T>& w2_definition) const {
-			powerset_btree<T> w12_definition(w1_definition.get_FOD(), w1_definition.get_block_size());
+		powerset_btree<T, N> weight_fusion(const powerset_btree<T, N>& w1_definition, const powerset_btree<T, N>& w2_definition) const {
+			powerset_btree<T, N> w12_definition(w1_definition.get_FOD(), w1_definition.get_block_size());
 			w12_definition.fill_with_union_of_powersets(w1_definition, w2_definition, min, 1);
-			decomposition_weight<T>::remove_negligible_values(w12_definition);
-			conjunctive_weight<T>::compute_fod_value_from_definition(w12_definition);
+			decomposition_weight<T, N>::remove_negligible_values(w12_definition);
+			conjunctive_weight<T, N>::compute_fod_value_from_definition(w12_definition);
 			return w12_definition;
 		}
 	};

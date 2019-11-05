@@ -7,20 +7,20 @@
 
 namespace efficient_DST{
 
-	template <typename T = double>
-	class disjunctive_weight : public decomposition_weight<T> {
+	template <typename T, size_t N>
+	class disjunctive_weight : public decomposition_weight<T, N> {
 	public:
 
-		disjunctive_weight(const disjunctive_weight<T>& v) : decomposition_weight<T>(v.get_definition())
+		disjunctive_weight(const disjunctive_weight<T, N>& v) : decomposition_weight<T, N>(v.get_definition())
 		{}
 
-		disjunctive_weight(const powerset_btree<T>& focal_log_sets_values) : decomposition_weight<T>(focal_log_sets_values)
+		disjunctive_weight(const powerset_btree<T, N>& focal_log_sets_values) : decomposition_weight<T, N>(focal_log_sets_values)
 		{}
 
-		disjunctive_weight(FOD& fod) : decomposition_weight<T>(fod)
+		disjunctive_weight(FOD<N>& fod) : decomposition_weight<T, N>(fod)
 		{}
 
-		disjunctive_weight(const zeta_transform<T>& b) : decomposition_weight<T>(b)
+		disjunctive_weight(const zeta_transform<T, N>& b) : decomposition_weight<T, N>(b)
 		{
 			if (b.order_relation != order_relation_t::subset) {
 				std::cerr << "The given Möbius aggregate is not the implicability function and thus can only be the commonality one. "
@@ -34,8 +34,8 @@ namespace efficient_DST{
 		 * The disjunctive weight function is the inverse of the multiplicative Möbius transform of the implicability function.
 		 * So, invert its values before computing it.
 		 */
-		powerset_btree<T> inverted_definition() const {
-			powerset_btree<T> inverted_definition(this->definition);
+		powerset_btree<T, N> inverted_definition() const {
+			powerset_btree<T, N> inverted_definition(this->definition);
 			invert_values(inverted_definition);
 			return inverted_definition;
 		}
@@ -44,35 +44,34 @@ namespace efficient_DST{
 			set_value_directly(this->definition.get_FOD()->to_set(labels), value);
 		}
 
-		void set_value_directly(const boost::dynamic_bitset<>& set, const T& value) {
+		void set_value_directly(const std::bitset<N>& set, const T& value) {
 			this->definition.insert(set, value);
 			// The following part ensures that v(emptyset) is defined (as it is not when directly building v).
 			// Indeed, v(emptyset) may be required for the computation of the implicability function.
 			// v(emptyset)^{-1} is equal to the product of all other weights.
-			set_N_value<T>* emptyset = this->definition.sub_fod_of_size(0);
+			set_N_value<T, N>* emptyset = this->definition.sub_fod_of_size(0);
 			if(emptyset){
 				emptyset->value /= value;
 			}else{
-				this->definition.set_value_of_sub_fod_of_size(0, 1/value);
+				this->definition.insert(std::bitset<N>(0), 1/value);
 			}
 		}
 
 		void set_fod_value(const T& value) {
-			const FOD& fod = *this->definition.get_FOD();
-			set_value_directly(fod.to_set(fod.elements()), value);
+			set_value_directly(~std::bitset<N>(0), value);
 		}
 
 		void nullify(const std::vector<std::string>& labels) {
-			if(this->definition.get_FOD()->to_set(labels).count() == 0)
-				return;
-			set_N_value<T>* A = this->definition[labels];
+			//if(this->definition.get_FOD()->to_set(labels).count() == 0)
+			//	return;
+			set_N_value<T, N>* A = this->definition[labels];
 			if(A){
-				set_N_value<T>* emptyset = this->definition.sub_fod_of_size(0);
+				set_N_value<T, N>* emptyset = this->definition.sub_fod_of_size(0);
 				if(A != emptyset){
 					if(emptyset){
 						emptyset->value *= A->value;
 					}else{
-						this->definition.set_value_of_sub_fod_of_size(0, A->value);
+						this->definition.insert(std::bitset<N>(0), A->value);
 					}
 				}
 				this->definition.nullify(A);
@@ -83,31 +82,31 @@ namespace efficient_DST{
 			compute_emptyset_value_from_definition(this->definition);
 		}
 
-		static void compute_emptyset_value_from_definition(powerset_btree<T>& definition){
-			boost::dynamic_bitset<> emptyset(definition.get_FOD_size());
-			const std::vector<set_N_value<T>* >& focal_log_elements = definition.strict_supersets_of(emptyset);
+		static void compute_emptyset_value_from_definition(powerset_btree<T, N>& definition){
+			std::bitset<N> emptyset = 0;
+			const std::vector<set_N_value<T, N>* >& focal_log_elements = definition.strict_supersets_of(emptyset);
 			T val = 1;
 			for (size_t i = 0; i < focal_log_elements.size(); ++i){
 				val /= focal_log_elements[i]->value;
 			}
-			set_N_value<T>* emptyset_set_N_value = definition.sub_fod_of_size(0);
+			set_N_value<T, N>* emptyset_set_N_value = definition.sub_fod_of_size(0);
 			if(emptyset_set_N_value){
 				emptyset_set_N_value->value = val;
 			}else{
-				definition.set_value_of_sub_fod_of_size(0, val);
+				definition.insert(emptyset, val);
 			}
 		}
 
 		template <class fusion_rule>
-		disjunctive_weight<T> apply(const disjunctive_weight<T>& v2) const {
+		disjunctive_weight<T, N> apply(const disjunctive_weight<T, N>& v2) const {
 			const fusion_rule fusion;
 			return fusion(*this, v2);
 		}
 
 	protected:
 
-		static void invert_values(powerset_btree<T>& values) {
-			std::vector<set_N_value<T>* > elements = values.elements();
+		static void invert_values(powerset_btree<T, N>& values) {
+			std::vector<set_N_value<T, N>* > elements = values.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
 				elements[i]->value = 1 / elements[i]->value;
 			}

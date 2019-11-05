@@ -22,9 +22,11 @@
 void demo(){
     using namespace efficient_DST;
 
-    FOD fod({"e", "f", "g", "h", "i", "j", "l", "o"});
+    const size_t N = 8;
+    std::string labels[] = {"e", "f", "g", "h", "i", "j", "l", "o"};
+    FOD<N> fod(labels);
 
-    conjunctive_weight<> w0(fod);
+    conjunctive_weight<double, N> w0(fod);
 
     w0.set_emptyset_value(0.82);
     w0.set_value({"f"}, 803.12195);
@@ -33,31 +35,31 @@ void demo(){
     w0.set_value({"e", "f", "i", "o"}, 0.125);
     w0.set_value({"f", "l"}, 0.03571);
 
-    commonality<> q0(w0);
+    commonality<double, N> q0(w0);
 
     std::cout << "\nCommonality values from w0" << std::endl;
 
-    print<>(std::cout, q0.get_definition());
+    q0.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-	mass<> m0(q0);
+	mass<double, N> m0(q0);
 
 	std::cout << "\nMass values from w0 " << std::endl;
 
-    print<>(std::cout, m0.get_definition());
+    m0.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-	conjunctive_weight<> w0_back(q0);
+	conjunctive_weight<double, N> w0_back(q0);
 
 	std::cout << "\nConjunctive weights back from q0 " << std::endl;
 
-    print<>(std::cout, w0_back.get_definition());
+    w0_back.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-    mass<> m(fod);
+    mass<double, N> m(fod);
 /*
     m.set_emptyset_value(0.18);
     m.set_value({"f", "g"}, 0.06);
@@ -82,17 +84,17 @@ void demo(){
     m.set_fod_value(0.18);
 */
 
-
-    FOD fod_vec({"a", "b", "c", "d"});
+    std::string labels_vec[] = {"a", "b", "c", "d"};
+    FOD<4> fod_vec(labels_vec);
 
     //q_vec corresponds to the mass function {0.01, 0.06, 0, 0, 0.38, 0, 0.05, 0, 0, 0, 0, 0.05, 0.27, 0, 0, 0.18}.
     std::vector<double> q_vec = {1, 0.29, 0.28, 0.23, 0.88, 0.18, 0.23, 0.18, 0.5, 0.23, 0.23, 0.23, 0.45, 0.18, 0.18, 0.18};
 
-    commonality<> q_from_vec(q_vec, fod_vec);
+    commonality<double, 4> q_from_vec(q_vec, fod_vec);
 
     std::cout << "\nCommonality values " << std::endl;
 
-    print<>(std::cout, q_from_vec.get_definition());
+    q_from_vec.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
@@ -101,27 +103,27 @@ void demo(){
 	std::cout << "\nMass values from commonality " << std::endl;
 
 	//const powerset_btree<double>& m_back_vec = computation_scheme<double>::EMT_with_lattice_Mobius_from_zeta_values(q_vec, fod_vec, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
-	const powerset_btree<double>& m_back_vec = computation_scheme<double>::EMT_with_semilattice(q_from_vec.get_definition(), transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
-	print<>(std::cout, m_back_vec);
+	const powerset_btree<double, 4>& m_back_vec = computation_scheme<double, 4>::EMT_with_semilattice(q_from_vec.get_definition(), transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
+	m_back_vec.print(std::cout);
 	//print<>(std::cout, m_back_vec.get_definition());
 
 	std::cout << "\n============================================\n";
 
     std::cout << "\nMass values from commonality by FMT " << std::endl;
 
-    const std::vector<double>& m_values = computation_scheme<double>::FMT(q_vec, 4, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
+    const std::vector<double>& m_values = computation_scheme<double, 4>::FMT(q_vec, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
 	for (size_t i = 0; i < m_values.size(); ++i){
-		std::cout << m_values[i] << "\t <- " << fod_vec.to_string(boost::dynamic_bitset<>(4, i)) << std::endl;
+		std::cout << m_values[i] << "\t <- " << fod_vec.to_string(std::bitset<4>(i)) << std::endl;
 	}
 
 	std::cout << "\n============================================\n";
 	std::reverse(q_vec.begin(), q_vec.end());
 
-	implicability<> b_from_vec(q_vec, fod_vec);
+	implicability<double, 4> b_from_vec(q_vec, fod_vec);
 
     std::cout << "\nImplicability values " << std::endl;
 
-    print<>(std::cout, b_from_vec.get_definition());
+    b_from_vec.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
@@ -130,17 +132,17 @@ void demo(){
 	std::cout << "\nMass values from implicability " << std::endl;
 
 	//const powerset_btree<double>& m_back_vec_2 = computation_scheme<double>::EMT_with_lattice_Mobius_from_zeta_values(q_vec, fod_vec, transform_type_t::Mobius, order_relation_t::subset, operation_t::addition);
-	const powerset_btree<double>& m_back_vec_2 = computation_scheme<double>::EMT_with_semilattice(b_from_vec.get_definition(), transform_type_t::Mobius, order_relation_t::subset, operation_t::addition);
-	print<>(std::cout, m_back_vec_2);
+	const powerset_btree<double, 4>& m_back_vec_2 = computation_scheme<double, 4>::EMT_with_semilattice(b_from_vec.get_definition(), transform_type_t::Mobius, order_relation_t::subset, operation_t::addition);
+	m_back_vec_2.print(std::cout);
 	//print<>(std::cout, m_back_vec_2.get_definition());
 
 	std::cout << "\n============================================\n";
 
     std::cout << "\nMass values from implicability by FMT " << std::endl;
 
-    const std::vector<double>& m_values_2 = computation_scheme<double>::FMT(q_vec, 4, transform_type_t::Mobius, order_relation_t::subset, operation_t::addition);
+    const std::vector<double>& m_values_2 = computation_scheme<double, 4>::FMT(q_vec, transform_type_t::Mobius, order_relation_t::subset, operation_t::addition);
 	for (size_t i = 0; i < m_values_2.size(); ++i){
-		std::cout << m_values_2[i] << "\t <- " << fod_vec.to_string(boost::dynamic_bitset<>(4, i)) << std::endl;
+		std::cout << m_values_2[i] << "\t <- " << fod_vec.to_string(std::bitset<4>(i)) << std::endl;
 	}
 /*
 	std::cout << "\n============================================\n";
