@@ -77,7 +77,7 @@ if len(x) > 0:
         ax2.plot(x, avg_support_sizes, linestyle="--", label="Average scheme support size", color=colors[color_index])
 
     ax1.set_ylim([0,max_time])
-    ax2.set_ylim([0,int(max_support_size+0.5)])
+    ax2.set_ylim([0,int(max_support_size+1)])
     ax1.set_xlim([min(x), max(x)])
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
     ax1.legend()

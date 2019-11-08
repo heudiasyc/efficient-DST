@@ -28,7 +28,7 @@ namespace efficient_DST{
 
 		set_N_value(std::bitset<N> _set) :
 			is_null(true),
-			set(_set.to_ulong()),
+			set(_set),
 			cardinality(_set.count()),
 			value(0)
 		{}
