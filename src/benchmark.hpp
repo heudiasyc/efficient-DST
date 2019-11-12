@@ -37,15 +37,23 @@ namespace efficient_DST{
 
 	public:
 
-		static inline std::bitset<N> random_bitset( double p = 0.5) {
+		static inline std::bitset<N> random_bitset( double p = 1/N, size_t max_card = N) {
 
 		std::bitset<N> bits;
 		std::random_device rd;
 		std::mt19937 gen( rd());
 		std::bernoulli_distribution d( p);
 
-		for(size_t n = 0; n < N; ++n) {
-			bits[n] = d(gen);
+		//size_t n = rand() % N;
+		size_t n = 0;
+		size_t count = 0;
+		for(; n < N; ++n) {
+			bool val = d(gen);
+			bits[n] = val;
+			if (val)
+				++count;
+			if (count >= max_card)
+				break;
 		}
 
 		return bits;
@@ -219,7 +227,7 @@ namespace efficient_DST{
 				zeta_transform<double, N> z(m.get_definition(), order_relation, operation, scheme_type);
 				t = clock() - t;
 				count_z += t;
-				z.get_definition().print(std::cout);
+				//z.get_definition().print(std::cout);
 				avg_semilattice_support_size += z.get_definition().size();
 
 				if (operation == operation_t::addition){
@@ -227,7 +235,7 @@ namespace efficient_DST{
 					const mass<double, N>& m_back_def(z);
 					t = clock() - t;
 					count_m += t;
-					m_back_def.get_definition().print(std::cout);
+					//m_back_def.get_definition().print(std::cout);
 				}else{
 					if (order_relation == order_relation_t::subset){
 						t = clock();
@@ -354,7 +362,7 @@ namespace efficient_DST{
 			mass<double, N> m(fod);
 			for (size_t i = 0; i < nb_of_tests; ++i){
 				generate_random_mass_function(m, mass_family, support_size);
-				m.get_definition().print(std::cout);
+				//m.get_definition().print(std::cout);
 				one_step_EMT(
 						order_relation,
 						operation,
@@ -383,13 +391,13 @@ namespace efficient_DST{
 	static void benchmark_main(){
 		using namespace efficient_DST;
 
-		//constexpr static size_t fod_sizes[] = {15, 18, 20, 22, 23, 24, 25, 26};
+		constexpr static size_t fod_sizes[] = {15, 18, 20, 22, 23, 24, 25, 26};
 		//constexpr static size_t fod_sizes[] = {16, 17, 20, 22, 24, 25, 26};
-		constexpr static size_t fod_sizes[] = {50, 100, 200, 400, 800, 1600};
+		//constexpr static size_t fod_sizes[] = {50, 100, 200, 400, 800, 1600};
 		mass_family_t mass_family = mass_family_t::random;
 		order_relation_t order_relation = order_relation_t::superset;
-		bool test_FMT = false;
-		size_t support_size = 10;
+		bool test_FMT = true;
+		size_t support_size = 50;
 		bool build_persistence = true;
 		size_t nb_of_tests = 1;
 		std::vector<scheme_type_t> scheme_types({scheme_type_t::semilattice, scheme_type_t::direct});
@@ -429,17 +437,17 @@ namespace efficient_DST{
 			out.reserve(6);
 			if(test_FMT){
 				benchmark<fod_sizes[0]>::run(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
-				benchmark<fod_sizes[1]>::run(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
+				//benchmark<fod_sizes[1]>::run(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
 				//benchmark<fod_sizes[2]>::run(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
 				//benchmark<fod_sizes[3]>::run(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
 				//benchmark<fod_sizes[4]>::run(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
 				//benchmark<fod_sizes[5]>::run(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
 			}else{
-				//benchmark<fod_sizes[0]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
+				benchmark<fod_sizes[0]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
 				benchmark<fod_sizes[1]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
-				//benchmark<fod_sizes[2]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
-				//benchmark<fod_sizes[3]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
-				//benchmark<fod_sizes[4]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
+				benchmark<fod_sizes[2]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
+				benchmark<fod_sizes[3]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
+				benchmark<fod_sizes[4]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
 				//benchmark<fod_sizes[5]>::run_without_FMT(order_relation, operation, scheme_types[sc], support_size, mass_family, build_persistence, nb_of_tests, out);
 			}
 
@@ -447,6 +455,7 @@ namespace efficient_DST{
 			myfile.open(filename);
 			for (unsigned int i = 0; i < out.size(); ++i){
 				myfile << out[i] << std::endl;
+				std::cout << out[i] << std::endl;
 			}
 			myfile.close();
 			std::cout << std::endl;

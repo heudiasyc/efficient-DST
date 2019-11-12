@@ -658,6 +658,8 @@ namespace efficient_DST{
 				std::function<T(const T&, const T&)> range_binary_operator,
 				const std::vector<std::bitset<N> >& iota_sequence
 		) {
+			clock_t t;
+
 			if (iota_sequence.size() == 0)
 				return;
 
@@ -668,13 +670,13 @@ namespace efficient_DST{
 			for (size_t i = 1; i < iota_sequence.size(); ++i){
 				sync_sequence.emplace_back(sync_sequence[i-1] | iota_sequence[i]);
 			}
-
 			std::unordered_map<std::bitset<N>, set_N_value<T, N>* > proxy_map;
 			build_proxy_superset_map(proxy_map, focal_points_tree, iota_sequence);
 
 			//std::bitset<N> emptyset(focal_points_tree.get_FOD_size());
 			//emptyset.set(1);
 
+			t = clock();
 			size_t iota_index;
 			const std::vector<set_N_value<T, N>* >& focal_points = focal_points_tree.elements();
 			for (size_t i = 0; i < iota_sequence.size(); ++i){
@@ -702,6 +704,8 @@ namespace efficient_DST{
 					}
 				}
 			}
+			t = clock() - t;
+			std::cout << (((float) t)/CLOCKS_PER_SEC) << std::endl;
 		}
 
 
@@ -1088,6 +1092,9 @@ namespace efficient_DST{
 				proxy_map.emplace(focal_points[e]->set, focal_points[e]);
 			}
 
+			clock_t t,temp_t;
+			t = clock();
+			size_t count = 0;
 			powerset_btree<bool, N> sets_missing_proxies(focal_points_tree.get_FOD(), iota_sequence.size() * focal_points_tree.size());
 
 			for (size_t i = 0; i < iota_sequence.size(); ++i) {
@@ -1095,10 +1102,18 @@ namespace efficient_DST{
 					const std::bitset<N>& set = focal_points[e]->set | iota_sequence[i];
 					bool insertion = proxy_map.emplace(set, nullptr).second;
 					//set_sequence.emplace_back(set.to_ulong());
-					if (insertion)
+					if (insertion){
+						temp_t = clock();
 						sets_missing_proxies.insert(set, true);
+						temp_t = clock() - temp_t;
+						count += temp_t;
+					}
 				}
 			}
+			//t = clock() - t;
+			//std::cout << (((float) t)/CLOCKS_PER_SEC) << " ";
+			std::cout << (((float) count)/CLOCKS_PER_SEC) << " ";
+
 			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > focal_points_card_map = focal_points_tree.elements_by_set_cardinality();
 			std::vector<size_t> ordered_cardinalities;
 			sets_missing_proxies.get_FOD()->sort_cardinalities(ordered_cardinalities, focal_points_card_map, order_t::ascending);

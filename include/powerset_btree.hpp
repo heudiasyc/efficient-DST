@@ -6,6 +6,11 @@
 #include <algorithm>
 #include <math.h>
 #include <vector>
+#include <string>
+#include <vector>
+#include <time.h>
+#include <boost/functional/hash.hpp>
+#include <iomanip>
 
 #include <memory_pool.hpp>
 #include <fod.hpp>
@@ -30,6 +35,13 @@ namespace efficient_DST{
 			is_null(true),
 			set(_set),
 			cardinality(_set.count()),
+			value(0)
+		{}
+
+		set_N_value() :
+			is_null(true),
+			set(0),
+			cardinality(0),
 			value(0)
 		{}
 
@@ -919,7 +931,7 @@ namespace efficient_DST{
 		/////////////////////////////////////////
 
 		static inline size_t get_final_element_number(const std::bitset<N>& set){
-			size_t final_element_number = 0;
+			/*size_t final_element_number = 0;
 			size_t i = set.size()-1;
 			for(; i > 0; --i){
 				if(set[i]){
@@ -931,7 +943,14 @@ namespace efficient_DST{
 			if(i == 0 && set[i]){
 				final_element_number = 1;
 			}
-			return final_element_number;
+			return final_element_number;*/
+		    size_t current_bit = set._Find_first();
+		    size_t previous_bit = 0;
+		    while (current_bit != N){
+		    	previous_bit = current_bit+1;
+		    	current_bit = set._Find_next(current_bit);
+		    }
+		    return previous_bit;
 		}
 
 		static inline size_t get_final_element_number(const std::vector<fod_element*>& fod_elements){
