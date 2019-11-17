@@ -513,10 +513,13 @@ namespace efficient_DST{
 					val = focal_points[i]->value;
 					if (order_relation == order_relation_t::subset){
 						elements = focal_points_N_initial_values.strict_subsets_of(focal_points[i]->set);
+						DEBUG(std::clog << "Subsets of " << focal_points[i]->set << " : \n";);
 					} else{
 						elements = focal_points_N_initial_values.strict_supersets_of(focal_points[i]->set);
+						DEBUG(std::clog << "Supersets of " << focal_points[i]->set << " : \n";);
 					}
 					for (size_t ii = 0; ii < elements.size(); ++ii) {
+						DEBUG(std::clog << elements[ii]->set << std::endl;);
 						val = range_binary_operator(val, elements[ii]->value);
 					}
 					focal_points_tree.insert(focal_points[i]->set, val);

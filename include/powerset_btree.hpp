@@ -449,23 +449,11 @@ namespace efficient_DST{
 				this->emptyset->value = value;
 				target = this->emptyset;
 			}else{
-				//--final_depth;
-				//std::clog << "final depth = " << final_depth << std::endl;
-
 				node<T, N>* parent_node = nullptr;
 				bool left_child = true;
 				node<T, N>* cursor = this->root;
 				size_t depth = 0;
-/*
-				while(cursor && depth > cursor->depth){
-					parent_node = cursor;
-					cursor = cursor->left;
-				}
-				if(!cursor){
-					parent_node->left = create_node(set, value, final_depth, parent_node, nullptr, nullptr);
-					target = parent_node->left;
-				}
-*/
+
 				while(cursor){
 
 					if(depth == cursor->depth){
@@ -482,7 +470,6 @@ namespace efficient_DST{
 								//cursor = nullptr;
 								break;
 							}else{
-								//++depth;
 								if(cursor->right){
 									parent_node = cursor;
 									cursor = cursor->right;
@@ -496,7 +483,6 @@ namespace efficient_DST{
 								}
 							}
 						}else {
-							//++depth;
 							if(cursor->left){
 								parent_node = cursor;
 								cursor = cursor->left;
@@ -513,17 +499,15 @@ namespace efficient_DST{
 						// take skipped depths into account
 						--depth;
 						//////////////////////
-						size_t first_div = (set ^ cursor->set)._Find_next(depth);
+						//size_t first_div = (set ^ cursor->set)._Find_next(depth);
 						//////////////////////
-						//size_t next_bit_set = set._Find_next(depth);
-						//size_t next_bit_cursor = cursor->set._Find_next(depth);
-						//size_t first_div = std::min(next_bit_set, next_bit_cursor);
-						//while(first_div != N && next_bit_set == next_bit_cursor){
-						//	next_bit_cursor = cursor->set._Find_next(next_bit_cursor);
-						//	next_bit_set = set._Find_next(next_bit_set);
-						//}
-						//////////////////////
-						//size_t first_div = std::min(next_bit_set, next_bit_cursor);
+						size_t next_bit_set = set._Find_next(depth);
+						size_t next_bit_cursor = cursor->set._Find_next(depth);
+						while(next_bit_set == next_bit_cursor && next_bit_set != N){
+							next_bit_cursor = cursor->set._Find_next(next_bit_cursor);
+							next_bit_set = set._Find_next(next_bit_set);
+						}
+						size_t first_div = std::min(next_bit_set, next_bit_cursor);
 
 						if(first_div == N){
 							if(cursor->is_null){
@@ -613,7 +597,6 @@ namespace efficient_DST{
 										break;
 									}
 								}else {
-									//++depth;
 									if(cursor->left){
 										parent_node = cursor;
 										cursor = cursor->left;
@@ -629,7 +612,6 @@ namespace efficient_DST{
 							}
 						}
 					}
-					//depth = set._Find_next(depth);
 					++depth;
 				}
 			}
@@ -648,7 +630,60 @@ namespace efficient_DST{
 		}
 
 		set_N_value<T, N>* operator[](const std::bitset<N>& set) const {
-			return find(set, get_final_element_number(set));
+			set_N_value<T, N>* target = nullptr;
+			size_t final_depth = get_final_element_number(set);
+			if(final_depth == N){
+				if(!this->emptyset->is_null)
+					target = this->emptyset;
+			}else{
+				node<T, N>* cursor = this->root;
+				size_t depth = 0;
+
+				while(cursor){
+					// From here, we know that cursor->set[depth] is true since cursor->depth == depth
+					if(set[depth]){
+						if(depth == final_depth){
+							if(!cursor->is_null){
+								target = cursor;
+							}
+							//cursor = nullptr;
+							break;
+						}else{
+							cursor = cursor->right;
+						}
+					}else {
+						cursor = cursor->left;
+					}
+					if(!cursor || cursor->depth > final_depth){
+						//cursor = nullptr;
+						break;
+					}
+					++depth;
+					// take skipped depths into account
+					if(cursor->depth != depth){
+						--depth;
+						//////////////////////
+						//size_t first_div = (set ^ cursor->set)._Find_next(depth);
+						//////////////////////
+						size_t next_bit_set = set._Find_next(depth);
+						size_t next_bit_cursor = cursor->set._Find_next(depth);
+						while(next_bit_set == next_bit_cursor && next_bit_set != N){
+							next_bit_cursor = cursor->set._Find_next(next_bit_cursor);
+							next_bit_set = set._Find_next(next_bit_set);
+						}
+						size_t first_div = std::min(next_bit_set, next_bit_cursor);
+
+						if(first_div < cursor->depth){
+							// if there is a disjunction between set and cursor for the element at depth in fod
+							//cursor = nullptr;
+							break;
+						}else{
+							depth = cursor->depth;
+						}
+					}
+				}
+			}
+			return target;
 		}
 
 		/////////////////////////////////////////
@@ -947,15 +982,27 @@ namespace efficient_DST{
 				size_t depth,
 				const T& default_value){
 
-			// take skipped depths into account
-			while(depth < leaf1->depth && depth < leaf2->depth){
-				if(leaf1->set[depth] != leaf2->set[depth]){
-					fill_with_first_powerset(leaf1, operation, default_value);
-					fill_with_second_powerset(leaf2, operation, default_value);
-					return;
-
+			if(depth < leaf1->depth && depth < leaf2->depth){
+				// take skipped depths into account
+				--depth;
+				//////////////////////
+				//size_t first_div = (set ^ cursor->set)._Find_next(depth);
+				//////////////////////
+				size_t next_bit_leaf1 = leaf1->set._Find_next(depth);
+				size_t next_bit_leaf2 = leaf2->set._Find_next(depth);
+				while(true){
+					if(next_bit_leaf1 != next_bit_leaf2){
+						fill_with_first_powerset(leaf1, operation, default_value);
+						fill_with_second_powerset(leaf2, operation, default_value);
+						return;
+					}
+					if(next_bit_leaf1 == N){
+						break;
+					}
+					next_bit_leaf1 = leaf1->set._Find_next(next_bit_leaf1);
+					next_bit_leaf2 = leaf2->set._Find_next(next_bit_leaf2);
 				}
-				++depth;
+				depth = next_bit_leaf1;
 			}
 
 			if(leaf1->depth < leaf2->depth){
@@ -1128,16 +1175,6 @@ namespace efficient_DST{
 		    	current_bit = set._Find_next(current_bit);
 		    }
 		    return previous_bit;
-		}
-
-		static inline size_t get_final_element_number(const std::vector<fod_element*>& fod_elements){
-			size_t final_element_number = 0;
-			for(size_t i = 0; i < fod_elements.size(); ++i){
-				if(fod_elements[i]->position_in_fod >= final_element_number){
-					final_element_number = fod_elements[i]->position_in_fod + 1;
-				}
-			}
-			return final_element_number;
 		}
 
 		/////////////////////////////////////////
@@ -1391,59 +1428,6 @@ namespace efficient_DST{
 			}
 		}
 */
-		set_N_value<T, N>* find(const std::bitset<N>& set, size_t final_depth) const {
-
-			set_N_value<T, N>* target = nullptr;
-			size_t depth = 0;
-			if(final_depth == N){
-				if(!this->emptyset->is_null)
-					target = this->emptyset;
-			}else{
-				//--final_depth;
-				//return find(set, final_depth, this->root, depth, smallest_superset_search);
-
-				node<T, N>* cursor = this->root;
-				while(cursor){
-					// if cursor->depth > final_depth, then cursor has other elements than the ones of set
-					if(cursor->depth > final_depth){
-						cursor = nullptr;
-						break;
-					}
-					// take skipped depths into account
-					while(cursor->depth > depth){
-						if(set[depth] != cursor->set[depth]){
-							// if there is a disjunction between set and cursor for the element at depth in fod
-							cursor = nullptr;
-							break;
-						}
-						++depth;
-					}
-
-					if(cursor){
-						// From here, we know that cursor->set[depth] is true since cursor->depth == depth
-						if(set[depth]){
-							if(depth == final_depth){
-								if(!cursor->is_null){
-									target = cursor;
-								}
-								cursor = nullptr;
-							}else{
-								++depth;
-								cursor = cursor->right;
-							}
-						}else {
-							if(cursor->left){
-								++depth;
-								cursor = cursor->left;
-							}else{
-								cursor = nullptr;
-							}
-						}
-					}
-				}
-			}
-			return target;
-		}
 
 		/////////////////////////////////////////
 
@@ -1572,21 +1556,40 @@ namespace efficient_DST{
 				bool is_set,
 				const bool& strict) {
 
-			// if leaf->depth > *final_depth, then leaf has other elements than the ones of key
+			// if leaf->depth > final_depth, then leaf has other elements than the ones of key
 			if(leaf->depth > final_depth){
 				return;
 			}
-			// take skipped depths into account
-			while(depth < leaf->depth){
-				if(!set[depth] && leaf->set[depth]){
-					// if next_set has an element that key doesn't
-					return;
-				}else if(set[depth] && !leaf->set[depth]){
-					// if key has an element that next_set doesn't
-					is_set = false;
+
+			if(depth < leaf->depth){
+				// take skipped depths into account
+				--depth;
+				//////////////////////
+				//size_t first_div = (set ^ cursor->set)._Find_next(depth);
+				//////////////////////
+				size_t next_bit_set = set._Find_next(depth);
+				size_t next_bit_cursor = leaf->set._Find_next(depth);
+				while(next_bit_set == next_bit_cursor && next_bit_set != N){
+					next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
+					next_bit_set = set._Find_next(next_bit_set);
 				}
-				++depth;
+
+				size_t first_div = std::min(next_bit_set, next_bit_cursor);
+
+				if(first_div < leaf->depth){
+					is_set = false;
+
+					while(next_bit_cursor < leaf->depth){
+						if(!set[next_bit_cursor]){
+							// if next_set has an element that set doesn't have
+							return;
+						}
+						next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
+					}
+				}
+				depth = leaf->depth;
 			}
+
 			if(set[depth]){
 				if(depth != final_depth){
 					// get value only if leaf doesn't correspond to key (only strict subsets)
@@ -1624,21 +1627,39 @@ namespace efficient_DST{
 				bool is_set,
 				const bool& strict) {
 
-			// if leaf->depth > *final_depth, then leaf has other elements than the ones of key
+			// if leaf->depth > final_depth, then leaf has other elements than the ones of key
 			if(leaf->depth > final_depth){
 				return;
 			}
-			// take skipped depths into account
-			while(depth < leaf->depth){
-				if(!set[depth] && leaf->set[depth]){
-					// if next_set has an element that key doesn't
-					return;
-				}else if(set[depth] && !leaf->set[depth]){
-					// if key has an element that next_set doesn't
-					is_set = false;
+			if(depth < leaf->depth){
+				// take skipped depths into account
+				--depth;
+				//////////////////////
+				//size_t first_div = (set ^ cursor->set)._Find_next(depth);
+				//////////////////////
+				size_t next_bit_set = set._Find_next(depth);
+				size_t next_bit_cursor = leaf->set._Find_next(depth);
+				while(next_bit_set == next_bit_cursor && next_bit_set != N){
+					next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
+					next_bit_set = set._Find_next(next_bit_set);
 				}
-				++depth;
+
+				size_t first_div = std::min(next_bit_set, next_bit_cursor);
+
+				if(first_div < leaf->depth){
+					is_set = false;
+
+					while(next_bit_cursor < leaf->depth){
+						if(!set[next_bit_cursor]){
+							// if next_set has an element that set doesn't have
+							return;
+						}
+						next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
+					}
+				}
+				depth = leaf->depth;
 			}
+
 			if(set[depth]){
 				if(depth != final_depth){
 					// get value only if leaf doesn't correspond to key (only strict subsets)
@@ -1678,9 +1699,7 @@ namespace efficient_DST{
 				if(!this->emptyset->is_null){
 					subset_values.emplace_back(this->emptyset);
 				}
-				//--final_depth;
-				size_t depth = 0;
-				subsets_of(set, final_depth, subset_values, depth, this->root, true, strict);
+				subsets_of(set, final_depth, subset_values, 0, this->root, true, strict);
 			}
 		}
 
@@ -1697,9 +1716,7 @@ namespace efficient_DST{
 				for (size_t i = 0; i < N; ++i) {
 					subset_values[i].reserve(this->cardinality_distribution_non_null[i]);
 				}
-				//--final_depth;
-				size_t depth = 0;
-				subsets_of_by_cardinality(set, final_depth, subset_values, depth, this->root, true, strict);
+				subsets_of_by_cardinality(set, final_depth, subset_values, 0, this->root, true, strict);
 			}
 		}
 
@@ -1718,20 +1735,35 @@ namespace efficient_DST{
 				bool is_set,
 				const bool& strict
 		) {
-
-			// take skipped depths into account
-			while(depth < leaf->depth){
-				if(set[depth]){
-					if(!leaf->set[depth]){
-						// if key has an element that next_set doesn't have
-						return;
-					}
-				}else if(leaf->set[depth]){
-					// if next_set has an element that key doesn't have
-					is_set = false;
+			if(depth < leaf->depth){
+				// take skipped depths into account
+				--depth;
+				//////////////////////
+				//size_t first_div = (set ^ cursor->set)._Find_next(depth);
+				//////////////////////
+				size_t next_bit_set = set._Find_next(depth);
+				size_t next_bit_cursor = leaf->set._Find_next(depth);
+				while(next_bit_set == next_bit_cursor && next_bit_set != N){
+					next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
+					next_bit_set = set._Find_next(next_bit_set);
 				}
-				++depth;
+
+				size_t first_div = std::min(next_bit_set, next_bit_cursor);
+
+				if(first_div < leaf->depth){
+					is_set = false;
+
+					while(next_bit_set < leaf->depth){
+						if(!leaf->set[next_bit_set]){
+							// if set has an element that next_set doesn't have
+							return;
+						}
+						next_bit_set = set._Find_next(next_bit_set);
+					}
+				}
+				depth = leaf->depth;
 			}
+
 			if(depth < final_depth){
 				if(set[depth++]){
 					// if key has an element at depth, so its supersets
@@ -1786,20 +1818,35 @@ namespace efficient_DST{
 				bool is_set,
 				const bool& strict
 		) {
-
-			// take skipped depths into account
-			while(depth < leaf->depth){
-				if(set[depth]){
-					if(!leaf->set[depth]){
-						// if key has an element that next_set doesn't
-						return;
-					}
-				}else if(leaf->set[depth]){
-					// if next_set has an element that key doesn't
-					is_set = false;
+			if(depth < leaf->depth){
+				// take skipped depths into account
+				--depth;
+				//////////////////////
+				//size_t first_div = (set ^ cursor->set)._Find_next(depth);
+				//////////////////////
+				size_t next_bit_set = set._Find_next(depth);
+				size_t next_bit_cursor = leaf->set._Find_next(depth);
+				while(next_bit_set == next_bit_cursor && next_bit_set != N){
+					next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
+					next_bit_set = set._Find_next(next_bit_set);
 				}
-				++depth;
+
+				size_t first_div = std::min(next_bit_set, next_bit_cursor);
+
+				if(first_div < leaf->depth){
+					is_set = false;
+
+					while(next_bit_set < leaf->depth){
+						if(!leaf->set[next_bit_set]){
+							// if set has an element that next_set doesn't have
+							return;
+						}
+						next_bit_set = set._Find_next(next_bit_set);
+					}
+				}
+				depth = leaf->depth;
 			}
+
 			if(depth < final_depth){
 				if(set[depth++]){
 					// if key has an element at depth, so its supersets
@@ -1866,9 +1913,7 @@ namespace efficient_DST{
 				elements(this->root, superset_values);
 				DEBUG_TREE(std::clog << std::endl;);
 			}else{
-				//--final_depth;
-				size_t depth = 0;
-				supersets_of(set, final_depth, superset_values, depth, this->root, true, strict);
+				supersets_of(set, final_depth, superset_values, 0, this->root, true, strict);
 			}
 		}
 
@@ -1886,9 +1931,7 @@ namespace efficient_DST{
 				}
 				elements_by_cardinality(this->root, superset_values);
 			}else{
-				//--final_depth;
-				size_t depth = 0;
-				supersets_of_by_cardinality(set, final_depth, superset_values, depth, this->root, true, strict);
+				supersets_of_by_cardinality(set, final_depth, superset_values, 0, this->root, true, strict);
 			}
 		}
 	};
