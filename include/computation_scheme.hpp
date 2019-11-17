@@ -503,6 +503,8 @@ namespace efficient_DST{
 				const order_relation_t& order_relation,
 				std::function<T(const T&, const T&)> range_binary_operator
 		) {
+			//clock_t t;
+			//t = clock();
 			if (transform_type == transform_type_t::zeta){
 				powerset_btree<T, N> focal_points_N_initial_values(focal_points_tree);
 				T val;
@@ -552,6 +554,8 @@ namespace efficient_DST{
 					}
 				}
 			}
+			//t = clock() - t;
+			//std::cout << (((float) t)/CLOCKS_PER_SEC) << std::endl;
 		}
 
 
@@ -679,7 +683,7 @@ namespace efficient_DST{
 			//std::bitset<N> emptyset(focal_points_tree.get_FOD_size());
 			//emptyset.set(1);
 
-			t = clock();
+			//t = clock();
 			size_t iota_index;
 			const std::vector<set_N_value<T, N>* >& focal_points = focal_points_tree.elements();
 			for (size_t i = 0; i < iota_sequence.size(); ++i){
@@ -707,8 +711,8 @@ namespace efficient_DST{
 					}
 				}
 			}
-			t = clock() - t;
-			std::cout << (((float) t)/CLOCKS_PER_SEC) << std::endl;
+			//t = clock() - t;
+			//std::cout << (((float) t)/CLOCKS_PER_SEC) << std::endl;
 		}
 
 
@@ -1098,9 +1102,6 @@ namespace efficient_DST{
 				proxy_map.emplace(focal_points[e]->set, focal_points[e]);
 			}
 
-			clock_t t,temp_t;
-			t = clock();
-			size_t count = 0;
 			powerset_btree<bool, N> sets_missing_proxies(focal_points_tree.get_FOD(), iota_sequence.size() * focal_points_tree.size());
 
 			for (size_t i = 0; i < iota_sequence.size(); ++i) {
@@ -1109,15 +1110,10 @@ namespace efficient_DST{
 					bool insertion = proxy_map.emplace(set, nullptr).second;
 					//set_sequence.emplace_back(set.to_ulong());
 					if (insertion){
-						temp_t = clock();
 						sets_missing_proxies.insert(set, true);
-						temp_t = clock() - temp_t;
-						count += temp_t;
 					}
 				}
 			}
-			//t = clock() - t;
-			//std::cout << (((float) t)/CLOCKS_PER_SEC) << " ";
 
 			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > focal_points_card_map = focal_points_tree.elements_by_set_cardinality();
 			std::vector<size_t> ordered_cardinalities;
@@ -1128,6 +1124,8 @@ namespace efficient_DST{
 				c = 1;
 			}
 
+			//clock_t t;
+			//t = clock();
 			for (; c < ordered_cardinalities.size(); ++c){
 				const std::vector<set_N_value<T, N>* >& focal_points_with_same_size = focal_points_card_map[ordered_cardinalities[c]];
 
@@ -1140,6 +1138,8 @@ namespace efficient_DST{
 					}
 				}
 			}
+			//t = clock() - t;
+			//std::cout << "missing proxy search : " << (((float) t)/CLOCKS_PER_SEC) << " ";
 		}
 
 
