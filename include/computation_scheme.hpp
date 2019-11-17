@@ -730,19 +730,17 @@ namespace efficient_DST{
 			std::unordered_map<std::bitset<N>, set_N_value<T, N>* > proxy_map;
 			build_proxy_subset_map(proxy_map, focal_points_tree, iota_sequence);
 
-			//build_proxy_map(proxy_map, fod, focal_points_register, iota_sequence, order_relation_t::subset);
-
-			//std::bitset<N> iota_element(fod->size());
-			//iota_element.set(1);
-			//iota_element.flip();
-
 			size_t iota_index;
 			const std::vector<set_N_value<T, N>* >& focal_points = focal_points_tree.elements();
+			DEBUG(std::clog << "STARTING COMPUTATION SEQUENCE:\n";);
 			for (size_t i = 0; i < iota_sequence.size(); ++i){
 				if (transform_type == transform_type_t::zeta)
 					iota_index = i;
 				else
 					iota_index = iota_sequence.size()-1 - i;
+
+				DEBUG(std::clog << "iota element " << iota_sequence[iota_index] << ":\n";);
+				DEBUG(std::clog << "sync element " << sync_sequence[iota_index] << ":\n";);
 
 				for (size_t e = 0; e < focal_points.size(); ++e){
 					const std::bitset<N>& set_B = focal_points[e]->set & iota_sequence[iota_index];
@@ -750,19 +748,24 @@ namespace efficient_DST{
 					if (focal_points[e]->set != set_B){
 						const set_N_value<T, N>* X = proxy_map[set_B];
 
-						/*if(focal_points[i]->set == iota_element){
-							std::clog << focal_points[i]->set << " + " << iota_sequence[iota_index] << " = " << set_B << std::endl;
+						DEBUG(std::clog << "\tConsidering " << focal_points[e]->set << " :\n";);
+						DEBUG(
 							if(X)
-								std::clog << " => " << X->value->value << "\t <- " << focal_points_tree.get_FOD()->to_string(X->set) << std::endl;
-						}*/
+								std::clog << "\t\tproxy = " << X->set << "\n";
+							else
+								std::clog << "\t\tno proxy\n";
+						);
 
 						if (X && FOD<N>::is_superset_of(X->set, focal_points[e]->set & sync_sequence[iota_index])){
+							DEBUG(std::clog << "\t\t" << focal_points[e]->set << " <- operation("
+									<< focal_points[e]->set << " = " << focal_points[e]->value <<  ", " << X->set << " = " << X->value << ")\n";);
 							T& val = focal_points[e]->value;
 							val = range_binary_operator(val, X->value);
 						}
 					}
 				}
 			}
+			DEBUG(std::clog << "DONE\n";);
 		}
 	/*
 		static void execute_EMT_with_upper_semilattice(
@@ -1112,7 +1115,6 @@ namespace efficient_DST{
 			}
 			//t = clock() - t;
 			//std::cout << (((float) t)/CLOCKS_PER_SEC) << " ";
-			std::cout << (((float) count)/CLOCKS_PER_SEC) << " ";
 
 			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > focal_points_card_map = focal_points_tree.elements_by_set_cardinality();
 			std::vector<size_t> ordered_cardinalities;
@@ -1561,6 +1563,7 @@ namespace efficient_DST{
 					}
 				}
 			}else{
+				support.elements();
 				for (size_t i = 0; i < N; ++i) {
 					std::bitset<N> singleton_dual = 0;
 					singleton_dual.set(i);
@@ -1569,8 +1572,10 @@ namespace efficient_DST{
 
 					if (support_subsets.size() > 0) {
 						std::bitset<N> iota_element_dual((const std::bitset<N>&) support_subsets[0]->set);
-
+						//std::clog << "Computing iota element dual associated to :" << singleton_dual << "\n";
+						//std::clog << iota_element_dual << std::endl;
 						for (size_t ii = 1; ii < support_subsets.size(); ++ii) {
+							//std::clog << support_subsets[ii]->set << std::endl;
 							iota_element_dual |= support_subsets[ii]->set;
 							if (iota_element_dual == singleton_dual) {
 								break;
@@ -1776,6 +1781,7 @@ namespace efficient_DST{
 					for (size_t ii = i+1; ii < focal_points.size(); ++ii){
 						const std::bitset<N>& focal_point = support_elements[i]->set & focal_points[ii];
 						bool insertion = focal_points_register.emplace(focal_point).second;
+
 						if (insertion){
 							focal_points.emplace_back(focal_point);
 							focal_points_tree.insert(focal_point, neutral_value);

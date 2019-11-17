@@ -78,7 +78,7 @@ namespace efficient_DST{
 			}
 		}
 
-		const fod_element& elements() const {
+		const fod_element* elements() const {
 			return this->fod_elements;
 		}
 

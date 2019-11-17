@@ -43,7 +43,7 @@ namespace efficient_DST{
 		}
 
 		void regularize() {
-			this->definition.nullify(this->definition.find(std::bitset<N>(0)));
+			this->definition.nullify(this->definition[std::bitset<N>(0)]);
 			this->normalize();
 		}
 

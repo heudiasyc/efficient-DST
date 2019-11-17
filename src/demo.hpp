@@ -117,7 +117,12 @@ void demo(){
 	}
 
 	std::cout << "\n============================================\n";
+
+	std::cout << "\nImplicability vector " << std::endl;
 	std::reverse(q_vec.begin(), q_vec.end());
+	for (size_t i = 0; i < q_vec.size(); ++i){
+		std::cout << q_vec[i] << "\t <- " << fod_vec.to_string(std::bitset<4>(i)) << std::endl;
+	}
 
 	implicability<double, 4> b_from_vec(q_vec, fod_vec);
 
@@ -144,36 +149,36 @@ void demo(){
 	for (size_t i = 0; i < m_values_2.size(); ++i){
 		std::cout << m_values_2[i] << "\t <- " << fod_vec.to_string(std::bitset<4>(i)) << std::endl;
 	}
-/*
+
 	std::cout << "\n============================================\n";
 
-    plausibility<> pl(m);
+    plausibility<double, N> pl(m);
 
 	std::cout << "\nPlausibility contour from mass " << std::endl;
 
 	std::vector<double> contour_pl = pl.get_contour();
 	for (size_t i = 0; i < contour_pl.size(); ++i){
-		std::cout << contour_pl[i] << "\t <- {" << fod.elements()[i]->label << "}" << std::endl;
+		std::cout << contour_pl[i] << "\t <- {" << fod.elements()[i].label << "}" << std::endl;
 	}
 
 	std::cout << "\n============================================\n";
 
-    pignistic_probability<> bet_p(m);
+    pignistic_probability<double, N> bet_p(m);
 
 	std::cout << "\nPignistic probability contour from mass " << std::endl;
 
 	std::vector<double> contour_bet = bet_p.get_contour();
 	for (size_t i = 0; i < contour_bet.size(); ++i){
-		std::cout << contour_bet[i] << "\t <- {" << fod.elements()[i]->label << "}" << std::endl;
+		std::cout << contour_bet[i] << "\t <- {" << fod.elements()[i].label << "}" << std::endl;
 	}
 
     std::cout << "\n============================================\n";
 
-    commonality<> q(m);
+    commonality<double, N> q(m);
 
     std::cout << "\nCommonality values " << std::endl;
 
-    print<>(std::cout, q.get_definition());
+    q.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
@@ -182,108 +187,108 @@ void demo(){
 	std::cout << q[{"f", "i", "o"}] << std::endl;
 	std::cout << q[{"h", "o"}] << std::endl;
 
-	mass<> m_back(q);
+	mass<double, N> m_back(q);
 
 	std::cout << "\nMass values from commonality " << std::endl;
 
-    print<>(std::cout, m_back.get_definition());
+    m_back.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
 	//std::clog << q[{"j", "l"}];
 
-	conjunctive_weight<> w(q);
+	conjunctive_weight<double, N> w(q);
 
 	std::cout << "\nConjunctive weight values " << std::endl;
 
-    print<>(std::cout, w.get_definition());
+    w.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-    commonality<> q2(w);
+    commonality<double, N> q2(w);
 
     std::cout << "\nCommonality values from weights " << std::endl;
 
-    print<>(std::cout, q2.get_definition());
+    q2.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-	mass<> m2(q2);
+	mass<double, N> m2(q2);
 
 	std::cout << "\nMass values from conjunctive weights " << std::endl;
 
-    print<>(std::cout, m2.get_definition());
+    m2.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
 
-	implicability<> b(m);
+	implicability<double, N> b(m);
 
 	std::cout << "\nImplicability values " << std::endl;
 
-	print<>(std::cout, b.get_definition());
+	b.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-	mass<> m_back2(b);
+	mass<double, N> m_back2(b);
 
 	std::cout << "\nMass values from implicability " << std::endl;
 
-    print<>(std::cout, m_back2.get_definition());
+    m_back2.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-	disjunctive_weight<> v(b);
+	disjunctive_weight<double, N> v(b);
 
 	std::cout << "\nDisjunctive weight values " << std::endl;
 
-    print<>(std::cout, v.get_definition());
+    v.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-    implicability<> b2(v);
+    implicability<double, N> b2(v);
 
     std::cout << "\nImplicability values from weights " << std::endl;
 
-    print<>(std::cout, b2.get_definition());
+    b2.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-	mass<> m3(b2);
+	mass<double, N> m3(b2);
 
 	std::cout << "\nMass values from disjunctive weights " << std::endl;
 
-    print<>(std::cout, m3.get_definition());
+    m3.get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-	conjunctive_weight<> w4(w);
+	conjunctive_weight<double, N> w4(w);
 
-    conjunctive_weight<> w14 = w.apply<rule_Dempster<> >(w4);
+    conjunctive_weight<double, N> w14 = w.apply<rule_Dempster<double, N> >(w4);
 
 	std::cout << "\nMass from conjunctive weight fusion values " << std::endl;
 
-    print<>(std::cout, mass<>(commonality<>(w14)).get_definition());
+    mass<double, N>(commonality<double, N>(w14)).get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-	commonality<> q4(q);
+	commonality<double, N> q4(q);
 
-	commonality<> q14 = q.apply<rule_conjunctive_cautious<> >(q4);
+	commonality<double, N> q14 = q.apply<rule_conjunctive_cautious<double, N> >(q4);
 
 	std::cout << "\nMass from commonality fusion values " << std::endl;
 
-    print<>(std::cout, mass<>(q14).get_definition());
+    mass<double, N>(q14).get_definition().print(std::cout);
 
 	std::cout << "\n============================================\n";
 
-	mass<> m4(m);
+	mass<double, N> m4(m);
 
-	mass<> m14 = m.apply<rule_Dubois_Prade<> >(m4);
+	mass<double, N> m14 = m.apply<rule_Dubois_Prade<double, N> >(m4);
 
 	std::cout << "\nMass fusion values " << std::endl;
 
-    print<>(std::cout, m14.get_definition());
+    m14.get_definition().print(std::cout);
 
-	std::cout << "\n============================================\n";*/
+	std::cout << "\n============================================\n";
 }

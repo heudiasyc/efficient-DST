@@ -58,7 +58,7 @@ namespace efficient_DST{
 		}
 
 		void set_emptyset_value(const T& value) {
-			set_value_directly(std::bitset<N>(N), value);
+			set_value_directly(std::bitset<N>(0), value);
 		}
 
 		void nullify(const std::vector<std::string>& labels) {

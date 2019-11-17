@@ -5,7 +5,7 @@
 #include <random>
 
 #include <powerset_btree.hpp>
-//#include "demo.hpp"
+#include "demo.hpp"
 //#include "benchmark_bitset.hpp"
 #include "benchmark.hpp"
 
@@ -13,18 +13,19 @@
 
 int main(){
     using namespace efficient_DST;
-    //demo();
-    benchmark_main();
+    demo();
+    //benchmark_main();
 
-    /*
-    const size_t N = 500000;
+/*
+    const size_t N = 5000;
 	std::bitset<N> b = 0;
+	std::bitset<N> b2 = 111233454655211;
     clock_t t;
     //const size_t N = 5000;
     //std::bitset<N> b = 0;
 
-    //b = benchmark<N>::random_bitset((double) 0.2);
-    b.set(400000);
+    b = benchmark<N>::random_bitset((double) 0.0001);
+    //b.set(4000);
     //b = pow(2, 50)-1;
     //std::cout << b << std::endl;
 
@@ -40,7 +41,7 @@ int main(){
     	current_bit = b._Find_next(current_bit);
     }
     std::cout << previous_bit+1 << " ";
-    std::cout << (((float) clock() - t)/CLOCKS_PER_SEC) << "\n";
+    std::cout << (((float) clock() - t)*100/CLOCKS_PER_SEC) << "\n";
     t = clock();
     current_bit = b._Find_first();
     previous_bit = 0;
@@ -49,7 +50,7 @@ int main(){
     	current_bit = b._Find_next(current_bit);
     }
     std::cout << previous_bit << " ";
-    std::cout << (((float) clock() - t)/CLOCKS_PER_SEC) << "\n";
+    std::cout << (((float) clock() - t)*100/CLOCKS_PER_SEC) << "\n";
     t = clock();
     current_bit = N-1;
     //previous_bit = 0;
@@ -57,7 +58,14 @@ int main(){
     	--current_bit;
     }
     std::cout << current_bit+1 << " ";
-    std::cout << (((float) clock() - t)/CLOCKS_PER_SEC) << "\n";
+    std::cout << (((float) clock() - t)*100/CLOCKS_PER_SEC) << "\n";
+    t = clock();
+    b & b2;
+    std::cout << (((float) clock() - t)*100/CLOCKS_PER_SEC) << "\n";
+    t = clock();
+    b[1530];
+    std::cout << (((float) clock() - t)*100/CLOCKS_PER_SEC) << "\n";
+
     //////////////////////////////////////////////////////////////
 
     const size_t N = 10;
