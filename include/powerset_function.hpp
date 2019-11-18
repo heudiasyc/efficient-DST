@@ -51,9 +51,6 @@ namespace efficient_DST{
 		 */
 		powerset_btree<T, N> definition;
 
-		static inline bool is_equivalent_to_zero(const T& value) {
-			return (value < zero ? -value : value) <= precision;
-		}
 
 		T at_emptyset(const T& neutral_value) const {
 			set_N_value<T, N>* set_value = this->definition.sub_fod_of_size(0);
@@ -83,6 +80,10 @@ namespace efficient_DST{
 		// allow user to configure the floating-point tolerance
 		static const size_t block_size = 1000;
 		static constexpr T precision = 1e-10;
+
+		static inline bool is_equivalent_to_zero(const T& value) {
+			return (value < zero ? -value : value) <= precision;
+		}
 
 		powerset_function (const powerset_btree<T, N>& definition) :
 			definition(definition)

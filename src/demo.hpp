@@ -111,10 +111,16 @@ void demo(){
 
     std::cout << "\nMass values from commonality by FMT " << std::endl;
 
-    const std::vector<double>& m_values = computation_scheme<double, 4>::FMT(q_vec, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
-	for (size_t i = 0; i < m_values.size(); ++i){
-		std::cout << m_values[i] << "\t <- " << fod_vec.to_string(std::bitset<4>(i)) << std::endl;
+    //const std::vector<double>& m_values = computation_scheme<double, 4>::FMT(q_vec, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
+	//for (size_t i = 0; i < m_values.size(); ++i){
+	//	std::cout << m_values[i] << "\t <- " << fod_vec.to_string(std::bitset<4>(i)) << std::endl;
+	//}
+    powerset_btree<double, 4> q_values(&fod_vec, q_vec.size());
+	for (size_t i = 0; i < q_vec.size(); ++i){
+		q_values.insert(std::bitset<4>(i), q_vec[i]);
 	}
+    const powerset_btree<double, 4>& m_values = computation_scheme<double, 4>::FMT(q_values, transform_type_t::Mobius, order_relation_t::superset, operation_t::addition);
+    m_values.print(std::cout);
 
 	std::cout << "\n============================================\n";
 
@@ -145,10 +151,16 @@ void demo(){
 
     std::cout << "\nMass values from implicability by FMT " << std::endl;
 
-    const std::vector<double>& m_values_2 = computation_scheme<double, 4>::FMT(q_vec, transform_type_t::Mobius, order_relation_t::subset, operation_t::addition);
-	for (size_t i = 0; i < m_values_2.size(); ++i){
-		std::cout << m_values_2[i] << "\t <- " << fod_vec.to_string(std::bitset<4>(i)) << std::endl;
+    //const std::vector<double>& m_values_2 = computation_scheme<double, 4>::FMT(q_vec, transform_type_t::Mobius, order_relation_t::subset, operation_t::addition);
+	//for (size_t i = 0; i < m_values_2.size(); ++i){
+	//	std::cout << m_values_2[i] << "\t <- " << fod_vec.to_string(std::bitset<4>(i)) << std::endl;
+	//}
+    powerset_btree<double, 4> b_values(&fod_vec, q_vec.size());
+	for (size_t i = 0; i < q_vec.size(); ++i){
+		b_values.insert(std::bitset<4>(i), q_vec[i]);
 	}
+    const powerset_btree<double, 4>& m_values_2 = computation_scheme<double, 4>::FMT(b_values, transform_type_t::Mobius, order_relation_t::subset, operation_t::addition);
+    m_values_2.print(std::cout);
 
 	std::cout << "\n============================================\n";
 

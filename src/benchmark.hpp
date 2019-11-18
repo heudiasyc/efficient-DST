@@ -307,12 +307,14 @@ namespace efficient_DST{
 			//m.get_definition().print(std::cout);
 
 			t = clock();
-			const std::vector<double>& q_vec = computation_scheme<double, N>::FMT(m_vec, transform_type_t::zeta, order_relation, operation);
+			//const std::vector<double>& q_vec = computation_scheme<double, N>::FMT(m_vec, transform_type_t::zeta, order_relation, operation);
+			const powerset_btree<double, N>& q = computation_scheme<double, N>::FMT(m.get_definition(), transform_type_t::zeta, order_relation, operation);
 			t = clock() - t;
 			line += "," + std::to_string(((double)t)/CLOCKS_PER_SEC);
 
 			t = clock();
-			const std::vector<double>& m_back_vec = computation_scheme<double, N>::FMT(q_vec, transform_type_t::Mobius, order_relation, operation);
+			//const std::vector<double>& m_back_vec = computation_scheme<double, N>::FMT(q_vec, transform_type_t::Mobius, order_relation, operation);
+			const powerset_btree<double, N>& m_back = computation_scheme<double, N>::FMT(q, transform_type_t::Mobius, order_relation, operation);
 			t = clock() - t;
 			line += "," + std::to_string(((double)t)/CLOCKS_PER_SEC);
 

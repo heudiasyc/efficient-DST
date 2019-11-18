@@ -448,7 +448,121 @@ namespace efficient_DST{
 		}
 
 
-		static std::vector<T> FMT(
+		static powerset_btree<T, N> FMT(
+				const powerset_btree<T, N>& support,
+				const transform_type_t& transform_type,
+				const order_relation_t& order_relation,
+				const operation_t& transform_operation
+		) {
+			const std::vector<set_N_value<T, N>* >& support_elements = support.elements();
+
+	/*		if(transform_type == transform_type_t::Mobius){
+				float core_size = std::log2((float) support.size());
+				if(ceilf(core_size) == core_size){
+
+				}else{
+					std::vector<T> powerset_values(pow(2, N));
+					for(size_t i = 0; i < support_elements.size(); ++i){
+						powerset_values[support_elements[i]->set.to_ulong()] = support_elements[i]->value;
+					}
+					std::vector<T> mobius_transform = FMT_vectorized(
+							powerset_values,
+							transform_type,
+							order_relation,
+							transform_operation
+					);
+					powerset_btree<T, N> transform(support.get_FOD(), powerset_values.size());
+					for(size_t i = 0; i < support_elements.size(); ++i){
+						if(transform_operation == operation_t::addition){
+							if(!powerset_function<T, N>::is_equivalent_to_zero(powerset_values[i]))
+								transform.insert(std::bitset<N>(i), powerset_values[i]);
+						}
+					}
+					return transform;
+				}
+			}else{
+
+			}*/
+
+
+			std::bitset<N> core = 0;
+			for(size_t i = 0; i < support_elements.size(); ++i){
+				core |= support_elements[i]->set;
+			}
+
+			std::function<T(const T&, const T&)> range_binary_operator;
+
+			if (transform_operation == operation_t::addition){
+				if (transform_type == transform_type_t::zeta)
+					range_binary_operator = addition;
+				else
+					range_binary_operator = subtraction;
+			} else{
+				if (transform_type == transform_type_t::zeta)
+					range_binary_operator = multiplication;
+				else
+					range_binary_operator = division;
+			}
+
+			size_t reduced_powerset_size = pow(2, core.count());
+			powerset_btree<T, N> transform(support.get_FOD(), reduced_powerset_size);
+			std::vector<std::bitset<N> > focal_points;
+			std::unordered_map<std::bitset<N>, set_N_value<T, N>* > focal_points_map;
+			focal_points.reserve(reduced_powerset_size);
+			focal_points_map.reserve(reduced_powerset_size);
+
+			for (size_t i = 0; i < support_elements.size(); ++i){
+				focal_points.emplace_back(support_elements[i]->set);
+				focal_points_map.emplace(support_elements[i]->set, transform.insert(support_elements[i]->set, support_elements[i]->value));
+			}
+
+			size_t i = core._Find_first();
+			while(i < N){
+				for (size_t e = 0; e < focal_points.size(); ++e) {
+					std::bitset<N> new_set = (const std::bitset<N>&) focal_points[e];
+					new_set.set(i, true);
+					bool insertion = focal_points_map.emplace(new_set, nullptr).second;
+					if (insertion){
+						focal_points.emplace_back(new_set);
+						if(transform_operation == operation_t::addition){
+							focal_points_map[new_set] = transform.insert(new_set, 0);
+						}else{
+							focal_points_map[new_set] = transform.insert(new_set, 1);
+						}
+					}
+				}
+				i = core._Find_next(i);
+			}
+
+			std::vector<set_N_value<T, N>* > powerset_elements = transform.elements();
+
+			i = core._Find_first();
+			while(i < N){
+				for (size_t e = 0; e < powerset_elements.size(); ++e){
+					std::bitset<N> set_B = (const std::bitset<N>&) powerset_elements[e]->set;
+					set_B.set(i, true);
+
+					if (set_B != powerset_elements[e]->set){
+						auto B = focal_points_map.find(set_B);
+
+						if (B != focal_points_map.end()){
+							if(order_relation ==  order_relation_t::subset){
+								T& val = B->second->value;
+								val = range_binary_operator(val, powerset_elements[e]->value);
+							}else{
+								T& val = powerset_elements[e]->value;
+								val = range_binary_operator(val, B->second->value);
+							}
+						}
+					}
+				}
+				i = core._Find_next(i);
+			}
+			return transform;
+		}
+
+
+		static std::vector<T> FMT_vectorized(
 				const std::vector<T>& powerset_values,
 				const transform_type_t& transform_type,
 				const order_relation_t& order_relation,

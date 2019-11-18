@@ -13,8 +13,8 @@
 
 int main(){
     using namespace efficient_DST;
-    //demo();
-    benchmark_main();
+    demo();
+    //benchmark_main();
 
 /*
     const size_t N = 5000;
