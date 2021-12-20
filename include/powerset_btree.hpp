@@ -17,7 +17,7 @@
 
 namespace efficient_DST{
 
-	template <class T, size_t N>
+	template <class T = float, size_t N>
 	struct set_N_value{
 		bool is_null;
 		std::bitset<N> set;
@@ -128,6 +128,7 @@ namespace efficient_DST{
 		FOD<N> *fod;
 		size_t block_size;
 		size_t cardinality_distribution_non_null[N+1] = {0};
+		std::unordered_map<std::bitset<N>, set_N_value<T, N>* > manifest;
 
 	public:
 
@@ -282,16 +283,13 @@ namespace efficient_DST{
 		}
 
 		void nullify(){
-			destroy_tree(this->root->left);
-			destroy_tree(this->root->right);
-			this->root->is_null = true;
-			this->root->left = nullptr;
-			this->root->right = nullptr;
-			this->emptyset->is_null = true;
+			this->manifest.clear();
+			this->node_pool.clear();
 			this->number_of_non_null_values = 0;
 			for (size_t c = 0; c <= N; ++c){
 				this->cardinality_distribution_non_null[c] = 0;
 			}
+			init_tree();
 		}
 
 		/////////////////////////////////////////
@@ -629,7 +627,23 @@ namespace efficient_DST{
 			return operator[](this->fod->to_set(fod_elements));
 		}
 
+		set_N_value<T, N>* find(const std::bitset<N>& set) const {
+			auto occurrence = this->manifest.find(set);
+			if (occurrence == this->manifest.end()){
+				return nullptr;
+			} else {
+				return occurrence->second;
+			}
+		}
+
 		set_N_value<T, N>* operator[](const std::bitset<N>& set) const {
+			auto occurrence = this->manifest.find(set);
+			if (occurrence == this->manifest.end() || occurrence->second->is_null){
+				return nullptr;
+			} else {
+				return occurrence->second;
+			}
+			/*
 			set_N_value<T, N>* target = nullptr;
 			size_t final_depth = get_final_element_number(set);
 			if(final_depth == N){
@@ -684,6 +698,7 @@ namespace efficient_DST{
 				}
 			}
 			return target;
+			*/
 		}
 
 		/////////////////////////////////////////
@@ -908,28 +923,55 @@ namespace efficient_DST{
 
 		std::vector<set_N_value<T, N>* > subsets_of(const std::bitset<N>& set) const {
 			std::vector<set_N_value<T, N>* > subset_values;
-			subsets_of(set, get_final_element_number(set), false, subset_values);
+			if(!this->emptyset->is_null){
+				subset_values.emplace_back(this->emptyset);
+			}
+			if(set != 0){
+				subset_values.reserve(this->size());
+				subsets_of(set, get_final_element_number(set), subset_values, 0, (std::bitset<N>) 1, this->root);
+			}
 			return subset_values;
-
 		}
 
-		std::vector<set_N_value<T, N>* > strict_subsets_of(const std::bitset<N>& set) const {
-			std::vector<set_N_value<T, N>* > subset_values;
-			subsets_of(set, get_final_element_number(set), true, subset_values);
-			return subset_values;
-		}
-
-		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > strict_subsets_of_by_cardinality(const std::bitset<N>& set) const {
+		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > subsets_of_by_cardinality(const std::bitset<N>& set) const {
 			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > subset_values;
-			subsets_of_by_cardinality(set, get_final_element_number(set), true, subset_values);
+			if(!this->emptyset->is_null){
+				subset_values[0].emplace_back(this->emptyset);
+			}
+			if(set != 0){
+				subset_values.reserve(N);
+
+				for (size_t i = 0; i < N; ++i) {
+					subset_values[i].reserve(this->cardinality_distribution_non_null[i]);
+				}
+				subsets_of(set, get_final_element_number(set), subset_values, 0, (std::bitset<N>) 1, this->root);
+			}
 			return subset_values;
 		}
+
+//		std::vector<set_N_value<T, N>* > strict_subsets_of(const std::bitset<N>& set) const {
+//			std::vector<set_N_value<T, N>* > subset_values;
+//			subsets_of(set, get_final_element_number(set), true, subset_values);
+//			return subset_values;
+//		}
+//
+//		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > strict_subsets_of_by_cardinality(const std::bitset<N>& set) const {
+//			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > subset_values;
+//			subsets_of_by_cardinality(set, get_final_element_number(set), true, subset_values);
+//			return subset_values;
+//		}
 
 		/////////////////////////////////////////
 
 		std::vector<set_N_value<T, N>* > supersets_of(const std::bitset<N>& set) const {
 			std::vector<set_N_value<T, N>* > superset_values;
-			supersets_of(set, get_final_element_number(set), false, superset_values);
+			if(!this->emptyset->is_null){
+				superset_values.emplace_back(this->emptyset);
+			}
+			if(set != 0){
+				superset_values.reserve(this->size());
+				supersets_of(set, get_final_element_number(set), superset_values, 0, (std::bitset<N>) 1, this->root);
+			}
 			return superset_values;
 		}
 
@@ -939,17 +981,17 @@ namespace efficient_DST{
 			return superset_values;
 		}
 
-		std::vector<set_N_value<T, N>* > strict_supersets_of(const std::bitset<N>& set) const {
-			std::vector<set_N_value<T, N>* > superset_values;
-			supersets_of(set, get_final_element_number(set), true, superset_values);
-			return superset_values;
-		}
+//		std::vector<set_N_value<T, N>* > strict_supersets_of(const std::bitset<N>& set) const {
+//			std::vector<set_N_value<T, N>* > superset_values;
+//			supersets_of(set, get_final_element_number(set), true, superset_values);
+//			return superset_values;
+//		}
 
-		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > strict_supersets_of_by_cardinality(const std::bitset<N>& set) const {
-			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > superset_values;
-			supersets_of_by_cardinality(set, get_final_element_number(set), true, false, superset_values);
-			return superset_values;
-		}
+//		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > strict_supersets_of_by_cardinality(const std::bitset<N>& set) const {
+//			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > superset_values;
+//			supersets_of_by_cardinality(set, get_final_element_number(set), true, false, superset_values);
+//			return superset_values;
+//		}
 
 	protected:
 
@@ -1082,6 +1124,7 @@ namespace efficient_DST{
 				if(!leaf->is_null){
 					nullify_without_repercussion(leaf);
 				}
+				this->manifest.erase(leaf->set);
 				this->node_pool.erase(leaf);
 			}
 		}
@@ -1104,6 +1147,7 @@ namespace efficient_DST{
 					// if sentenced_node is the tree root and we don't want to keep it, replace it by chosen one
 					this->root = chosen_one;
 					this->root->parent = nullptr;
+					this->manifest.erase(sentenced_node->set);
 					this->node_pool.erase(sentenced_node);
 				}
 			}else{
@@ -1115,6 +1159,7 @@ namespace efficient_DST{
 				else
 					parent->right = chosen_one;
 
+				this->manifest.erase(sentenced_node->set);
 				this->node_pool.erase(sentenced_node);
 			}
 		}
@@ -1145,6 +1190,7 @@ namespace efficient_DST{
 					nullify_without_repercussion(sentenced_node);
 				}
 
+				this->manifest.erase(sentenced_node->set);
 				this->node_pool.erase(sentenced_node);
 			}else{
 				// if parent is a regular node
@@ -1168,19 +1214,33 @@ namespace efficient_DST{
 				final_element_number = 1;
 			}
 			return final_element_number;*/
-		    size_t current_bit = set._Find_first();
-		    size_t previous_bit = N;
-		    while (current_bit != N){
-		    	previous_bit = current_bit;
-		    	current_bit = set._Find_next(current_bit);
+
+//		    size_t current_bit = set._Find_first();
+//		    size_t previous_bit = N;
+//		    while (current_bit != N){
+//		    	previous_bit = current_bit;
+//		    	current_bit = set._Find_next(current_bit);
+//		    }
+//		    return previous_bit;
+
+		    std::bitset<N> last_bit_cursor = 1;
+		    last_bit_cursor <<= (N-1);
+		    size_t last_bit_set_reverse_index = 1;
+		    while (set & last_bit_cursor == 0){
+		    	++last_bit_set_reverse_index;
 		    }
-		    return previous_bit;
+		    if (last_bit_set_reverse_index > N){
+		    	return N;
+		    } else {
+		    	return N-last_bit_set_reverse_index;
+		    }
 		}
 
 		/////////////////////////////////////////
 
 		node<T, N>* create_node(const std::bitset<N>& set, T value, size_t depth, node<T, N>* parent_node, node<T, N>* left_node, node<T, N>* right_node){
 			node<T, N>* new_node = this->node_pool.emplace(set, value, depth, parent_node, left_node, right_node);
+			this->manifest.emplace(set, new_node);
 
 			++this->number_of_non_null_values;
 			++this->cardinality_distribution_non_null[new_node->cardinality];
@@ -1194,7 +1254,7 @@ namespace efficient_DST{
 
 		node<T, N>* create_disjunction_node(const std::bitset<N>& set, size_t depth, node<T, N>* parent_node, node<T, N>* left_node, node<T, N>* right_node){
 			node<T, N>* new_node = this->node_pool.emplace(set, depth, parent_node, left_node, right_node);
-
+			this->manifest.emplace(set, new_node);
 
 			if(left_node)
 				new_node->left->parent = new_node;
@@ -1552,9 +1612,8 @@ namespace efficient_DST{
 				const size_t& final_depth,
 				std::vector<set_N_value<T, N>* >& subset_values,
 				size_t depth,
-				node<T, N> *leaf,
-				bool is_set,
-				const bool& strict) {
+				std::bitset<N> cursor,
+				node<T, N> *leaf) {
 
 			// if leaf->depth > final_depth, then leaf has other elements than the ones of key
 			if(leaf->depth > final_depth){
@@ -1563,164 +1622,146 @@ namespace efficient_DST{
 
 			if(depth < leaf->depth){
 				// take skipped depths into account
-				--depth;
-				//////////////////////
-				//size_t first_div = (set ^ cursor->set)._Find_next(depth);
-				//////////////////////
-				size_t next_bit_set = set._Find_next(depth);
-				size_t next_bit_cursor = leaf->set._Find_next(depth);
-				while(next_bit_set == next_bit_cursor && next_bit_set != N){
-					next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
-					next_bit_set = set._Find_next(next_bit_set);
-				}
-
-				size_t first_div = std::min(next_bit_set, next_bit_cursor);
-
-				if(first_div < leaf->depth){
-					is_set = false;
-
-					while(next_bit_cursor < leaf->depth){
-						if(!set[next_bit_cursor]){
-							// if next_set has an element that set doesn't have
-							return;
-						}
-						next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
-					}
+				cursor <<= leaf->depth - depth;
+				// Search for elements except the one at leaf->depth that are in leaf->set but not in set
+				if (~(set | cursor) & leaf->set != 0){
+					return;
 				}
 				depth = leaf->depth;
 			}
-
-			if(set[depth]){
+			if(set & cursor != 0){
+			//if(set[depth]){
+				if(!leaf->is_null){
+					subset_values.emplace_back(leaf);
+				}
 				if(depth != final_depth){
-					// get value only if leaf doesn't correspond to key (only strict subsets)
-					if(!leaf->is_null){
-						subset_values.emplace_back(leaf);
-					}
 					++depth;
+					cursor <<= 1;
 					if(leaf->left){
-						subsets_of(set, final_depth, subset_values, depth, leaf->left, false, strict);
+						subsets_of(set, final_depth, subset_values, depth, cursor, leaf->left);
 					}
 					if(leaf->right){
-						subsets_of(set, final_depth, subset_values, depth, leaf->right, is_set, strict);
-					}
-				}else if(!strict || !is_set){//this->fod->is_subset_of(this->fod->to_set(leaf->fod_elements), key)){
-					// get value if you don't only want strict subsets
-					// OR if this set is a *strict* subset of key
-					if(!leaf->is_null){
-						subset_values.emplace_back(leaf);
+						subsets_of(set, final_depth, subset_values, depth, cursor, leaf->right);
 					}
 				}
 			}else {
 				if(leaf->left){
 					++depth;
-					subsets_of(set, final_depth, subset_values, depth, leaf->left, is_set, strict);
+					cursor <<= 1;
+					subsets_of(set, final_depth, subset_values, depth, cursor, leaf->left);
 				}
 			}
 		}
 
-		static void subsets_of_by_cardinality(
+		static void subsets_of(
 				const std::bitset<N>& set,
 				const size_t& final_depth,
 				std::unordered_map<size_t, std::vector<set_N_value<T, N>* > >& subset_values,
 				size_t depth,
-				node<T, N> *leaf,
-				bool is_set,
-				const bool& strict) {
+				std::bitset<N> cursor,
+				node<T, N> *leaf) {
 
 			// if leaf->depth > final_depth, then leaf has other elements than the ones of key
 			if(leaf->depth > final_depth){
 				return;
 			}
+
 			if(depth < leaf->depth){
 				// take skipped depths into account
-				--depth;
-				//////////////////////
-				//size_t first_div = (set ^ cursor->set)._Find_next(depth);
-				//////////////////////
-				size_t next_bit_set = set._Find_next(depth);
-				size_t next_bit_cursor = leaf->set._Find_next(depth);
-				while(next_bit_set == next_bit_cursor && next_bit_set != N){
-					next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
-					next_bit_set = set._Find_next(next_bit_set);
-				}
-
-				size_t first_div = std::min(next_bit_set, next_bit_cursor);
-
-				if(first_div < leaf->depth){
-					is_set = false;
-
-					while(next_bit_cursor < leaf->depth){
-						if(!set[next_bit_cursor]){
-							// if next_set has an element that set doesn't have
-							return;
-						}
-						next_bit_cursor = leaf->set._Find_next(next_bit_cursor);
-					}
+				cursor <<= leaf->depth - depth;
+				// Search for elements except the one at leaf->depth that are in leaf->set but not in set
+				if (~(set | cursor) & leaf->set != 0){
+					return;
 				}
 				depth = leaf->depth;
 			}
-
-			if(set[depth]){
+			if(set & cursor != 0){
+			//if(set[depth]){
+				if(!leaf->is_null){
+					subset_values[leaf->cardinality].emplace_back(leaf);
+				}
 				if(depth != final_depth){
-					// get value only if leaf doesn't correspond to key (only strict subsets)
-					if(!leaf->is_null){
-						subset_values[leaf->cardinality].emplace_back(leaf);
-					}
 					++depth;
+					cursor <<= 1;
 					if(leaf->left){
-						subsets_of_by_cardinality(set, final_depth, subset_values, depth, leaf->left, false, strict);
+						subsets_of(set, final_depth, subset_values, depth, cursor, leaf->left);
 					}
 					if(leaf->right){
-						subsets_of_by_cardinality(set, final_depth, subset_values, depth, leaf->right, is_set, strict);
-					}
-				}else if(!strict || !is_set){//this->fod->is_subset_of(this->fod->to_set(leaf->fod_elements), key)){
-					// get value if you don't only want strict subsets
-					// OR if this set is a *strict* subset of key
-					if(!leaf->is_null){
-						subset_values[leaf->cardinality].emplace_back(leaf);
+						subsets_of(set, final_depth, subset_values, depth, cursor, leaf->right);
 					}
 				}
 			}else {
 				if(leaf->left){
 					++depth;
-					subsets_of_by_cardinality(set, final_depth, subset_values, depth, leaf->left, is_set, strict);
+					cursor <<= 1;
+					subsets_of(set, final_depth, subset_values, depth, cursor, leaf->left);
 				}
-			}
-		}
-
-		void subsets_of(const std::bitset<N>& set, size_t final_depth, const bool& strict, std::vector<set_N_value<T, N>* >& subset_values) const {
-
-			if(final_depth == N){
-				if(!strict && !this->emptyset->is_null){
-					subset_values.emplace_back(this->emptyset);
-				}
-			}else{
-				subset_values.reserve(this->size());
-				if(!this->emptyset->is_null){
-					subset_values.emplace_back(this->emptyset);
-				}
-				subsets_of(set, final_depth, subset_values, 0, this->root, true, strict);
-			}
-		}
-
-		void subsets_of_by_cardinality(
-				const std::bitset<N>& set, size_t final_depth, const bool& strict, std::unordered_map<size_t, std::vector<set_N_value<T, N>* > >& subset_values) const {
-
-			if(final_depth == N){
-				if(!strict && !this->emptyset->is_null){
-					subset_values[0].emplace_back(this->emptyset);
-				}
-			}else{
-				subset_values.reserve(N);
-
-				for (size_t i = 0; i < N; ++i) {
-					subset_values[i].reserve(this->cardinality_distribution_non_null[i]);
-				}
-				subsets_of_by_cardinality(set, final_depth, subset_values, 0, this->root, true, strict);
 			}
 		}
 
 		/////////////////////////////////////////
+
+		/*
+		 * Complexity O(S), where S is the number of subsets assigned by user of the set defined by key
+		 * All subsets of key are of depth <= final_depth and don't contain any other elements than the ones of key
+		 */
+		static void supersets_of(
+				const std::bitset<N>& set,
+				const size_t& final_depth,
+				std::vector<set_N_value<T, N>* >& superset_values,
+				size_t depth,
+				std::bitset<N> cursor,
+				node<T, N> *leaf) {
+
+			if(depth < leaf->depth){
+				// take skipped depths into account
+				cursor <<= leaf->depth - depth;
+				depth = leaf->depth;
+			}
+			if(final_depth <= depth){
+				// Search for elements except the one at leaf->depth that are in set but not in leaf->set
+				if (set & ~leaf->set != 0){
+					return;
+				}
+				if(!leaf->is_null){
+					superset_values.emplace_back(leaf);
+				}
+				if (final_depth != depth || (set & cursor == 0)){
+					++depth;
+					cursor <<= 1;
+					if(leaf->left){
+						supersets_of(set, final_depth, superset_values, depth, cursor, leaf->left);
+					}
+					if(leaf->right){
+						supersets_of(set, final_depth, superset_values, depth, cursor, leaf->right);
+					}
+				}else{
+					if(leaf->right){
+						++depth;
+						cursor <<= 1;
+						supersets_of(set, final_depth, superset_values, depth, cursor, leaf->right);
+					}
+				}
+			}else{
+				if (set & cursor == 0){
+					++depth;
+					cursor <<= 1;
+					if(leaf->left){
+						supersets_of(set, final_depth, superset_values, depth, cursor, leaf->left);
+					}
+					if(leaf->right){
+						supersets_of(set, final_depth, superset_values, depth, cursor, leaf->right);
+					}
+				}else{
+					if(leaf->right){
+						++depth;
+						cursor <<= 1;
+						supersets_of(set, final_depth, superset_values, depth, cursor, leaf->right);
+					}
+				}
+			}
+		}
+
 
 		/*
 		 * Complexity O(S), where S is the number of supersets assigned by user of the set defined by key
