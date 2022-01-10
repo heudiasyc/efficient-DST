@@ -71,6 +71,9 @@ namespace efficient_DST{
 					if(fod){
 						fod->value *= A->value;
 					}else{
+						// if there is no fod in definition, this means that its associated value is 1.
+						// Thus, as above, nullifying A implies multiplying 1 with A->value,
+						// which translates here to inserting A->value at fod.
 						this->definition.insert(~std::bitset<N>(0), A->value);
 					}
 				}
@@ -84,22 +87,18 @@ namespace efficient_DST{
 
 		static void compute_fod_value_from_definition(powerset_btree<T, N>& definition){
 			std::bitset<N> fod_set = 0;
-			fod_set.set();
-			const std::vector<set_N_value<T, N>* >& focal_log_elements = definition.strict_subsets_of(fod_set);
+			fod_set = ~fod_set;
+			const std::vector<set_N_value<T, N>* >& focal_log_elements = definition.elements();
 			T val = 1;
 			for (size_t i = 0; i < focal_log_elements.size(); ++i){
-				val /= focal_log_elements[i]->value;
+				if (focal_log_elements[i]->set != fod_set)
+					val /= focal_log_elements[i]->value;
 			}
-			set_N_value<T, N>* fod_set_N_value = definition.sub_fod_of_size(N);
-			if(fod_set_N_value){
-				fod_set_N_value->value = val;
-			}else{
-				definition.insert(fod_set, val);
-			}
+			definition.update_or_insert(fod_set, val);
 		}
 
 		template <class fusion_rule>
-		conjunctive_weight<T, N> apply(const conjunctive_weight<T, N>& w2) const {
+		conjunctive_weight<T, N> fuse_with(const conjunctive_weight<T, N>& w2) const {
 			const fusion_rule fusion;
 			return fusion(*this, w2);
 		}

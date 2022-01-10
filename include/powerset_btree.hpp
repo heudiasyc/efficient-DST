@@ -17,7 +17,7 @@
 
 namespace efficient_DST{
 
-	template <class T = float, size_t N>
+	template <class T, size_t N>
 	struct set_N_value{
 		bool is_null;
 		std::bitset<N> set;
@@ -194,7 +194,7 @@ namespace efficient_DST{
 
 		void init_tree(){
 			this->root = create_disjunction_node(std::bitset<N>(1), 0, nullptr, nullptr, nullptr);
-			this->emptyset = this->node_pool.emplace(std::bitset<N>(0));
+			this->emptyset = create_disjunction_node(std::bitset<N>(0), 0, nullptr, nullptr, nullptr);
 		}
 
 		void copy(const powerset_btree<T, N>& p){
@@ -244,8 +244,12 @@ namespace efficient_DST{
 			return this->block_size;
 		}
 
-		size_t size() const {
+		const size_t& size() const {
 			return this->number_of_non_null_values;
+		}
+
+		const size_t& get_nb_sets_of_cardinality(const size_t card) const {
+			return this->cardinality_distribution_non_null[card];
 		}
 
 		void nullify(set_N_value<T, N>* s_N_v){
@@ -302,7 +306,8 @@ namespace efficient_DST{
 			return insert(this->fod->to_set(fod_elements), value);
 		}
 
-		set_N_value<T, N>* insert(const std::bitset<N>& set, const T& value){
+		set_N_value<T, N>* insert(const std::bitset<N>& set, const T& value) {
+
 			if (set == 0){
 				if(this->emptyset->is_null){
 					this->emptyset->is_null = false;
@@ -311,11 +316,137 @@ namespace efficient_DST{
 				}
 				this->emptyset->value = value;
 				return this->emptyset;
-			}else{
-				node<T, N>* inserted_node = nullptr;
-				insert(inserted_node, set, get_final_element_number(set), value, 0, (std::bitset<N>) 1, this->root, false);
-				return inserted_node;
 			}
+
+			node<T, N>* inserted_node;
+			const size_t& final_depth = get_final_element_number(set);
+			size_t depth = 0;
+			std::bitset<N> cursor = 1;
+			node<T, N>* leaf = this->root;
+			bool is_left_child;
+
+			for(;;){
+				if(depth < leaf->depth){
+					// take skipped depths into account
+					cursor <<= leaf->depth - depth;
+					// Search for elements except the one at leaf->depth that are in leaf->set but not in set
+					if ((~(set | cursor) & leaf->set) != 0){
+						// if leaf->set (ignoring current depth) is not a subset of set, then we already know that our search stops here
+						node<T, N>* parent_node = leaf->parent;
+						if ((~leaf->set & set) == 0){
+							// if leaf->set is a superset of set
+							inserted_node = create_node(set, value, final_depth, parent_node, nullptr, leaf);
+							leaf->parent = inserted_node;
+							if (is_left_child){
+								parent_node->left = inserted_node;
+							}else{
+								parent_node->right = inserted_node;
+							}
+						}else{
+							// if leaf->set is not a superset of set either
+							const std::bitset<N>& div_bits = cursor ^ (set ^ leaf->set);
+							const size_t& first_div = div_bits._Find_first();
+							// first_div cannot be after leaf->depth, because that would make it a subset of set
+							// first div cannot be at leaf->depth either because the cursor set bit is at leaf->depth and we ignored it in the search for first_div
+							// Thus, we have first_div < leaf->depth
+							// Also, we cannot have first_div after final_depth, because that would make it a subset of leaf->set
+							// That being said, we can have first_div == final_depth and first_div < final_depth
+							// In any case, create a regular node at final_depth corresponding to set.
+							// if first_div == final_depth, then put leaf at the left of this new node.
+							// otherwise, create a disjunction node at first_div
+							// and check which of set or leaf has first_div. The one that has it must be at the right of this node, the other at its left.
+							if (first_div == final_depth){
+								inserted_node = create_node(set, value, final_depth, parent_node, leaf, nullptr);
+								leaf->parent = inserted_node;
+								if (is_left_child){
+									parent_node->left = inserted_node;
+								}else{
+									parent_node->right = inserted_node;
+								}
+							}else{
+								// if first_div is both < final_depth and < leaf->depth
+								////////
+								std::bitset<N> mask = 1;
+								tile_set_bit(mask, 0, first_div);
+								const std::bitset<N>& disjunction_set = mask & set;
+								////////
+								inserted_node = create_node(set, value, final_depth, nullptr, nullptr, nullptr);
+								node<T, N>* disjunction_node;
+								if ((div_bits & disjunction_set) != 0){
+									// if set has the element at first_div
+									disjunction_node = create_disjunction_node(disjunction_set, first_div, parent_node,
+											inserted_node,
+											leaf
+									);
+								}else{
+									// if leaf->set has the element at first_div
+									disjunction_node = create_disjunction_node(mask & leaf->set, first_div, parent_node,
+											leaf,
+											inserted_node
+									);
+								}
+								inserted_node->parent = disjunction_node;
+								leaf->parent = disjunction_node;
+								if (is_left_child){
+									parent_node->left = disjunction_node;
+								}else{
+									parent_node->right = disjunction_node;
+								}
+							}
+						}
+						return inserted_node;
+					}
+					depth = leaf->depth;
+				}
+				if((set & cursor) != 0){
+					if(depth != final_depth){
+						if(leaf->right){
+							++depth;
+							cursor <<= 1;
+							is_left_child = false;
+							//insert(inserted_node, set, final_depth, value, depth, cursor, leaf->right, false);
+						}else{
+							inserted_node = create_node(set, value, final_depth, leaf, nullptr, nullptr);
+							leaf->right = inserted_node;
+							return inserted_node;
+						}
+					}else{
+						if(leaf->is_null){
+							leaf->is_null = false;
+							++this->number_of_non_null_values;
+							++this->cardinality_distribution_non_null[leaf->cardinality];
+						}
+						leaf->value = value;
+						return leaf;
+					}
+				}else {
+					if(leaf->left){
+						++depth;
+						cursor <<= 1;
+						is_left_child = true;
+						//insert(inserted_node, set, final_depth, value, depth, cursor, leaf->left, true);
+					}else{
+						inserted_node = create_node(set, value, final_depth, leaf, nullptr, nullptr);
+						leaf->left = inserted_node;
+						return inserted_node;
+					}
+				}
+			}
+		}
+
+		set_N_value<T, N>* update_or_insert(const std::bitset<N>& set, const T& value){
+			set_N_value<T, N>* inserted_node = find(set);
+			if (inserted_node){
+				if (inserted_node->is_null){
+					inserted_node->is_null = false;
+					++this->number_of_non_null_values;
+					++this->cardinality_distribution_non_null[inserted_node->cardinality];
+				}
+				inserted_node->value = value;
+			}else{
+				inserted_node = insert(set, value);
+			}
+			return inserted_node;
 		}
 
 		/////////////////////////////////////////
@@ -522,8 +653,10 @@ namespace efficient_DST{
 			);
 		}
 
-		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > elements_by_set_cardinality() const {
-			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > all_values;
+		std::map<size_t, std::vector<set_N_value<T, N>* > > elements_by_set_cardinality(
+				const std::binary_function<size_t, size_t, bool>& comp
+			) const {
+			std::map<size_t, std::vector<set_N_value<T, N>* >, comp > all_values;
 			DEBUG_TREE(std::clog << "\nAll elements in tree by cardinality:\nEMPTYSET : ";);
 			if(this->emptyset->is_null){
 				DEBUG_TREE(std::clog << "null";);
@@ -536,6 +669,21 @@ namespace efficient_DST{
 			DEBUG_TREE(std::clog << std::endl;);
 			return all_values;
 		}
+
+//		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > elements_by_set_cardinality() const {
+//			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > all_values;
+//			DEBUG_TREE(std::clog << "\nAll elements in tree by cardinality:\nEMPTYSET : ";);
+//			if(this->emptyset->is_null){
+//				DEBUG_TREE(std::clog << "null";);
+//			}else{
+//				DEBUG_TREE(std::clog << this->emptyset->value;);
+//				all_values.emplace(0, (std::vector<set_N_value<T, N>* >) {this->emptyset});
+//			}
+//			DEBUG_TREE(std::clog << "\n[0]\t. : ";);
+//			elements_by_cardinality(this->root, all_values);
+//			DEBUG_TREE(std::clog << std::endl;);
+//			return all_values;
+//		}
 
 		std::vector<set_N_value<T, N>* > elements() const {
 			std::vector<set_N_value<T, N>* > all_values;
@@ -849,7 +997,7 @@ namespace efficient_DST{
 		    std::bitset<N> last_bit_cursor = 1;
 		    last_bit_cursor <<= (N-1);
 		    size_t last_bit_set_reverse_index = 1;
-		    while (set & last_bit_cursor == 0){
+		    while ((set & last_bit_cursor) == 0){
 		    	++last_bit_set_reverse_index;
 		    }
 		    if (last_bit_set_reverse_index > N){
@@ -887,76 +1035,7 @@ namespace efficient_DST{
 		}
 
 		/////////////////////////////////////////
-/*
-		set_N_value<T, N>* find(const std::bitset<N>& set, const size_t& final_depth, node<T, N> *leaf, size_t& depth, const bool& smallest_superset_search) const {
 
-			if(smallest_superset_search){
-				if(depth > final_depth){
-					while(leaf->is_null){
-						if(leaf->left){
-							leaf = leaf->left;
-						}else if(leaf->right){
-							leaf = leaf->right;
-						}else{
-							return nullptr;
-						}
-					}
-					return leaf;
-				}
-			}else{
-				// if leaf->depth > final_depth, then leaf has other elements than the ones of key
-				if(leaf->depth > final_depth){
-					return nullptr;
-				}
-			}
-
-			// take skipped depths into account
-			while(depth < leaf->depth && depth < final_depth){
-				if(smallest_superset_search){
-					if(set[depth] && !leaf->set[depth])
-						return nullptr;
-				}else{
-					if(set[depth] != leaf->set[depth]){
-						// if there is a disjunction between key and next_set for the element at depth in fod
-						return nullptr;
-					}
-				}
-				++depth;
-			}
-
-			if(set[depth]){
-				if(depth == final_depth){
-					if(leaf->is_null){
-						if(smallest_superset_search && leaf->right){
-							++depth;
-							return find(set, final_depth, leaf->right, depth, smallest_superset_search);
-						}else{
-							return nullptr;
-						}
-					}else{
-						return leaf;
-					}
-				}else{
-					if(!leaf->right){
-						return nullptr;
-					}
-					++depth;
-					return find(set, final_depth, leaf->right, depth, smallest_superset_search);
-				}
-			}else {
-				if(!leaf->left){
-					if(smallest_superset_search && leaf->right){
-						++depth;
-						return find(set, final_depth, leaf->right, depth, smallest_superset_search);
-					}else{
-						return nullptr;
-					}
-				}
-				++depth;
-				return find(set, final_depth, leaf->left, depth, smallest_superset_search);
-			}
-		}
-*/
 		/*
 		 * from must be the position of a bit evaluating to 1
 		 */
@@ -968,113 +1047,6 @@ namespace efficient_DST{
 				shift_diff <<= 1;
 			}
 			mask |= mask << (diff-shift_diff);
-		}
-
-
-		static void insert(
-				node<T, N>*& inserted_node,
-				const std::bitset<N>& set,
-				const size_t& final_depth,
-				const T& value,
-				size_t& depth,
-				std::bitset<N>& cursor,
-				node<T, N> *leaf,
-				const bool& is_left_child) {
-
-			if(depth < leaf->depth){
-				// take skipped depths into account
-				cursor <<= leaf->depth - depth;
-				// Search for elements except the one at leaf->depth that are in leaf->set but not in set
-				if (~(set | cursor) & leaf->set != 0){
-					// if leaf->set (ignoring current depth) is not a subset of set, then we already know that our search stops here
-					node<T, N>* parent_node = leaf->parent;
-					if (~leaf->set & set == 0){
-						// if leaf->set is a superset of set
-						inserted_node = create_node(set, value, final_depth, parent_node, nullptr, leaf);
-						leaf->parent = inserted_node;
-						if (is_left_child){
-							parent_node->left = inserted_node;
-						}else{
-							parent_node->right = inserted_node;
-						}
-					}else{
-						// if leaf->set is not a superset of set either
-						const std::bitset<N>& div_bits = cursor ^ (set ^ leaf->cursor);
-						const size_t& first_div = div_bits._Find_first();
-						// first_div cannot be after leaf->depth, because that would make it a subset of set
-						// first div cannot be at leaf->depth either because the cursor set bit is at leaf->depth and we ignored it in the search for first_div
-						// Thus, we have first_div < leaf->depth
-						// Also, we cannot have first_div after final_depth, because that would make it a subset of leaf->set
-						// That being said, we can have first_div == final_depth and first_div < final_depth
-						// In any case, create a regular node at final_depth corresponding to set.
-						// if first_div == final_depth, then put leaf at the left of this new node.
-						// otherwise, create a disjunction node at first_div
-						// and check which of set or leaf has first_div. The one that has it must be at the right of this node, the other at its left.
-						if (first_div == final_depth){
-							inserted_node = create_node(set, value, final_depth, parent_node, leaf, nullptr);
-							leaf->parent = inserted_node;
-							if (is_left_child){
-								parent_node->left = inserted_node;
-							}else{
-								parent_node->right = inserted_node;
-							}
-						}else{
-							// if first_div is both < final_depth and < leaf->depth
-							////////
-							std::bitset<N> mask = 1;
-							tile_set_bit(mask, 0, first_div);
-							const std::bitset<N>& disjunction_set = mask & set;
-							////////
-							inserted_node = create_node(set, value, final_depth, nullptr, nullptr, nullptr);
-							node<T, N>* disjunction_node;
-							if (div_bits & disjunction_set != 0){
-								// if set has the element at first_div
-								disjunction_node = create_disjunction_node(disjunction_set, first_div, parent_node,
-										inserted_node,
-										leaf
-								);
-							}else{
-								// if leaf->set has the element at first_div
-								disjunction_node = create_disjunction_node(mask & leaf->set, first_div, parent_node,
-										leaf,
-										inserted_node
-								);
-							}
-							inserted_node->parent = disjunction_node;
-							leaf->parent = disjunction_node;
-							if (is_left_child){
-								parent_node->left = disjunction_node;
-							}else{
-								parent_node->right = disjunction_node;
-							}
-						}
-					}
-					return;
-				}
-				depth = leaf->depth;
-			}
-			if(set & cursor != 0){
-				if(depth != final_depth){
-					++depth;
-					cursor <<= 1;
-					if(leaf->right){
-						insert(inserted_node, set, final_depth, value, depth, cursor, leaf->right, false);
-					}
-				}else{
-					if(leaf->is_null){
-						leaf->is_null = false;
-						++this->number_of_non_null_values;
-						++this->cardinality_distribution_non_null[leaf->cardinality];
-					}
-					leaf->value = value;
-				}
-			}else {
-				if(leaf->left){
-					++depth;
-					cursor <<= 1;
-					insert(inserted_node, set, final_depth, value, depth, cursor, leaf->left, true);
-				}
-			}
 		}
 
 		/////////////////////////////////////////
@@ -1212,12 +1184,12 @@ namespace efficient_DST{
 				// take skipped depths into account
 				cursor <<= leaf->depth - depth;
 				// Search for elements except the one at leaf->depth that are in leaf->set but not in set
-				if (~(set | cursor) & leaf->set != 0){
+				if ((~(set | cursor) & leaf->set) != 0){
 					return;
 				}
 				depth = leaf->depth;
 			}
-			if(set & cursor != 0){
+			if((set & cursor) != 0){
 			//if(set[depth]){
 				if(!leaf->is_null){
 					subset_values.emplace_back(leaf);
@@ -1307,7 +1279,7 @@ namespace efficient_DST{
 				std::bitset<N> mask = (const std::bitset<N>) cursor;
 				tile_set_bit(mask, depth, leaf->depth);
 				cursor <<= leaf->depth - depth;
-				if (mask & set & ~(leaf->set | cursor) != 0){
+				if ((mask & set & ~(leaf->set | cursor)) != 0){
 					return;
 				}
 				////////////////////////////
@@ -1325,7 +1297,7 @@ namespace efficient_DST{
 				if(!leaf->is_null){
 					superset_values.emplace_back(leaf);
 				}
-				if (final_depth != depth || (set & cursor == 0)){
+				if (final_depth != depth || ((set & cursor) == 0)){
 					++depth;
 					cursor <<= 1;
 					if(leaf->left){
@@ -1342,7 +1314,7 @@ namespace efficient_DST{
 					}
 				}
 			}else{
-				if (set & cursor == 0){
+				if ((set & cursor) == 0){
 					++depth;
 					cursor <<= 1;
 					if(leaf->left){
@@ -1380,7 +1352,7 @@ namespace efficient_DST{
 				std::bitset<N> mask = (const std::bitset<N>) cursor;
 				tile_set_bit(mask, depth, leaf->depth);
 				cursor <<= leaf->depth - depth;
-				if (mask & set & ~(leaf->set | cursor) != 0){
+				if ((mask & set & ~(leaf->set | cursor)) != 0){
 					return;
 				}
 				////////////////////////////
@@ -1398,7 +1370,7 @@ namespace efficient_DST{
 				if(!leaf->is_null){
 					superset_values[leaf->cardinality].emplace_back(leaf);
 				}
-				if (final_depth != depth || (set & cursor == 0)){
+				if (final_depth != depth || ((set & cursor) == 0)){
 					++depth;
 					cursor <<= 1;
 					if(leaf->left){
@@ -1415,7 +1387,7 @@ namespace efficient_DST{
 					}
 				}
 			}else{
-				if (set & cursor == 0){
+				if ((set & cursor) == 0){
 					++depth;
 					cursor <<= 1;
 					if(leaf->left){

@@ -71,6 +71,9 @@ namespace efficient_DST{
 					if(emptyset){
 						emptyset->value *= A->value;
 					}else{
+						// if there is no emptyset in definition, this means that its associated value is 1.
+						// Thus, as above, nullifying A implies multiplying 1 with A->value,
+						// which translates here to inserting A->value at emptyset.
 						this->definition.insert(std::bitset<N>(0), A->value);
 					}
 				}
@@ -84,21 +87,17 @@ namespace efficient_DST{
 
 		static void compute_emptyset_value_from_definition(powerset_btree<T, N>& definition){
 			std::bitset<N> emptyset = 0;
-			const std::vector<set_N_value<T, N>* >& focal_log_elements = definition.strict_supersets_of(emptyset);
+			const std::vector<set_N_value<T, N>* >& focal_log_elements = definition.elements();
 			T val = 1;
 			for (size_t i = 0; i < focal_log_elements.size(); ++i){
-				val /= focal_log_elements[i]->value;
+				if (focal_log_elements[i]->set != emptyset)
+					val /= focal_log_elements[i]->value;
 			}
-			set_N_value<T, N>* emptyset_set_N_value = definition.sub_fod_of_size(0);
-			if(emptyset_set_N_value){
-				emptyset_set_N_value->value = val;
-			}else{
-				definition.insert(emptyset, val);
-			}
+			definition.update_or_insert(emptyset, val);
 		}
 
 		template <class fusion_rule>
-		disjunctive_weight<T, N> apply(const disjunctive_weight<T, N>& v2) const {
+		disjunctive_weight<T, N> fuse_with(const disjunctive_weight<T, N>& v2) const {
 			const fusion_rule fusion;
 			return fusion(*this, v2);
 		}
