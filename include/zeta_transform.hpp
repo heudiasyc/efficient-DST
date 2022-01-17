@@ -51,11 +51,11 @@ namespace efficient_DST{
 			original_operation(operation_t::addition),
 			order_relation(order_relation)
 		{
-			computation_scheme<T, N>::extract_semilattice_support(
-				powerset_values,
-				this->definition,
-				order_relation
-			);
+//			computation_scheme<T, N>::extract_semilattice_support(
+//				powerset_values,
+//				this->definition,
+//				order_relation
+//			);
 			computation_scheme<T, N>::set_semilattice_computation_scheme(
 					this->definition,
 					order_relation,
@@ -269,24 +269,24 @@ namespace efficient_DST{
 
 
 		void set_definition_by_cardinality(){
-			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > definition_card_map = this->definition.elements_by_set_cardinality();
-			if (this->order_relation == order_relation_t::subset) {
-				this->definition.get_FOD()->sort_cardinalities(this->ordered_cardinalities_in_definition, definition_card_map, order_t::descending);
-			}else{
-				this->definition.get_FOD()->sort_cardinalities(this->ordered_cardinalities_in_definition, definition_card_map, order_t::ascending);
-			}
-
-			this->definition_by_cardinality.reserve(this->ordered_cardinalities_in_definition.size());
-
-			for(size_t c = 0; c < this->ordered_cardinalities_in_definition.size(); ++c){
-				this->definition_by_cardinality.emplace(std::piecewise_construct, std::make_tuple(this->ordered_cardinalities_in_definition[c]),
-						std::make_tuple(this->definition.get_FOD(), this->definition.get_block_size()));
-				powerset_btree<set_N_value<T, N>*, N >& p_c = this->definition_by_cardinality[this->ordered_cardinalities_in_definition[c]];
-				const std::vector<set_N_value<T, N>* >& elements = definition_card_map[this->ordered_cardinalities_in_definition[c]];
-				for(size_t i = 0; i < elements.size(); ++i){
-					p_c.insert(elements[i]->set, elements[i]);
-				}
-			}
+//			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > definition_card_map = this->definition.elements_by_set_cardinality();
+//			if (this->order_relation == order_relation_t::subset) {
+//				this->definition.get_FOD()->sort_cardinalities(this->ordered_cardinalities_in_definition, definition_card_map, order_t::descending);
+//			}else{
+//				this->definition.get_FOD()->sort_cardinalities(this->ordered_cardinalities_in_definition, definition_card_map, order_t::ascending);
+//			}
+//
+//			this->definition_by_cardinality.reserve(this->ordered_cardinalities_in_definition.size());
+//
+//			for(size_t c = 0; c < this->ordered_cardinalities_in_definition.size(); ++c){
+//				this->definition_by_cardinality.emplace(std::piecewise_construct, std::make_tuple(this->ordered_cardinalities_in_definition[c]),
+//						std::make_tuple(this->definition.get_FOD(), this->definition.get_block_size()));
+//				powerset_btree<set_N_value<T, N>*, N >& p_c = this->definition_by_cardinality[this->ordered_cardinalities_in_definition[c]];
+//				const std::vector<set_N_value<T, N>* >& elements = definition_card_map[this->ordered_cardinalities_in_definition[c]];
+//				for(size_t i = 0; i < elements.size(); ++i){
+//					p_c.insert(elements[i]->set, elements[i]);
+//				}
+//			}
 		}
 	};
 }	// namespace efficient_DST

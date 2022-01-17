@@ -434,6 +434,23 @@ namespace efficient_DST{
 			}
 		}
 
+		set_N_value<T, N>* insert_or_update_if_null(const std::bitset<N>& set, const T& value){
+			set_N_value<T, N>* inserted_node = find(set);
+			if (inserted_node){
+				if (inserted_node->is_null){
+					inserted_node->is_null = false;
+					++this->number_of_non_null_values;
+					++this->cardinality_distribution_non_null[inserted_node->cardinality];
+					inserted_node->value = value;
+				}else{
+					return nullptr;
+				}
+			}else{
+				inserted_node = insert(set, value);
+			}
+			return inserted_node;
+		}
+
 		set_N_value<T, N>* update_or_insert(const std::bitset<N>& set, const T& value){
 			set_N_value<T, N>* inserted_node = find(set);
 			if (inserted_node){
@@ -653,10 +670,8 @@ namespace efficient_DST{
 			);
 		}
 
-		std::map<size_t, std::vector<set_N_value<T, N>* > > elements_by_set_cardinality(
-				const std::binary_function<size_t, size_t, bool>& comp
-			) const {
-			std::map<size_t, std::vector<set_N_value<T, N>* >, comp > all_values;
+		std::map<size_t, std::vector<set_N_value<T, N>* >, std::less<size_t> > elements_by_ascending_cardinality() const {
+			std::map<size_t, std::vector<set_N_value<T, N>* >, std::less<size_t> > all_values;
 			DEBUG_TREE(std::clog << "\nAll elements in tree by cardinality:\nEMPTYSET : ";);
 			if(this->emptyset->is_null){
 				DEBUG_TREE(std::clog << "null";);
@@ -665,7 +680,22 @@ namespace efficient_DST{
 				all_values.emplace(0, (std::vector<set_N_value<T, N>* >) {this->emptyset});
 			}
 			DEBUG_TREE(std::clog << "\n[0]\t. : ";);
-			elements_by_cardinality(this->root, all_values);
+			elements_by_ascending_cardinality(this->root, all_values);
+			DEBUG_TREE(std::clog << std::endl;);
+			return all_values;
+		}
+
+		std::map<size_t, std::vector<set_N_value<T, N>* >, std::greater<size_t> > elements_by_descending_cardinality() const {
+			std::map<size_t, std::vector<set_N_value<T, N>* >, std::greater<size_t> > all_values;
+			DEBUG_TREE(std::clog << "\nAll elements in tree by cardinality:\nEMPTYSET : ";);
+			if(this->emptyset->is_null){
+				DEBUG_TREE(std::clog << "null";);
+			}else{
+				DEBUG_TREE(std::clog << this->emptyset->value;);
+				all_values.emplace(0, (std::vector<set_N_value<T, N>* >) {this->emptyset});
+			}
+			DEBUG_TREE(std::clog << "\n[0]\t. : ";);
+			elements_by_descending_cardinality(this->root, all_values);
 			DEBUG_TREE(std::clog << std::endl;);
 			return all_values;
 		}
@@ -726,21 +756,21 @@ namespace efficient_DST{
 			return subset_values;
 		}
 
-		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > subsets_of_by_cardinality(const std::bitset<N>& set) const {
-			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > subset_values;
-			if(!this->emptyset->is_null){
-				subset_values[0].emplace_back(this->emptyset);
-			}
-			if(set != 0){
-				subset_values.reserve(N);
-
-				for (size_t i = 0; i < N; ++i) {
-					subset_values[i].reserve(this->cardinality_distribution_non_null[i]);
-				}
-				subsets_of(set, get_final_element_number(set), subset_values, 0, (std::bitset<N>) 1, this->root);
-			}
-			return subset_values;
-		}
+//		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > subsets_of_by_cardinality(const std::bitset<N>& set) const {
+//			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > subset_values;
+//			if(!this->emptyset->is_null){
+//				subset_values[0].emplace_back(this->emptyset);
+//			}
+//			if(set != 0){
+//				subset_values.reserve(N);
+//
+//				for (size_t i = 0; i < N; ++i) {
+//					subset_values[i].reserve(this->cardinality_distribution_non_null[i]);
+//				}
+//				subsets_of(set, get_final_element_number(set), subset_values, 0, (std::bitset<N>) 1, this->root);
+//			}
+//			return subset_values;
+//		}
 
 		/////////////////////////////////////////
 
@@ -759,24 +789,24 @@ namespace efficient_DST{
 			return superset_values;
 		}
 
-		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > supersets_of_by_cardinality(const std::bitset<N>& set) const {
-			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > superset_values;
-			superset_values.reserve(N);
-
-			for (size_t i = 0; i < N; ++i) {
-				superset_values[i].reserve(this->cardinality_distribution_non_null[i]);
-			}
-
-			if(set == 0){
-				if(!this->emptyset->is_null){
-					superset_values[0].emplace_back(this->emptyset);
-				}
-				elements_by_cardinality(this->root, superset_values);
-			}else{
-				supersets_of(set, get_final_element_number(set), superset_values, 0, (std::bitset<N>) 1, this->root);
-			}
-			return superset_values;
-		}
+//		std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > supersets_of_by_cardinality(const std::bitset<N>& set) const {
+//			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > superset_values;
+//			superset_values.reserve(N);
+//
+//			for (size_t i = 0; i < N; ++i) {
+//				superset_values[i].reserve(this->cardinality_distribution_non_null[i]);
+//			}
+//
+//			if(set == 0){
+//				if(!this->emptyset->is_null){
+//					superset_values[0].emplace_back(this->emptyset);
+//				}
+//				elements_by_cardinality(this->root, superset_values);
+//			}else{
+//				supersets_of(set, get_final_element_number(set), superset_values, 0, (std::bitset<N>) 1, this->root);
+//			}
+//			return superset_values;
+//		}
 
 	protected:
 
@@ -1052,7 +1082,7 @@ namespace efficient_DST{
 		/////////////////////////////////////////
 
 
-		static void elements_by_cardinality(node<T, N>* leaf, std::unordered_map<size_t, std::vector<set_N_value<T, N>* > >& all_values) {
+		static void elements_by_ascending_cardinality(node<T, N>* leaf, std::map<size_t, std::vector<set_N_value<T, N>* >, std::less<size_t> >& all_values) {
 
 			if(!leaf->is_null){
 				all_values[leaf->cardinality].emplace_back(leaf);
@@ -1079,7 +1109,7 @@ namespace efficient_DST{
 					}
 					std::clog << "\n" << "[" << leaf->left->depth << "]\t" << tab << " : ";
 				});
-				elements_by_cardinality(leaf->left, all_values);
+				elements_by_ascending_cardinality(leaf->left, all_values);
 			}
 
 			if(leaf->right){
@@ -1096,7 +1126,55 @@ namespace efficient_DST{
 					}
 					std::clog << "\n" << "[" << leaf->right->depth << "]\t" << tab << " : ";
 				});
-				elements_by_cardinality(leaf->right, all_values);
+				elements_by_ascending_cardinality(leaf->right, all_values);
+			}
+		}
+
+		static void elements_by_descending_cardinality(node<T, N>* leaf, std::map<size_t, std::vector<set_N_value<T, N>* >, std::greater<size_t> >& all_values) {
+
+			if(!leaf->is_null){
+				all_values[leaf->cardinality].emplace_back(leaf);
+			}
+			DEBUG_TREE({
+				if(leaf->is_null)
+					std::clog << "null";
+				else
+					std::clog << leaf->value;
+			});
+
+
+			if(leaf->left){
+				DEBUG_TREE({
+					std::string tab = "";
+					for (size_t i = 0; i < leaf->depth; ++i) {
+						tab += "|";
+					}
+					if(leaf->depth > 0)
+						tab += "";
+					tab += "-";
+					for (size_t i = leaf->depth; i < leaf->left->depth; ++i) {
+						tab += ".";
+					}
+					std::clog << "\n" << "[" << leaf->left->depth << "]\t" << tab << " : ";
+				});
+				elements_by_descending_cardinality(leaf->left, all_values);
+			}
+
+			if(leaf->right){
+				DEBUG_TREE({
+					std::string tab = "";
+					for (size_t i = 0; i < leaf->depth; ++i) {
+						tab += "|";
+					}
+					if(leaf->depth > 0)
+						tab += "";
+					tab += "+";
+					for (size_t i = leaf->depth; i < leaf->right->depth; ++i) {
+						tab += ".";
+					}
+					std::clog << "\n" << "[" << leaf->right->depth << "]\t" << tab << " : ";
+				});
+				elements_by_descending_cardinality(leaf->right, all_values);
 			}
 		}
 

@@ -14,22 +14,22 @@ namespace efficient_DST{
 			T sum = 0;
 
 			if (singleton){
-				const std::unordered_map<size_t, std::vector<set_N_value<T, N>* > >& cardinality_map = this->source_mass.get_definition().supersets_of_by_cardinality(setA);
+				const std::vector<set_N_value<T, N>* >& supersets = this->source_mass.get_definition().supersets_of(setA);
 
-				for (auto kv : cardinality_map) {
-					for (size_t i = 0; i < kv.second.size(); ++i) {
-						sum += kv.second[i]->value / kv.first;
-					}
+				for (size_t i = 0; i < supersets.size(); ++i) {
+					sum += supersets[i]->value / supersets[i]->cardinality;
 				}
 			}else{
-				const std::unordered_map<size_t, std::vector<set_N_value<T, N>* > >& cardinality_map = this->source_mass.get_definition().elements_by_set_cardinality();
+				const std::map<size_t, std::vector<set_N_value<T, N>* >, std::less<size_t> >& cardinality_map = this->source_mass.get_definition().elements_by_ascending_cardinality();
 
 				for (auto kv : cardinality_map) {
-					for (size_t i = 0; i < kv.second.size(); ++i) {
-						const set_N_value<T, N>* B = kv.second[i];
-						const std::bitset<N>& intersection = setA & B->set;
+					if (kv.first != 0) {
+						for (size_t i = 0; i < kv.second.size(); ++i) {
+							const set_N_value<T, N>* B = kv.second[i];
+							const std::bitset<N>& intersection = setA & B->set;
 
-						sum += B->value * intersection.count() / kv.first;
+							sum += B->value * intersection.count() / kv.first;
+						}
 					}
 				}
 			}
