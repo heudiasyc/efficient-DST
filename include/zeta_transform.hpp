@@ -6,88 +6,29 @@
 #include <time.h>
 
 #include <powerset_function.hpp>
-#include <computation_scheme.hpp>
+#include <mobius_inversion.hpp>
 
 
 namespace efficient_DST{
 
-	template <class T, size_t N>
+	template <class T, size_t N, class inclusion, class value_inplace_operation>
 	class zeta_transform : public powerset_function<T, N> {
 	protected:
 		scheme_type_t scheme_type;
-		//std::vector<size_t> iota_fiber_sequence;	// fod element indices
 		std::vector<std::bitset<N> > iota_sequence;
 		powerset_btree<T, N> original_mobius_transform;
-		operation_t original_operation;
-		std::unordered_map<size_t, powerset_btree<set_N_value<T, N>*, N > > definition_by_cardinality;
-		std::vector<size_t> ordered_cardinalities_in_definition;
+		std::map<size_t, powerset_btree<set_N_value<T, N>*, N > > definition_by_cardinality;
 
 	public:
 		const order_relation_t order_relation;
 
-		zeta_transform(const zeta_transform<T, N>& z) :
+		zeta_transform(const zeta_transform<T, N, inclusion, value_inplace_operation>& z) :
 			powerset_function<T, N>(z.definition),
 			scheme_type(z.scheme_type),
+			iota_sequence(z.iota_sequence),
 			original_mobius_transform(z.original_mobius_transform),
-			original_operation(z.original_operation),
-			definition_by_cardinality(z.definition_by_cardinality),
-			order_relation(z.order_relation)
+			definition_by_cardinality(z.definition_by_cardinality)
 		{}
-
-
-		/*
-		 * Constructor when you have a zeta transform such as the commonality or implicability ones without knowledge about its focal points.
-		 * - powerset_values contains all images for the whole powerset of FOD.
-		 * - fod is the corresponding FOD.
-		 * - order_relation is the order relation of this zeta transform (e.g. commonality->superset or implicability->subset).
-		 */
-		zeta_transform(
-				const std::vector<T>& powerset_values,
-				FOD<N>& fod,
-				const order_relation_t& order_relation) :
-			powerset_function<T, N>(&fod, powerset_values.size()),
-			scheme_type(scheme_type_t::semilattice),
-			original_mobius_transform(&fod, powerset_function<T, N>::block_size),
-			original_operation(operation_t::addition),
-			order_relation(order_relation)
-		{
-//			computation_scheme<T, N>::extract_semilattice_support(
-//				powerset_values,
-//				this->definition,
-//				order_relation
-//			);
-			computation_scheme<T, N>::set_semilattice_computation_scheme(
-					this->definition,
-					order_relation,
-					this->iota_sequence
-			);
-			set_definition_by_cardinality();
-		}
-
-
-		/*
-		 * Constructor when you have a zeta transform such as the commonality or implicability ones AND know its focal points.
-		 * - focal_points_tree is supposed to contain all focal points and their image.
-		 * - order_relation is the order relation of this zeta transform (e.g. commonality->superset or implicability->subset).
-		 */
-		zeta_transform(
-				const powerset_btree<T, N>& focal_points_tree,
-				const order_relation_t& order_relation) :
-			powerset_function<T, N>(focal_points_tree.get_FOD(), focal_points_tree.size()),
-			scheme_type(scheme_type_t::semilattice),
-			original_mobius_transform(focal_points_tree.get_FOD(), focal_points_tree.get_block_size()),
-			original_operation(operation_t::addition),
-			order_relation(order_relation)
-		{
-			computation_scheme<T, N>::set_semilattice_computation_scheme(
-					this->definition,
-					order_relation,
-					this->iota_sequence
-					//this->iota_fiber_sequence
-			);
-			set_definition_by_cardinality();
-		}
-
 
 		/*
 		 * Constructor when you have a Möbius transform such as the mass or conjunctive/disjunctive weight function AND you want a specific computation scheme.
@@ -99,23 +40,18 @@ namespace efficient_DST{
 		 */
 		zeta_transform(
 				const powerset_btree<T, N>& support,
-				const order_relation_t& order_relation,
-				const operation_t& transform_operation,
 				const scheme_type_t scheme_type) :
 			powerset_function<T, N>(support.get_FOD(), N * support.size()),
 			scheme_type(scheme_type),
-			original_mobius_transform(support),
-			original_operation(transform_operation),
-			order_relation(order_relation)
+			original_mobius_transform(support)
 		{
-			computation_scheme<T, N>::build_and_execute(
+			// TODO: separate autoset from build to allow to build and execute without autoset
+			efficient_mobius_inversion<
+				T, N, inclusion, zeta_tranformation<T, N>, value_inplace_operation
+			>::build_and_execute(
 					support,
 					this->definition,
-					transform_type_t::zeta,
-					order_relation,
-					transform_operation,
 					this->iota_sequence,
-					//this->iota_fiber_sequence,
 					this->scheme_type
 			);
 			set_definition_by_cardinality();
@@ -129,44 +65,49 @@ namespace efficient_DST{
 		 * - transform_operation is the operation of the zeta transform (e.g. in DST, we usually use the addition on the mass function
 		 * and the multiplication on the conjunctive/disjunctive weight function).
 		 */
-		zeta_transform(
-				const powerset_btree<T, N>& support,
-				const order_relation_t& order_relation,
-				const operation_t& transform_operation) :
+		zeta_transform(const powerset_btree<T, N>& support) :
 			powerset_function<T, N>(support.get_FOD(), N * support.size()),
 			scheme_type(scheme_type_t::direct),
-			original_mobius_transform(support),
-			original_operation(transform_operation),
-			order_relation(order_relation)
+			original_mobius_transform(support)
 		{
-			computation_scheme<T, N>::autoset_and_build(
+			this->scheme_type = efficient_mobius_inversion<
+				T, N, inclusion, zeta_tranformation<T, N>, value_inplace_operation
+			>::autoset_and_build(
 					support,
 					this->definition,
-					this->order_relation,
-					transform_operation,
-					this->iota_sequence,
-					//this->iota_fiber_sequence,
-					this->scheme_type
+					this->iota_sequence
 			);
-			computation_scheme<T, N>::execute(
+
+			efficient_mobius_inversion<
+				T, N, inclusion, zeta_tranformation<T, N>, value_inplace_operation
+			>::execute(
 					this->definition,
-					transform_type_t::zeta,
-					this->order_relation,
-					transform_operation,
 					this->iota_sequence,
-					//this->iota_fiber_sequence,
 					this->scheme_type
 			);
 			set_definition_by_cardinality();
 		}
 
 
-		powerset_btree<T, N> inversion(const operation_t& transform_operation) const {
+		powerset_btree<T, N> additive_inversion() const {
 			if (transform_operation == this->original_operation && this->original_mobius_transform.size() > 0){
 				//return this->original_mobius_transform;
 			}
 			powerset_btree<T, N> mobius_transform_definition(this->definition);
-			computation_scheme<T, N>::execute(
+			mobius_inversion<T, N, inclusion, mobius_additive_operation<T> >::execute(
+					mobius_transform_definition,
+					this->iota_sequence,
+					this->scheme_type
+			);
+			return mobius_transform_definition;
+		}
+
+		powerset_btree<T, N> multiplicative_inversion() const {
+			if (zeta_multiplicative_operation<T> == this->original_operation && this->original_mobius_transform.size() > 0){
+				//return this->original_mobius_transform;
+			}
+			powerset_btree<T, N> mobius_transform_definition(this->definition);
+			mobius_inversion<T, N, inclusion, mobius_multiplicative_operation<T> >::execute(
 					mobius_transform_definition,
 					transform_type_t::Mobius,
 					this->order_relation,
@@ -259,11 +200,7 @@ namespace efficient_DST{
 			if (A){
 				return A->value->value;
 			}else{
-				if(this->original_operation == operation_t::addition){
-					return 0;
-				}else{
-					return 1;
-				}
+				return value_inplace_operation::neutral_value;
 			}
 		}
 

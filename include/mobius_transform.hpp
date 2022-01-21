@@ -3,6 +3,7 @@
 
 #include <powerset_function.hpp>
 #include <zeta_transform.hpp>
+#include <mobius_inversion.hpp>
 
 namespace efficient_DST{
 
@@ -16,8 +17,10 @@ namespace efficient_DST{
 		mobius_transform(FOD<N>& fod) : powerset_function<T, N>(fod)
 		{}
 
-		mobius_transform(const zeta_transform<T, N>& z, operation_t transform_operation) : powerset_function<T, N>(z.inversion(transform_operation))
-		{}
+//		mobius_transform(
+//			const zeta_transform<T, N, up_inclusion<T, N>, mobius_additive_operation<T> >& z
+//		) : powerset_function<T, N>(z.additive_inversion())
+//		{}
 
 		void clear() {
 			this->definition.nullify();
