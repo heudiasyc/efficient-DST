@@ -16,8 +16,8 @@ namespace efficient_DST{
 		}
 
 		mass<T, N> operator()(const mass<T, N>& m1, const mass<T, N>& m2) const {
-			zeta_transform<T, N> q1(m1.get_definition(), order_relation_t::superset, operation_t::addition);
-			zeta_transform<T, N> q2(m2.get_definition(), order_relation_t::superset, operation_t::addition);
+			zeta_transform<T, N, up_inclusion<T, N> > q1(m1.get_definition(), operation_type_t::addition);
+			zeta_transform<T, N, up_inclusion<T, N> > q2(m2.get_definition(), operation_type_t::addition);
 			commonality<T, N> q12 = operator()(*(commonality<T, N>*) &q1, *(commonality<T, N>*) &q2);
 			return mass<T, N>(q12);
 		}

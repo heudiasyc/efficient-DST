@@ -124,9 +124,8 @@ namespace efficient_DST{
 			return 0;
 		}
 
-		template<class operation>
-		static inline void FMT_operation(const T& a, T& b) {
-			operation(b, a);
+		static inline std::bitset<N> FMT_target(const std::bitset<N>& set) {
+			return ~set;
 		}
 
 		static inline std::bitset<N> set_operation(const std::bitset<N>& a, const std::bitset<N>& b){
@@ -135,6 +134,10 @@ namespace efficient_DST{
 
 		static inline std::bitset<N> set_dual_operation(const std::bitset<N>& a, const std::bitset<N>& b){
 			return a | b;
+		}
+
+		static inline bool naturally_ranked(const size_t a, const size_t& b){
+			return a >= b;
 		}
 
 		static inline std::map<size_t, std::vector<set_N_value<T, N>* >, std::greater<size_t> > card_mapping(const powerset_btree<T, N>& tree){
@@ -149,7 +152,15 @@ namespace efficient_DST{
 			return tree.supersets_of(set);
 		}
 
+		static inline std::vector<set_N_value<set_N_value<T, N>*, N>* > addresses_related_to(const powerset_btree<set_N_value<T, N>*, N>& tree, const std::bitset<N>& set){
+			return tree.supersets_of(set);
+		}
+
 		static inline std::vector<set_N_value<T, N>* > elements_dually_related_to(const powerset_btree<T, N>& tree, const std::bitset<N>& set){
+			return tree.subsets_of(set);
+		}
+
+		static inline std::vector<set_N_value<bool, N>* > sets_dually_related_to(const powerset_btree<bool, N>& tree, const std::bitset<N>& set){
 			return tree.subsets_of(set);
 		}
 
@@ -185,9 +196,8 @@ namespace efficient_DST{
 			return 1;
 		}
 
-		template<class operation>
-		static inline void FMT_operation(T& a, const T& b) {
-			operation(a, b);
+		static inline std::bitset<N> FMT_target(const std::bitset<N>& set) {
+			return set;
 		}
 
 		static inline std::bitset<N> set_operation(const std::bitset<N>& a, const std::bitset<N>& b){
@@ -198,11 +208,15 @@ namespace efficient_DST{
 			return a & b;
 		}
 
-		static inline std::map<size_t, std::vector<set_N_value<T, N>* >, std::greater<size_t> > card_mapping(const powerset_btree<T, N>& tree){
+		static inline bool naturally_ranked(const size_t a, const size_t& b){
+			return a <= b;
+		}
+
+		static inline std::map<size_t, std::vector<set_N_value<T, N>* >, std::less<size_t> > card_mapping(const powerset_btree<T, N>& tree){
 			return tree.elements_by_ascending_cardinality();
 		}
 
-		static inline std::map<size_t, std::vector<set_N_value<T, N>* >, std::less<size_t> > card_mapping_dual(const powerset_btree<T, N>& tree){
+		static inline std::map<size_t, std::vector<set_N_value<T, N>* >, std::greater<size_t> > card_mapping_dual(const powerset_btree<T, N>& tree){
 			return tree.elements_by_descending_cardinality();
 		}
 
@@ -210,7 +224,15 @@ namespace efficient_DST{
 			return tree.subsets_of(set);
 		}
 
+		static inline std::vector<set_N_value<set_N_value<T, N>*, N>* > addresses_related_to(const powerset_btree<set_N_value<T, N>*, N>& tree, const std::bitset<N>& set){
+			return tree.subsets_of(set);
+		}
+
 		static inline std::vector<set_N_value<T, N>* > elements_dually_related_to(const powerset_btree<T, N>& tree, const std::bitset<N>& set){
+			return tree.supersets_of(set);
+		}
+
+		static inline std::vector<set_N_value<bool, N>* > sets_dually_related_to(const powerset_btree<bool, N>& tree, const std::bitset<N>& set){
 			return tree.supersets_of(set);
 		}
 
@@ -224,9 +246,43 @@ namespace efficient_DST{
 	};
 
 	template<typename T>
+	struct addition {
+
+//		static constexpr T neutral_value = 0;
+		static inline T neutral_value() {
+			return 0;
+		}
+
+		static inline void zeta(T& a, const T& b) {
+			a += b;
+		}
+
+		static inline void mobius(T& a, const T& b) {
+			a -= b;
+		}
+	};
+
+	template<typename T>
+	struct multiplication {
+
+//		static constexpr T neutral_value = 1;
+		static inline T neutral_value() {
+			return 1;
+		}
+
+		static inline void zeta(T& a, const T& b) {
+			a *= b;
+		}
+
+		static inline void mobius(T& a, const T& b) {
+			a /= b;
+		}
+	};
+
+	template<typename T>
 	struct zeta_additive_operation {
 
-		static const T neutral_value = 0;
+		static constexpr T neutral_value = 0;
 
 		void operator()(T& a, const T& b) const {
 			a += b;
@@ -236,7 +292,7 @@ namespace efficient_DST{
 	template<typename T>
 	struct mobius_additive_operation {
 
-		static const T neutral_value = 0;
+		static constexpr T neutral_value = 0;
 
 		void operator()(T& a, const T& b) const {
 			a -= b;
@@ -246,7 +302,7 @@ namespace efficient_DST{
 	template<typename T>
 	struct zeta_multiplicative_operation {
 
-		static const T neutral_value = 1;
+		static constexpr T neutral_value = 1;
 
 		void operator()(T& a, const T& b) const {
 			a *= b;
@@ -256,15 +312,24 @@ namespace efficient_DST{
 	template<typename T>
 	struct mobius_multiplicative_operation {
 
-		static const T neutral_value = 1;
+		static constexpr T neutral_value = 1;
 
 		void operator()(T& a, const T& b) const {
 			a /= b;
 		}
 	};
 
-	template<typename T, size_t N>
+	template<typename T, size_t N, class inclusion, class operation_type>
 	struct zeta_tranformation {
+
+//		static constexpr T neutral_value = operation_type::neutral_value;
+		static inline T neutral_value() {
+			return operation_type::neutral_value();
+		}
+
+		static inline void value_inplace_operation(T& a, const T& b) {
+			operation_type::zeta(a, b);
+		}
 
 		static inline size_t subgraph_index(const size_t& n, const size_t& i){
 			return n - i;
@@ -274,7 +339,7 @@ namespace efficient_DST{
 			return i;
 		}
 
-		template<class inclusion, class value_inplace_operation>
+		//template<class inclusion, class value_inplace_operation>
 		static void execute_direct_transformation(
 				powerset_btree<T, N>& focal_points_tree
 		){
@@ -314,11 +379,11 @@ namespace efficient_DST{
 //			preceding_value = value;
 //		}
 
-		template<class inclusion, class value_inplace_operation>
+		//template<class inclusion, class value_inplace_operation>
 		static void execute_consonant_transformation(
 				powerset_btree<T, N>& support
 		) {
-			T value, preceding_value = value_inplace_operation::neutral_value;
+			T preceding_value = operation_type::neutral_value();
 			/*
 			std::binary_function<size_t, size_t, bool> comp;
 			if(order_relation == order_relation_t::subset){
@@ -349,8 +414,18 @@ namespace efficient_DST{
 
 	};
 
-	template<typename T, size_t N>
+	template<typename T, size_t N, class inclusion, class operation_type>
 	struct mobius_tranformation {
+
+//		static constexpr T neutral_value = operation_type::neutral_value;
+		static inline T neutral_value() {
+			return operation_type::neutral_value();
+		}
+
+		static inline void value_inplace_operation(T& a, const T& b) {
+			operation_type::mobius(a, b);
+		}
+
 		static inline size_t subgraph_index(const size_t& n, const size_t& i){
 			return i;
 		}
@@ -359,7 +434,7 @@ namespace efficient_DST{
 			return n - i;
 		}
 
-		template<class inclusion, class value_inplace_operation>
+		//template<class inclusion, class value_inplace_operation>
 		static void execute_direct_transformation(
 				powerset_btree<T, N>& focal_points_tree
 		){
@@ -381,10 +456,10 @@ namespace efficient_DST{
 			const auto& focal_points_card_map = inclusion::card_mapping(focal_points_tree);
 			T val;
 			for (const auto& c_focal_points : focal_points_card_map) {
-				const std::vector<std::bitset<N> >& focal_points = c_focal_points.second;
+				const std::vector<set_N_value<T, N>* >& focal_points = c_focal_points.second;
 				for (size_t i = 0; i < focal_points.size(); ++i) {
 					val = focal_points[i]->value;
-					const std::vector<set_N_value<T, N>* >& elements = inclusion::elements_related_to(focal_points[i]->set);
+					const std::vector<set_N_value<T, N>* >& elements = inclusion::elements_related_to(focal_points_tree, focal_points[i]->set);
 					for (size_t ii = 0; ii < elements.size(); ++ii) {
 						if (elements[ii]->set != focal_points[i]->set){
 							value_inplace_operation(val, elements[ii]->value);
@@ -403,11 +478,11 @@ namespace efficient_DST{
 //			preceding_value = old_value;
 //		}
 
-		template<class inclusion, class value_inplace_operation>
+		//template<class inclusion, class value_inplace_operation>
 		static void execute_consonant_transformation(
 				powerset_btree<T, N>& support
 		) {
-			T value, preceding_value = value_inplace_operation::neutral_value;
+			T preceding_value = operation_type::neutral_value();
 			/*
 			std::binary_function<size_t, size_t, bool> comp;
 			if(order_relation == order_relation_t::subset){
@@ -438,7 +513,7 @@ namespace efficient_DST{
 		}
 	};
 
-	template<typename T, size_t N, class inclusion, class transformation, class value_inplace_operation>
+	template<typename T, size_t N, class inclusion, class transformation>
 	struct efficient_mobius_inversion {
 
 		static bool try_linear_focal_points_computation (
@@ -456,15 +531,17 @@ namespace efficient_DST{
 			std::bitset<N> U = elements[0]->set;
 			DEBUG(std::clog << "\nU = "<< elements[0]->set;);
 
+			set_N_value<T, N>* newly_inserted_address;
+
 			for (size_t i = 1; i < elements.size(); ++i) {
 				const std::bitset<N>& A = elements[i]->set;
 				if (A != dual_absorbing_set){
 					DEBUG(std::clog << "\nI = set_operation(U, "<< A << ")\n";);
 					const std::bitset<N>& I = inclusion::set_operation(U, A);
 
-					const set_N_value<T, N>*& newly_inserted_address = focal_points_tree.insert_or_update_if_null(
+					newly_inserted_address = focal_points_tree.insert_or_update_if_null(
 						I,
-						value_inplace_operation::neutral_value
+						transformation::neutral_value()
 					);
 					if (newly_inserted_address && newly_inserted_address->cardinality > 1){
 						DEBUG(std::clog << newly_inserted_address->cardinality << "=> Linear focal points computation aborted.\n";);
@@ -473,9 +550,9 @@ namespace efficient_DST{
 					U = inclusion::set_dual_operation(U, A);
 				}
 			}
-			const set_N_value<T, N>*& newly_inserted_address = focal_points_tree.insert_or_update_if_null(
-					absorbing_set,
-				value_inplace_operation::neutral_value
+			focal_points_tree.insert_or_update_if_null(
+				absorbing_set,
+				transformation::neutral_value()
 			);
 			return true;
 		}
@@ -483,7 +560,7 @@ namespace efficient_DST{
 		static void execute_direct_transformation(
 			powerset_btree<T, N>& focal_points_tree
 		) {
-			transformation::execute_direct_transformation<inclusion, value_inplace_operation>(focal_points_tree);
+			transformation::execute_direct_transformation(focal_points_tree);
 		}
 
 		static bool consonance_check(
@@ -501,7 +578,7 @@ namespace efficient_DST{
 				if (support_elements.size() > 1){
 					return false;
 				}
-				if(previous_set & support_elements[0]->set != previous_set){
+				if((previous_set & support_elements[0]->set) != previous_set){
 					return false;
 				}
 				previous_set = support_elements[0]->set;
@@ -512,64 +589,27 @@ namespace efficient_DST{
 		static void execute_consonant_transformation(
 			powerset_btree<T, N>& support
 		) {
-			transformation::execute_consonant_transformation<inclusion, value_inplace_operation>(support);
+			transformation::execute_consonant_transformation(support);
 		}
 
-		static void execute_FMT_reduced_to_core(
-				powerset_btree<T, N>& transform
+		static powerset_btree<T, N> FMT_reduced_to_core(
+				powerset_btree<T, N>& support
 		) {
-			const std::vector<set_N_value<T, N>* >& support_elements = transform.elements();
-			std::bitset<N> core = 0;
-			for(size_t i = 0; i < support_elements.size(); ++i){
-				core |= support_elements[i]->set;
-			}
+			powerset_btree<T, N> core_reduced_powerset(support.get_FOD(), support.size());
+			const std::vector<std::bitset<N> >& iota_sequence = build_core_reduced_powerset(support, core_reduced_powerset);
 
-			//			size_t reduced_powerset_size = pow(2, core.count());
-//				powerset_btree<T, N> transform(support.get_FOD(), pow(2, core.count()));
-//				transform.copy(support);
-//			powerset_btree<T, N> transform(support.get_FOD(), reduced_powerset_size);
-			std::vector<set_N_value<T, N>* > focal_points = transform.elements();
-//			std::unordered_map<std::bitset<N>, set_N_value<T, N>* > focal_points_map;
-//			focal_points.reserve(reduced_powerset_size);
-//			focal_points_map.reserve(reduced_powerset_size);
-//
-//			for (size_t i = 0; i < support_elements.size(); ++i){
-//				focal_points.emplace_back(support_elements[i]->set);
-//				focal_points_map.emplace(support_elements[i]->set, transform.insert(support_elements[i]->set, support_elements[i]->value));
-//			}
-
-			size_t i = core._Find_first();
-			while(i < N){
-				for (size_t e = 0; e < focal_points.size(); ++e) {
-					std::bitset<N> new_set = (const std::bitset<N>&) focal_points[e]->set;
-					new_set.set(i, true);
-					set_N_value<T, N>* node = transform.find(new_set);
-					if (!node){
-						transform.insert(new_set, value_inplace_operation::neutral_value);
-					}
-				}
-				i = core._Find_next(i);
-			}
-
-			std::vector<set_N_value<T, N>* > powerset_elements = transform.elements();
-
-			i = core._Find_first();
-			while(i < N){
+			std::vector<set_N_value<T, N>* > powerset_elements = core_reduced_powerset.elements();
+			for (size_t i = 0; i < iota_sequence.size(); ++i){
 				for (size_t e = 0; e < powerset_elements.size(); ++e){
-					std::bitset<N> set_B = (const std::bitset<N>&) powerset_elements[e]->set;
-					set_B.set(i, true);
+					std::bitset<N> set_B = inclusion::set_operation(powerset_elements[e]->set, inclusion::FMT_target(iota_sequence[i]));
 
 					if (set_B != powerset_elements[e]->set){
-						set_N_value<T, N>* B = transform.find(set_B);
-
-						if (B){
-							inclusion::FMT_operation(B->second->value, powerset_elements[e]->value);
-						}
+						set_N_value<T, N>* B = core_reduced_powerset.find(set_B);
+						transformation::value_inplace_operation(B->value, powerset_elements[e]->value);
 					}
 				}
-				i = core._Find_next(i);
 			}
-//				return transform;
+			return core_reduced_powerset;
 		}
 
 		static void execute_FMT(
@@ -590,7 +630,7 @@ namespace efficient_DST{
 					sub_powerset_dual_size = pow(2, N - i);
 					for (size_t k = 0; k <= sub_powerset_dual_size-1; ++k){
 						index = (j-inclusion::target_index_offset_FMT()) * sub_powerset_dual_size + k;
-						value_inplace_operation(transform[index], transform[(j-inclusion::source_index_offset_FMT()) * sub_powerset_dual_size + k]);
+						transformation::value_inplace_operation(transform[index], transform[(j-inclusion::source_index_offset_FMT()) * sub_powerset_dual_size + k]);
 					}
 				}
 			}
@@ -635,7 +675,7 @@ namespace efficient_DST{
 
 					for (size_t i = 0; i < focal_points_with_same_size.size(); ++i){
 //						const std::vector<set_N_value<bool, N>* >& subsets = proxies_missing_targets.subsets_of(focal_points_with_same_size[i]->set);
-						const std::vector<set_N_value<bool, N>* >& proxies = inclusion::elements_dually_related_to(proxies_missing_targets, focal_points_with_same_size[i]->set);
+						const std::vector<set_N_value<bool, N>* >& proxies = inclusion::sets_dually_related_to(proxies_missing_targets, focal_points_with_same_size[i]->set);
 
 						for (size_t s = 0; s < proxies.size(); ++s){
 							bridge_map[proxies[s]->set] = focal_points_with_same_size[i];
@@ -657,7 +697,7 @@ namespace efficient_DST{
 				powerset_btree<T, N>& focal_points_tree,
 				const std::vector<std::bitset<N> >& iota_sequence
 		) {
-			clock_t t;
+			//clock_t t;
 
 			if (iota_sequence.size() == 0)
 				return;
@@ -693,7 +733,7 @@ namespace efficient_DST{
 
 //						if (coupled_set && FOD<N>::is_subset_of(coupled_set->set, focal_points[e]->set | sync_sequence[iota_index])){
 						if (coupled_set && FOD<N>::is_subset_of(coupled_set->set, inclusion::set_dual_operation(focal_points[e]->set, sync_sequence[iota_index]))){
-							value_inplace_operation(focal_points[e]->value, coupled_set->value);
+							transformation::value_inplace_operation(focal_points[e]->value, coupled_set->value);
 						}
 					}
 				}
@@ -726,7 +766,7 @@ namespace efficient_DST{
 						set_N_value<T, N>* B = lattice_support.find(set_B);
 
 						if (B){
-							value_inplace_operation(B->value, lattice_support_elements[e]->value);
+							transformation::value_inplace_operation(B->value, lattice_support_elements[e]->value);
 						}
 					}
 				}
@@ -746,13 +786,15 @@ namespace efficient_DST{
 				focal_points_tree.insert(support_elements[i]->set, support_elements[i]->value);
 			}
 
+			set_N_value<T, N>* newly_inserted_address;
+
 			for (size_t i = 0; i < support_elements.size(); ++i){
 				size_t end = focal_points.size();
 				for (size_t ii = i+1; ii < end; ++ii){
 					const std::bitset<N>& focal_point = inclusion::set_operation(support_elements[i]->set, focal_points[ii]);
-					const set_N_value<T, N>*& newly_inserted_address = focal_points_tree.insert_or_update_if_null(
+					newly_inserted_address = focal_points_tree.insert_or_update_if_null(
 						focal_point,
-						value_inplace_operation::neutral_value
+						transformation::neutral_value()
 					);
 					if (newly_inserted_address){
 						focal_points.emplace_back(focal_point);
@@ -781,13 +823,15 @@ namespace efficient_DST{
 				truncated_lattice_support.insert(elements[i]->set, elements[i]->value);
 			}
 
+			set_N_value<T, N>* newly_inserted_address;
+
 			for (size_t i = 0; i < iota_sequence.size(); ++i) {
 				size_t end = focal_points.size();
 				for (size_t ii = 0; ii < end; ++ii) {
 					const std::bitset<N>& new_set = inclusion::set_operation(iota_sequence[i], focal_points[ii]);
-					const set_N_value<T, N>*& newly_inserted_address = truncated_lattice_support.insert_or_update_if_null(
+					newly_inserted_address = truncated_lattice_support.insert_or_update_if_null(
 						new_set,
-						value_inplace_operation::neutral_value
+						transformation::neutral_value()
 					);
 					if (newly_inserted_address){
 						focal_points.emplace_back(new_set);
@@ -796,7 +840,59 @@ namespace efficient_DST{
 			}
 			DEBUG({
 				std::clog << "\nCropped lattice support: \n";
-				cropped_lattice_support.print(std::clog);
+				truncated_lattice_support.print(std::clog);
+			});
+			return iota_sequence;
+		}
+
+		static const std::vector<std::bitset<N> >& build_core_reduced_powerset(
+				const powerset_btree<T, N>& support,
+				powerset_btree<T, N>& core_reduced_powerset
+		) {
+			const std::vector<set_N_value<T, N>* >& support_elements = support.elements();
+			std::bitset<N> core = 0;
+			for(size_t i = 0; i < support_elements.size(); ++i){
+				core |= support_elements[i]->set;
+			}
+			std::vector<std::bitset<N> > iota_sequence;
+			std::bitset<N> singleton = 1;
+			for(size_t i = 0; i < N; ++i){
+				if ((singleton & core) != 0){
+					iota_sequence.emplace_back(singleton);
+				}
+				singleton <<= 1;
+			}
+
+			std::vector<std::bitset<N> > focal_points;
+			focal_points.reserve(pow(2, iota_sequence.size()));
+
+			singleton = 0;
+			set_N_value<T, N>* inserted_node = support.find(singleton);
+			if (!inserted_node || inserted_node->is_null){
+				core_reduced_powerset.insert(singleton, transformation::neutral_value());
+			}else{
+				core_reduced_powerset.insert(singleton, inserted_node->value);
+			}
+			focal_points.emplace_back(singleton);
+
+			for (size_t i = 0; i < iota_sequence.size(); ++i) {
+				size_t end = focal_points.size();
+				for (size_t ii = 0; ii < end; ++ii) {
+					const std::bitset<N>& new_set = iota_sequence[i] | focal_points[ii];
+					inserted_node = support.find(new_set);
+					if (!inserted_node || inserted_node->is_null){
+						inserted_node = core_reduced_powerset.insert_or_update_if_null(new_set, transformation::neutral_value());
+					}else{
+						inserted_node = core_reduced_powerset.insert_or_update_if_null(new_set, inserted_node->value);
+					}
+					if (inserted_node){
+						focal_points.emplace_back(new_set);
+					}
+				}
+			}
+			DEBUG({
+				std::clog << "\nCropped lattice support: \n";
+				core_reduced_powerset.print(std::clog);
 			});
 			return iota_sequence;
 		}

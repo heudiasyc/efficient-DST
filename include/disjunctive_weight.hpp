@@ -14,18 +14,14 @@ namespace efficient_DST{
 		disjunctive_weight(const disjunctive_weight<T, N>& v) : decomposition_weight<T, N>(v.get_definition())
 		{}
 
-		disjunctive_weight(const powerset_btree<T, N>& focal_log_sets_values) : decomposition_weight<T, N>(focal_log_sets_values)
+		disjunctive_weight(const powerset_btree<T, N>& support) : decomposition_weight<T, N>(support)
 		{}
 
 		disjunctive_weight(FOD<N>& fod) : decomposition_weight<T, N>(fod)
 		{}
 
-		disjunctive_weight(const zeta_transform<T, N>& b) : decomposition_weight<T, N>(b)
+		disjunctive_weight(const zeta_transform<T, N, down_inclusion<T, N> >& b) : decomposition_weight<T, N>(b.inversion(operation_type_t::multiplication))
 		{
-			if (b.order_relation != order_relation_t::subset) {
-				std::cerr << "The given Möbius aggregate is not the implicability function and thus can only be the commonality one. "
-						<< "\nDoing so, you got the conjunctive weight function instead." << std::endl;
-			}
 			invert_values(this->definition);
 		}
 

@@ -8,22 +8,29 @@
 namespace efficient_DST{
 
 	template <typename T, size_t N>
-	class implicability : public zeta_transform<T, N> {
+	class implicability : public zeta_transform<T, N, down_inclusion<T, N> > {
 	public:
 
-		implicability(const mass<T, N>& m) : zeta_transform<T, N>(m.get_definition(), order_relation_t::subset, operation_t::addition)
+		implicability(const mass<T, N>& m) : zeta_transform<T, N, down_inclusion<T, N> >(m.get_definition(), operation_type_t::addition)
 		{}
 
-		implicability(const disjunctive_weight<T, N>& v) : zeta_transform<T, N>(v.inverted_definition(), order_relation_t::subset, operation_t::multiplication)
+		implicability(const disjunctive_weight<T, N>& v) : zeta_transform<T, N, down_inclusion<T, N> >(v.inverted_definition(), operation_type_t::multiplication)
 		{}
 
-		implicability(const implicability<T, N>& b) : zeta_transform<T, N>(b)
+		implicability(const implicability<T, N>& b) : zeta_transform<T, N, down_inclusion<T, N> >(b)
 		{}
 
-		implicability(const powerset_btree<T, N>& focal_points_values) : zeta_transform<T, N>(focal_points_values, order_relation_t::subset)
-		{}
-
-		implicability(const std::vector<T>& powerset_values, FOD<N>& fod) : zeta_transform<T, N>(powerset_values, fod, order_relation_t::subset)
+		implicability(
+			const powerset_btree<T, N>& focal_points_values,
+			const scheme_type_t& scheme_type,
+			const std::vector<std::bitset<N> >& iota_sequence,
+			const T& neutral_value
+		) : zeta_transform<T, N, down_inclusion<T, N> >(
+				focal_points_values,
+				scheme_type,
+				iota_sequence,
+				neutral_value
+			)
 		{}
 
 

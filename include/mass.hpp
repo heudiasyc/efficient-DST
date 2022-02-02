@@ -15,8 +15,11 @@ namespace efficient_DST{
 		mass(const mass<T, N>& m) : mobius_transform<T, N>(m.get_definition())
 		{}
 
-		mass(const powerset_btree<T, N>& focal_sets_values) : mobius_transform<T, N>(focal_sets_values)
-		{}
+		mass(const powerset_btree<T, N>& support) : mobius_transform<T, N>(support)
+		{
+			this->remove_negligible_values();
+			this->normalize();
+		}
 
 		mass(FOD<N>& fod) : mobius_transform<T, N>(fod)
 		{}
@@ -31,11 +34,12 @@ namespace efficient_DST{
 			}
 		}
 
-		mass(const zeta_transform<T, N>& z) : mobius_transform<T, N>(z, operation_t::addition)
-		{
-			this->remove_negligible_values();
-			this->normalize();
-		}
+		mass(const zeta_transform<T, N, up_inclusion<T, N> >& q) : mass<T, N>(q.inversion(operation_type_t::addition))
+		{}
+
+		mass(const zeta_transform<T, N, down_inclusion<T, N> >& b) : mass<T, N>(b.inversion(operation_type_t::addition))
+		{}
+
 
 		template <class fusion_rule>
 		mass<T, N> apply(const mass<T, N>& m2) const {

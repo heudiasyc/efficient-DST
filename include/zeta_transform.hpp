@@ -11,52 +11,39 @@
 
 namespace efficient_DST{
 
-	template <class T, size_t N, class inclusion, class value_inplace_operation>
+	enum class operation_type_t: bool { addition, multiplication };
+
+	template <class T, size_t N, class inclusion>
 	class zeta_transform : public powerset_function<T, N> {
 	protected:
 		scheme_type_t scheme_type;
 		std::vector<std::bitset<N> > iota_sequence;
-		powerset_btree<T, N> original_mobius_transform;
 		std::map<size_t, powerset_btree<set_N_value<T, N>*, N > > definition_by_cardinality;
+		T neutral_value;
 
 	public:
-		const order_relation_t order_relation;
 
-		zeta_transform(const zeta_transform<T, N, inclusion, value_inplace_operation>& z) :
+		zeta_transform(const zeta_transform<T, N, inclusion>& z) :
 			powerset_function<T, N>(z.definition),
 			scheme_type(z.scheme_type),
 			iota_sequence(z.iota_sequence),
-			original_mobius_transform(z.original_mobius_transform),
-			definition_by_cardinality(z.definition_by_cardinality)
+			definition_by_cardinality(z.definition_by_cardinality),
+			neutral_value(z.neutral_value)
 		{}
 
-		/*
-		 * Constructor when you have a Möbius transform such as the mass or conjunctive/disjunctive weight function AND you want a specific computation scheme.
-		 * - support is supposed to contain all focal sets and their image.
-		 * - order_relation is the order relation of this zeta transform (e.g. commonality->superset or implicability->subset).
-		 * - transform_operation is the operation of the zeta transform (e.g. in DST, we usually use the addition on the mass function
-		 * and the multiplication on the conjunctive/disjunctive weight function)
-		 * - scheme_type: computation scheme to use.
-		 */
 		zeta_transform(
-				const powerset_btree<T, N>& support,
-				const scheme_type_t scheme_type) :
-			powerset_function<T, N>(support.get_FOD(), N * support.size()),
+			const powerset_btree<T, N>& definition,
+			const scheme_type_t& scheme_type,
+			const std::vector<std::bitset<N> >& iota_sequence,
+			const T& neutral_value
+		) :
+			powerset_function<T, N>(definition),
 			scheme_type(scheme_type),
-			original_mobius_transform(support)
+			iota_sequence(iota_sequence),
+			neutral_value(neutral_value)
 		{
-			// TODO: separate autoset from build to allow to build and execute without autoset
-			efficient_mobius_inversion<
-				T, N, inclusion, zeta_tranformation<T, N>, value_inplace_operation
-			>::build_and_execute(
-					support,
-					this->definition,
-					this->iota_sequence,
-					this->scheme_type
-			);
 			set_definition_by_cardinality();
 		}
-
 
 		/*
 		 * Constructor when you have a Möbius transform such as the mass or conjunctive/disjunctive weight function.
@@ -65,62 +52,35 @@ namespace efficient_DST{
 		 * - transform_operation is the operation of the zeta transform (e.g. in DST, we usually use the addition on the mass function
 		 * and the multiplication on the conjunctive/disjunctive weight function).
 		 */
-		zeta_transform(const powerset_btree<T, N>& support) :
+		zeta_transform(const powerset_btree<T, N>& support, operation_type_t operation_type) :
 			powerset_function<T, N>(support.get_FOD(), N * support.size()),
-			scheme_type(scheme_type_t::direct),
-			original_mobius_transform(support)
+			scheme_type(scheme_type_t::direct)
 		{
-			this->scheme_type = efficient_mobius_inversion<
-				T, N, inclusion, zeta_tranformation<T, N>, value_inplace_operation
-			>::autoset_and_build(
-					support,
-					this->definition,
-					this->iota_sequence
-			);
-
-			efficient_mobius_inversion<
-				T, N, inclusion, zeta_tranformation<T, N>, value_inplace_operation
-			>::execute(
-					this->definition,
-					this->iota_sequence,
-					this->scheme_type
-			);
+			if (operation_type == operation_type_t::addition){
+				this->compute<addition<T>>(support);
+			} else {
+				this->compute<multiplication<T>>(support);
+			}
 			set_definition_by_cardinality();
 		}
 
 
-		powerset_btree<T, N> additive_inversion() const {
-			if (transform_operation == this->original_operation && this->original_mobius_transform.size() > 0){
-				//return this->original_mobius_transform;
-			}
+		powerset_btree<T, N> inversion(const operation_type_t& operation_type) const {
 			powerset_btree<T, N> mobius_transform_definition(this->definition);
-			mobius_inversion<T, N, inclusion, mobius_additive_operation<T> >::execute(
-					mobius_transform_definition,
-					this->iota_sequence,
-					this->scheme_type
-			);
-			return mobius_transform_definition;
-		}
-
-		powerset_btree<T, N> multiplicative_inversion() const {
-			if (zeta_multiplicative_operation<T> == this->original_operation && this->original_mobius_transform.size() > 0){
-				//return this->original_mobius_transform;
+			if (operation_type == operation_type_t::addition){
+				efficient_mobius_inversion<T, N, inclusion, mobius_tranformation<T, N, inclusion, addition<T>> >::execute(
+						mobius_transform_definition,
+						this->iota_sequence,
+						this->scheme_type
+				);
+			} else {
+				efficient_mobius_inversion<T, N, inclusion, mobius_tranformation<T, N, inclusion, multiplication<T>> >::execute(
+						mobius_transform_definition,
+						this->iota_sequence,
+						this->scheme_type
+				);
 			}
-			powerset_btree<T, N> mobius_transform_definition(this->definition);
-			mobius_inversion<T, N, inclusion, mobius_multiplicative_operation<T> >::execute(
-					mobius_transform_definition,
-					transform_type_t::Mobius,
-					this->order_relation,
-					transform_operation,
-					this->iota_sequence,
-					//this->iota_fiber_sequence,
-					this->scheme_type
-			);
 			return mobius_transform_definition;
-		}
-
-		const powerset_btree<T, N>& get_original_mobius_transform() const {
-			return this->original_mobius_transform;
 		}
 
 		T at_emptyset() const {
@@ -143,7 +103,7 @@ namespace efficient_DST{
 		}
 
 		T operator[](const std::vector<std::string>& labels) const {
-			return find(this->definition.get_FOD()->to_set(labels));
+			return this->find(this->definition.get_FOD()->to_set(labels));
 		}
 
 		T find(const std::bitset<N>& set) const {
@@ -158,72 +118,62 @@ namespace efficient_DST{
 
 		T find_non_focal_point_image(const std::bitset<N>& set) const {
 			set_N_value<set_N_value<T, N>*, N >* A = nullptr;
-			size_t card = set.count();
+			const size_t& card = set.count();
 
-			if(this->order_relation == order_relation_t::subset){
-				if(card >= this->ordered_cardinalities_in_definition.back()){
-					for(size_t c = 0; c < this->ordered_cardinalities_in_definition.size(); ++c){
-						if(this->ordered_cardinalities_in_definition[c] <= card){
-							card = c;
-							break;
-						}
-					}
-					for(size_t c = card; c < this->ordered_cardinalities_in_definition.size(); ++c){
-						const powerset_btree<set_N_value<T, N>*, N >& p = this->definition_by_cardinality.at(this->ordered_cardinalities_in_definition[c]);
-						const std::vector<set_N_value<set_N_value<T, N>*, N >* >& subsets = p.subsets_of(set);
+			for (const auto& c_focal_points : this->definition_by_cardinality) {
+				if(inclusion::naturally_ranked(c_focal_points.first, card)){
+					const powerset_btree<set_N_value<T, N>*, N >& p = c_focal_points.second;
+					const std::vector<set_N_value<set_N_value<T, N>*, N >* >& related_elements = inclusion::addresses_related_to(p, set);
 
-						if(subsets.size() > 0){
-							A = subsets[0];
-							break;
-						}
-					}
-				}
-			}else{
-				if(card <= this->ordered_cardinalities_in_definition.back()){
-					for(size_t c = 0; c < this->ordered_cardinalities_in_definition.size(); ++c){
-						if(this->ordered_cardinalities_in_definition[c] >= card){
-							card = c;
-							break;
-						}
-					}
-					for(size_t c = card; c < this->ordered_cardinalities_in_definition.size(); ++c){
-						const powerset_btree<set_N_value<T, N>*, N >& p = this->definition_by_cardinality.at(this->ordered_cardinalities_in_definition[c]);
-						std::vector<set_N_value<set_N_value<T, N>*, N >* > supersets = p.supersets_of(set);
-
-						if(supersets.size() > 0){
-							A = supersets[0];
-							break;
-						}
+					if(related_elements.size() > 0){
+						A = related_elements[0];
+						break;
 					}
 				}
 			}
 			if (A){
 				return A->value->value;
 			}else{
-				return value_inplace_operation::neutral_value;
+				return this->neutral_value;
 			}
 		}
 
 
 		void set_definition_by_cardinality(){
-//			std::unordered_map<size_t, std::vector<set_N_value<T, N>* > > definition_card_map = this->definition.elements_by_set_cardinality();
-//			if (this->order_relation == order_relation_t::subset) {
-//				this->definition.get_FOD()->sort_cardinalities(this->ordered_cardinalities_in_definition, definition_card_map, order_t::descending);
-//			}else{
-//				this->definition.get_FOD()->sort_cardinalities(this->ordered_cardinalities_in_definition, definition_card_map, order_t::ascending);
-//			}
-//
-//			this->definition_by_cardinality.reserve(this->ordered_cardinalities_in_definition.size());
-//
-//			for(size_t c = 0; c < this->ordered_cardinalities_in_definition.size(); ++c){
-//				this->definition_by_cardinality.emplace(std::piecewise_construct, std::make_tuple(this->ordered_cardinalities_in_definition[c]),
-//						std::make_tuple(this->definition.get_FOD(), this->definition.get_block_size()));
-//				powerset_btree<set_N_value<T, N>*, N >& p_c = this->definition_by_cardinality[this->ordered_cardinalities_in_definition[c]];
-//				const std::vector<set_N_value<T, N>* >& elements = definition_card_map[this->ordered_cardinalities_in_definition[c]];
-//				for(size_t i = 0; i < elements.size(); ++i){
-//					p_c.insert(elements[i]->set, elements[i]);
-//				}
-//			}
+			const auto& definition_card_map = inclusion::card_mapping_dual(this->definition);
+			// create a powerset_btree in this->definition_by_cardinality for each vector of elements in definition_card_map
+			for (const auto& c_focal_points : definition_card_map) {
+				this->definition_by_cardinality.emplace(
+					std::piecewise_construct,
+					std::make_tuple(c_focal_points.first),
+					std::make_tuple(this->definition.get_FOD(), this->definition.get_block_size())
+				);
+				powerset_btree<set_N_value<T, N>*, N >& p_c = this->definition_by_cardinality[c_focal_points.first];
+				const std::vector<set_N_value<T, N>* >& elements = c_focal_points.second;
+				for(size_t i = 0; i < elements.size(); ++i){
+					p_c.insert(elements[i]->set, elements[i]);
+				}
+			}
+		}
+
+		template<class operation_type>
+		void compute(const powerset_btree<T, N>& support){
+			this->scheme_type = efficient_mobius_inversion<
+				T, N, inclusion, zeta_tranformation<T, N, inclusion, operation_type>
+			>::autoset_and_build(
+					support,
+					this->definition,
+					this->iota_sequence
+			);
+
+			efficient_mobius_inversion<
+				T, N, inclusion, zeta_tranformation<T, N, inclusion, operation_type>
+			>::execute(
+					this->definition,
+					this->iota_sequence,
+					this->scheme_type
+			);
+			this->neutral_value = operation_type::neutral_value();
 		}
 	};
 }	// namespace efficient_DST

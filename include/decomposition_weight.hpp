@@ -11,17 +11,14 @@ namespace efficient_DST{
 
 	public:
 
-		decomposition_weight(const powerset_btree<T, N>& focal_log_sets_values) : mobius_transform<T, N>(focal_log_sets_values)
-		{}
-
-		decomposition_weight(FOD<N>& fod) : mobius_transform<T, N>(fod)
-		{}
-
-		decomposition_weight(const zeta_transform<T, N>& z) : mobius_transform<T, N>(z, operation_t::multiplication)
+		decomposition_weight(const powerset_btree<T, N>& support) : mobius_transform<T, N>(support)
 		{
 			this->remove_negligible_values();
 			this->normalize();
 		}
+
+		decomposition_weight(FOD<N>& fod) : mobius_transform<T, N>(fod)
+		{}
 
 		virtual ~decomposition_weight(){}
 

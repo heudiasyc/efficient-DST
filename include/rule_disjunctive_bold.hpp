@@ -16,8 +16,8 @@ namespace efficient_DST{
 		}
 
 		mass<T, N> operator()(const mass<T, N>& m1, const mass<T, N>& m2) const {
-			zeta_transform<T, N> b1(m1.get_definition(), order_relation_t::subset, operation_t::addition);
-			zeta_transform<T, N> b2(m2.get_definition(), order_relation_t::subset, operation_t::addition);
+			zeta_transform<T, N, down_inclusion<T, N> > b1(m1.get_definition(), operation_type_t::addition);
+			zeta_transform<T, N, down_inclusion<T, N> > b2(m2.get_definition(), operation_type_t::addition);
 			implicability<T, N> b12 = operator()(*(implicability<T, N>*) &b1, *(implicability<T, N>*) &b2);
 			return mass<T, N>(b12);
 		}

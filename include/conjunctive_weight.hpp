@@ -14,18 +14,14 @@ namespace efficient_DST{
 		conjunctive_weight(const conjunctive_weight<T, N>& w) : decomposition_weight<T, N>(w.get_definition())
 		{}
 
-		conjunctive_weight(const powerset_btree<T, N>& focal_log_sets_values) : decomposition_weight<T, N>(focal_log_sets_values)
+		conjunctive_weight(const powerset_btree<T, N>& support) : decomposition_weight<T, N>(support)
 		{}
 
 		conjunctive_weight(FOD<N>& fod) : decomposition_weight<T, N>(fod)
 		{}
 
-		conjunctive_weight(const zeta_transform<T, N>& q) : decomposition_weight<T, N>(q)
+		conjunctive_weight(const zeta_transform<T, N, up_inclusion<T, N> >& q) : decomposition_weight<T, N>(q.inversion(operation_type_t::multiplication))
 		{
-			if (q.order_relation != order_relation_t::superset) {
-				std::cerr << "The given Möbius aggregate is not the commonality function and thus can only be the implicability one. "
-						<< "\nDoing so, you got the disjunctive weight function instead." << std::endl;
-			}
 			invert_values(this->definition);
 		}
 
@@ -58,7 +54,7 @@ namespace efficient_DST{
 		}
 
 		void set_emptyset_value(const T& value) {
-			set_value_directly(std::bitset<N>(0), value);
+			this->set_value_directly(std::bitset<N>(0), value);
 		}
 
 		void nullify(const std::vector<std::string>& labels) {

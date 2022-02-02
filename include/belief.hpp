@@ -30,16 +30,19 @@ namespace efficient_DST{
 			}
 		}
 
-		belief(const powerset_btree<T, N>& focal_points_values) : implicability<T, N>(focal_points_values)
+		belief(
+			const powerset_btree<T, N>& focal_points_values,
+			const scheme_type_t& scheme_type,
+			const std::vector<std::bitset<N> >& iota_sequence,
+			const T& neutral_value
+		) : zeta_transform<T, N, down_inclusion<T, N> >(
+				focal_points_values,
+				scheme_type,
+				iota_sequence,
+				neutral_value
+			)
 		{
 			if(focal_points_values.sub_fod_of_size(0)){
-				display_invalid_belief_message();
-			}
-		}
-
-		belief(const std::vector<T>& powerset_values, const FOD<N>& fod) : implicability<T, N>(powerset_values, fod)
-		{
-			if(powerset_values[0] != 0){
 				display_invalid_belief_message();
 			}
 		}
