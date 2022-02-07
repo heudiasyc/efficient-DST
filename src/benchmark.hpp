@@ -17,7 +17,6 @@
 #include <conjunctive_weight.hpp>
 #include <disjunctive_weight.hpp>
 #include <implicability.hpp>
-#include <fod.hpp>
 #include <rule_conjunctive.hpp>
 #include <rule_conjunctive_cautious.hpp>
 #include <rule_disjunctive_bold.hpp>

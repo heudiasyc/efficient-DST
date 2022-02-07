@@ -7,102 +7,108 @@
 
 namespace efficient_DST{
 
-	template <typename T, size_t N>
-	class conjunctive_weight : public decomposition_weight<T, N> {
+	template <size_t N, typename T = float>
+	class conjunctive_weight : public decomposition_weight<N, T> {
 	public:
+		using typename powerset_function<N, T>::subset;
+		using powerset_function<N, T>::fullset;
+		using decomposition_weight<N, T>::set_value;
+		using mobius_transform<N, T>::nullify;
 
-		conjunctive_weight(const conjunctive_weight<T, N>& w) : decomposition_weight<T, N>(w.get_definition())
+		conjunctive_weight(const conjunctive_weight<N, T>& w) : decomposition_weight<N, T>(w.outcomes, w.definition)
 		{}
 
-		conjunctive_weight(const powerset_btree<T, N>& support) : decomposition_weight<T, N>(support)
+		conjunctive_weight(
+			sample_space<N>& outcomes,
+			const powerset_btree<N, T>& support
+		) : decomposition_weight<N, T>(outcomes, support)
 		{}
 
-		conjunctive_weight(FOD<N>& fod) : decomposition_weight<T, N>(fod)
+		conjunctive_weight(sample_space<N>& outcomes) : decomposition_weight<N, T>(outcomes)
 		{}
 
-		conjunctive_weight(const zeta_transform<T, N, up_inclusion<T, N> >& q) : decomposition_weight<T, N>(q.inversion(operation_type_t::multiplication))
+		conjunctive_weight(
+			const zeta_transform<up_inclusion<N, T>, N, T>& q
+		) : decomposition_weight<N, T>(q.get_sample_space(), q.inversion(operation_type_t::multiplication))
 		{
 			invert_values(this->definition);
 		}
-
 
 		/*
 		 * The conjunctive weight function is the inverse of the multiplicative Möbius transform of the commonality function.
 		 * So, invert its values before computing it.
 		 */
-		powerset_btree<T, N> inverted_definition() const {
-			powerset_btree<T, N> inverted_definition(this->definition);
+		powerset_btree<N, T> inverted_definition() const {
+			powerset_btree<N, T> inverted_definition(this->definition);
 			invert_values(inverted_definition);
 			return inverted_definition;
 		}
 
-		void set_value(const std::vector<std::string>& labels, const T& value) {
-			set_value_directly(this->definition.get_FOD()->to_set(labels), value);
-		}
-
-		void set_value_directly(const std::bitset<N>& set, const T& value) {
-			this->definition.insert(set, value);
-			// The following part ensures that w(fod) is defined (as it is not when directly building w).
-			// Indeed, w(fod) may be required for the computation of the commonality function.
-			// w(fod)^{-1} is equal to the product of all other weights.
-			set_N_value<T, N>* fod = this->definition.sub_fod_of_size(N);
-			if(fod){
-				fod->value /= value;
+		void set_value(const subset& set, const T& value) {
+			if (set != fullset){
+				this->definition.update_or_insert(set, value);
+				// The following part ensures that w(fod) is defined (as it is not when directly building w).
+				// Indeed, w(fod) may be required for the computation of the commonality function.
+				// w(fod)^{-1} is equal to the product of all other weights.
+				set_N_value<N, T>* full_set = this->definition[fullset];
+				if(full_set){
+					full_set->value /= value;
+				}else{
+					this->set_fullset_value(1/value);
+				}
 			}else{
-				this->definition.insert(~std::bitset<N>(0), 1/value);
+				std::cout << "Cannot directly assign the fullset value of a conjunctive decomposition. Ignoring command.\n";
 			}
 		}
 
-		void set_emptyset_value(const T& value) {
-			this->set_value_directly(std::bitset<N>(0), value);
-		}
+//		void set_value(const std::vector<std::string>& labels, const T& value) {
+//			decomposition_weight<N, T>::set_value(labels, value);
+//		}
 
-		void nullify(const std::vector<std::string>& labels) {
-			//if(this->definition.get_FOD()->to_set(labels).count() == 1)
-			//	return;
-			set_N_value<T, N>* A = this->definition[labels];
-			if(A){
-				set_N_value<T, N>* fod = this->definition.sub_fod_of_size(N);
-				if(A != fod){
-					if(fod){
-						fod->value *= A->value;
+		void nullify(const subset& set) {
+			if (set != fullset){
+				set_N_value<N, T>* A = this->definition[set];
+				if(A){
+					set_N_value<N, T>* full_set = this->definition[fullset];
+					if(full_set){
+						full_set->value *= A->value;
 					}else{
 						// if there is no fod in definition, this means that its associated value is 1.
 						// Thus, as above, nullifying A implies multiplying 1 with A->value,
 						// which translates here to inserting A->value at fod.
-						this->definition.insert(~std::bitset<N>(0), A->value);
+						this->set_fullset_value(A->value);
 					}
+					this->definition.nullify(A);
 				}
-				this->definition.nullify(A);
+			}else{
+				std::cout << "Cannot directly assign the fullset value of a conjunctive decomposition. Ignoring command.\n";
 			}
 		}
 
-		void compute_fod_value_from_definition(){
-			compute_fod_value_from_definition(this->definition);
+		void compute_fullset_value_from_definition(){
+			compute_fullset_value_from_definition(this->definition);
 		}
 
-		static void compute_fod_value_from_definition(powerset_btree<T, N>& definition){
-			std::bitset<N> fod_set = 0;
-			fod_set = ~fod_set;
-			const std::vector<set_N_value<T, N>* >& focal_log_elements = definition.elements();
+		static void compute_fullset_value_from_definition(powerset_btree<N, T>& definition){
+			const std::vector<set_N_value<N, T>* >& focal_log_elements = definition.elements();
 			T val = 1;
 			for (size_t i = 0; i < focal_log_elements.size(); ++i){
-				if (focal_log_elements[i]->set != fod_set)
+				if (focal_log_elements[i]->set != fullset)
 					val /= focal_log_elements[i]->value;
 			}
-			definition.update_or_insert(fod_set, val);
+			definition.update_or_insert(fullset, val);
 		}
 
 		template <class fusion_rule>
-		conjunctive_weight<T, N> fuse_with(const conjunctive_weight<T, N>& w2) const {
+		conjunctive_weight<N, T> fuse_with(const conjunctive_weight<N, T>& w2) const {
 			const fusion_rule fusion;
 			return fusion(*this, w2);
 		}
 
 	protected:
 
-		static void invert_values(powerset_btree<T, N>& values) {
-			std::vector<set_N_value<T, N>* > elements = values.elements();
+		static inline void invert_values(powerset_btree<N, T>& values) {
+			std::vector<set_N_value<N, T>* > elements = values.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
 				elements[i]->value = 1 / elements[i]->value;
 			}

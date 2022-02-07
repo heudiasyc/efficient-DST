@@ -7,35 +7,41 @@
 
 namespace efficient_DST{
 
-	template <typename T, size_t N>
-	class commonality : public zeta_transform<T, N, up_inclusion<T, N> > {
+	template <size_t N, typename T = float>
+	class commonality : public zeta_transform<up_inclusion<N, T>, N, T> {
 	public:
 
-		commonality(const mass<T, N>& m) : zeta_transform<T, N, up_inclusion<T, N> >(m.get_definition(), operation_type_t::addition)
-		{}
-
-		commonality(const conjunctive_weight<T, N>& w) : zeta_transform<T, N, up_inclusion<T, N> >(w.inverted_definition(), operation_type_t::multiplication)
-		{}
-
-		commonality(const commonality<T, N>& q) : zeta_transform<T, N, up_inclusion<T, N> >(q)
+		commonality(
+			const mass<N, T>& m
+		) : zeta_transform<up_inclusion<N, T>, N, T>(m.get_sample_space(), m.get_definition(), m.get_default_value(), operation_type_t::addition)
 		{}
 
 		commonality(
-			const powerset_btree<T, N>& focal_points_values,
-			const scheme_type_t& scheme_type,
-			const std::vector<std::bitset<N> >& iota_sequence,
-			const T& neutral_value
-		) : zeta_transform<T, N, up_inclusion<T, N> >(
-				focal_points_values,
-				scheme_type,
-				iota_sequence,
-				neutral_value
-			)
+			const conjunctive_weight<N, T>& w
+		) : zeta_transform<up_inclusion<N, T>, N, T>(w.get_sample_space(), w.inverted_definition(), w.get_default_value(), operation_type_t::multiplication)
 		{}
+
+		commonality(
+			const commonality<N, T>& q
+		) : zeta_transform<up_inclusion<N, T>, N, T>(q)
+		{}
+
+//		commonality(
+//			const powerset_btree<N, T>& focal_points_values,
+//			const scheme_type_t& scheme_type,
+//			const std::vector<subset >& iota_sequence,
+//			const T& neutral_value
+//		) : zeta_transform<up_inclusion<N, T>, N, T>(
+//				focal_points_values,
+//				scheme_type,
+//				iota_sequence,
+//				neutral_value
+//			)
+//		{}
 
 
 		template <class fusion_rule>
-		commonality<T, N> apply(const commonality<T, N>& q2) const {
+		commonality<N, T> fuse_with(const commonality<N, T>& q2) const {
 			const fusion_rule fusion;
 			return fusion(*this, q2);
 		}

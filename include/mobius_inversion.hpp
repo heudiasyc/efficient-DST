@@ -12,22 +12,23 @@ namespace efficient_DST{
 
 	enum class scheme_type_t: int8_t { direct, consonant, semilattice, lattice };
 
-	template<typename T, size_t N>
+	template<size_t N, typename T = float>
 	struct iota_elements {
+		typedef typename sample_space<N>::subset subset;
 
-		static inline std::vector<std::bitset<N> > join_irreducible(
-			const powerset_btree<T, N>& support
+		static inline std::vector<subset > join_irreducible(
+			const powerset_btree<N, T>& support
 		){
 			// join-irreducible elements of the lattice support
-			std::vector<std::bitset<N> > sequence;
-			std::unordered_set<std::bitset<N> > manifest;
-			std::map<size_t, std::vector<std::bitset<N> >, std::less<size_t> > iota_elements_card_map;
-			std::bitset<N> singleton = 1;
+			std::vector<subset > sequence;
+			std::unordered_set<subset > manifest;
+			std::map<size_t, std::vector<subset >, std::less<size_t> > iota_elements_card_map;
+			subset singleton = 1;
 			for (size_t i = 0; i < N; ++i) {
-				const std::vector<set_N_value<T, N>* >& support_supersets = support.supersets_of(singleton);
+				const std::vector<set_N_value<N, T>* >& support_supersets = support.supersets_of(singleton);
 
 				if (support_supersets.size() > 0) {
-					std::bitset<N> iota_element((const std::bitset<N>&) support_supersets[0]->set);
+					subset iota_element((const subset&) support_supersets[0]->set);
 
 					for (size_t ii = 1; ii < support_supersets.size(); ++ii) {
 						iota_element &= support_supersets[ii]->set;
@@ -39,7 +40,7 @@ namespace efficient_DST{
 					if (insertion){
 						size_t cardinality = iota_element.count();
 						if (iota_elements_card_map.find(cardinality) == iota_elements_card_map.end()){
-							iota_elements_card_map.emplace(cardinality, std::vector<std::bitset<N> >());
+							iota_elements_card_map.emplace(cardinality, std::vector<subset >());
 						}
 						iota_elements_card_map[cardinality].emplace_back(iota_element);
 					}
@@ -49,7 +50,7 @@ namespace efficient_DST{
 			sequence.reserve(manifest.size());
 
 			for (const auto& c_iota_elements : iota_elements_card_map) {
-				const std::vector<std::bitset<N> >& elements = c_iota_elements.second;
+				const std::vector<subset >& elements = c_iota_elements.second;
 				for (size_t i = 0; i < elements.size(); ++i) {
 					sequence.emplace_back(elements[i]);
 				}
@@ -57,20 +58,20 @@ namespace efficient_DST{
 			return sequence;
 		}
 
-		static inline std::vector<std::bitset<N> > meet_irreducible(
-			const powerset_btree<T, N>& support
+		static inline std::vector<subset > meet_irreducible(
+			const powerset_btree<N, T>& support
 		){
 			// meet-irreducible elements of the lattice support
-			std::vector<std::bitset<N> > sequence;
-			std::unordered_set<std::bitset<N> > manifest;
-			std::map<size_t, std::vector<std::bitset<N> >, std::greater<size_t> > iota_elements_card_map;
-			std::bitset<N> singleton = 1;
-			std::bitset<N> singleton_dual = ~singleton;
+			std::vector<subset > sequence;
+			std::unordered_set<subset > manifest;
+			std::map<size_t, std::vector<subset >, std::greater<size_t> > iota_elements_card_map;
+			subset singleton = 1;
+			subset singleton_dual = ~singleton;
 			for (size_t i = 0; i < N; ++i) {
-				const std::vector<set_N_value<T, N>* >& support_subsets = support.subsets_of(singleton_dual);
+				const std::vector<set_N_value<N, T>* >& support_subsets = support.subsets_of(singleton_dual);
 
 				if (support_subsets.size() > 0) {
-					std::bitset<N> iota_element((const std::bitset<N>&) support_subsets[0]->set);
+					subset iota_element((const subset&) support_subsets[0]->set);
 					for (size_t ii = 1; ii < support_subsets.size(); ++ii) {
 						iota_element |= support_subsets[ii]->set;
 						if (iota_element == singleton_dual) {
@@ -81,7 +82,7 @@ namespace efficient_DST{
 					if (insertion){
 						size_t cardinality = iota_element.count();
 						if (iota_elements_card_map.find(cardinality) == iota_elements_card_map.end()){
-							iota_elements_card_map.emplace(cardinality, std::vector<std::bitset<N> >());
+							iota_elements_card_map.emplace(cardinality, std::vector<subset >());
 						}
 						iota_elements_card_map[cardinality].emplace_back(iota_element);
 					}
@@ -92,7 +93,7 @@ namespace efficient_DST{
 			sequence.reserve(manifest.size());
 
 			for (const auto& c_iota_elements : iota_elements_card_map) {
-				const std::vector<std::bitset<N> >& elements = c_iota_elements.second;
+				const std::vector<subset >& elements = c_iota_elements.second;
 				for (size_t i = 0; i < elements.size(); ++i) {
 					sequence.emplace_back(elements[i]);
 				}
@@ -101,19 +102,20 @@ namespace efficient_DST{
 		}
 	};
 
-	template<typename T, size_t N>
+	template<size_t N, typename T = float>
 	struct up_inclusion {
+		typedef typename sample_space<N>::subset subset;
 
-		static inline std::vector<std::bitset<N> > compute_iota_elements(
-			const powerset_btree<T, N>& support
+		static inline std::vector<subset > compute_iota_elements(
+			const powerset_btree<N, T>& support
 		){
-			return iota_elements<T, N>::meet_irreducible(support);
+			return iota_elements<N, T>::meet_irreducible(support);
 		}
 
-		static inline std::vector<std::bitset<N> > compute_iota_elements_dual(
-			const powerset_btree<T, N>& support
+		static inline std::vector<subset > compute_iota_elements_dual(
+			const powerset_btree<N, T>& support
 		){
-			return iota_elements<T, N>::join_irreducible(support);
+			return iota_elements<N, T>::join_irreducible(support);
 		}
 
 		static inline size_t target_index_offset_FMT(){
@@ -124,15 +126,15 @@ namespace efficient_DST{
 			return 0;
 		}
 
-		static inline std::bitset<N> FMT_target(const std::bitset<N>& set) {
+		static inline subset FMT_target(const subset& set) {
 			return ~set;
 		}
 
-		static inline std::bitset<N> set_operation(const std::bitset<N>& a, const std::bitset<N>& b){
+		static inline subset set_operation(const subset& a, const subset& b){
 			return a & b;
 		}
 
-		static inline std::bitset<N> set_dual_operation(const std::bitset<N>& a, const std::bitset<N>& b){
+		static inline subset set_dual_operation(const subset& a, const subset& b){
 			return a | b;
 		}
 
@@ -140,52 +142,53 @@ namespace efficient_DST{
 			return a >= b;
 		}
 
-		static inline std::map<size_t, std::vector<set_N_value<T, N>* >, std::greater<size_t> > card_mapping(const powerset_btree<T, N>& tree){
+		static inline std::map<size_t, std::vector<set_N_value<N, T>* >, std::greater<size_t> > card_mapping(const powerset_btree<N, T>& tree){
 			return tree.elements_by_descending_cardinality();
 		}
 
-		static inline std::map<size_t, std::vector<set_N_value<T, N>* >, std::less<size_t> > card_mapping_dual(const powerset_btree<T, N>& tree){
+		static inline std::map<size_t, std::vector<set_N_value<N, T>* >, std::less<size_t> > card_mapping_dual(const powerset_btree<N, T>& tree){
 			return tree.elements_by_ascending_cardinality();
 		}
 
-		static inline std::vector<set_N_value<T, N>* > elements_related_to(const powerset_btree<T, N>& tree, const std::bitset<N>& set){
+		static inline std::vector<set_N_value<N, T>* > elements_related_to(const powerset_btree<N, T>& tree, const subset& set){
 			return tree.supersets_of(set);
 		}
 
-		static inline std::vector<set_N_value<set_N_value<T, N>*, N>* > addresses_related_to(const powerset_btree<set_N_value<T, N>*, N>& tree, const std::bitset<N>& set){
+		static inline std::vector<set_N_value<N, set_N_value<N, T>* >* > addresses_related_to(const powerset_btree<N, set_N_value<N, T>* >& tree, const subset& set){
 			return tree.supersets_of(set);
 		}
 
-		static inline std::vector<set_N_value<T, N>* > elements_dually_related_to(const powerset_btree<T, N>& tree, const std::bitset<N>& set){
+		static inline std::vector<set_N_value<N, T>* > elements_dually_related_to(const powerset_btree<N, T>& tree, const subset& set){
 			return tree.subsets_of(set);
 		}
 
-		static inline std::vector<set_N_value<bool, N>* > sets_dually_related_to(const powerset_btree<bool, N>& tree, const std::bitset<N>& set){
+		static inline std::vector<set_N_value<N, bool>* > sets_dually_related_to(const powerset_btree<N, bool>& tree, const subset& set){
 			return tree.subsets_of(set);
 		}
 
-		static inline std::bitset<N> absorbing_set_for_operation(){
+		static inline subset absorbing_set_for_operation(){
 			return 0;
 		}
 
-		static inline std::bitset<N> absorbing_set_for_dual_operation(){
+		static inline subset absorbing_set_for_dual_operation(){
 			return ~absorbing_set_for_operation();
 		}
 	};
 
-	template<typename T, size_t N>
+	template<size_t N, typename T = float>
 	struct down_inclusion {
+		typedef typename sample_space<N>::subset subset;
 
-		static inline std::vector<std::bitset<N> > compute_iota_elements(
-			const powerset_btree<T, N>& support
+		static inline std::vector<subset > compute_iota_elements(
+			const powerset_btree<N, T>& support
 		){
-			return iota_elements<T, N>::join_irreducible(support);
+			return iota_elements<N, T>::join_irreducible(support);
 		}
 
-		static inline std::vector<std::bitset<N> > compute_iota_elements_dual(
-			const powerset_btree<T, N>& support
+		static inline std::vector<subset > compute_iota_elements_dual(
+			const powerset_btree<N, T>& support
 		){
-			return iota_elements<T, N>::meet_irreducible(support);
+			return iota_elements<N, T>::meet_irreducible(support);
 		}
 
 		static inline size_t target_index_offset_FMT(){
@@ -196,15 +199,15 @@ namespace efficient_DST{
 			return 1;
 		}
 
-		static inline std::bitset<N> FMT_target(const std::bitset<N>& set) {
+		static inline subset FMT_target(const subset& set) {
 			return set;
 		}
 
-		static inline std::bitset<N> set_operation(const std::bitset<N>& a, const std::bitset<N>& b){
+		static inline subset set_operation(const subset& a, const subset& b){
 			return a | b;
 		}
 
-		static inline std::bitset<N> set_dual_operation(const std::bitset<N>& a, const std::bitset<N>& b){
+		static inline subset set_dual_operation(const subset& a, const subset& b){
 			return a & b;
 		}
 
@@ -212,40 +215,40 @@ namespace efficient_DST{
 			return a <= b;
 		}
 
-		static inline std::map<size_t, std::vector<set_N_value<T, N>* >, std::less<size_t> > card_mapping(const powerset_btree<T, N>& tree){
+		static inline std::map<size_t, std::vector<set_N_value<N, T>* >, std::less<size_t> > card_mapping(const powerset_btree<N, T>& tree){
 			return tree.elements_by_ascending_cardinality();
 		}
 
-		static inline std::map<size_t, std::vector<set_N_value<T, N>* >, std::greater<size_t> > card_mapping_dual(const powerset_btree<T, N>& tree){
+		static inline std::map<size_t, std::vector<set_N_value<N, T>* >, std::greater<size_t> > card_mapping_dual(const powerset_btree<N, T>& tree){
 			return tree.elements_by_descending_cardinality();
 		}
 
-		static inline std::vector<set_N_value<T, N>* > elements_related_to(const powerset_btree<T, N>& tree, const std::bitset<N>& set){
+		static inline std::vector<set_N_value<N, T>* > elements_related_to(const powerset_btree<N, T>& tree, const subset& set){
 			return tree.subsets_of(set);
 		}
 
-		static inline std::vector<set_N_value<set_N_value<T, N>*, N>* > addresses_related_to(const powerset_btree<set_N_value<T, N>*, N>& tree, const std::bitset<N>& set){
+		static inline std::vector<set_N_value<N, set_N_value<N, T>* >* > addresses_related_to(const powerset_btree<N, set_N_value<N, T>* >& tree, const subset& set){
 			return tree.subsets_of(set);
 		}
 
-		static inline std::vector<set_N_value<T, N>* > elements_dually_related_to(const powerset_btree<T, N>& tree, const std::bitset<N>& set){
+		static inline std::vector<set_N_value<N, T>* > elements_dually_related_to(const powerset_btree<N, T>& tree, const subset& set){
 			return tree.supersets_of(set);
 		}
 
-		static inline std::vector<set_N_value<bool, N>* > sets_dually_related_to(const powerset_btree<bool, N>& tree, const std::bitset<N>& set){
+		static inline std::vector<set_N_value<N, bool>* > sets_dually_related_to(const powerset_btree<N, bool>& tree, const subset& set){
 			return tree.supersets_of(set);
 		}
 
-		static inline std::bitset<N> absorbing_set_for_operation(){
+		static inline subset absorbing_set_for_operation(){
 			return ~absorbing_set_for_dual_operation();
 		}
 
-		static inline std::bitset<N> absorbing_set_for_dual_operation(){
+		static inline subset absorbing_set_for_dual_operation(){
 			return 0;
 		}
 	};
 
-	template<typename T>
+	template<typename T = float>
 	struct addition {
 
 //		static constexpr T neutral_value = 0;
@@ -262,7 +265,7 @@ namespace efficient_DST{
 		}
 	};
 
-	template<typename T>
+	template<typename T = float>
 	struct multiplication {
 
 //		static constexpr T neutral_value = 1;
@@ -279,7 +282,7 @@ namespace efficient_DST{
 		}
 	};
 
-	template<typename T>
+	template<typename T = float>
 	struct zeta_additive_operation {
 
 		static constexpr T neutral_value = 0;
@@ -289,7 +292,7 @@ namespace efficient_DST{
 		}
 	};
 
-	template<typename T>
+	template<typename T = float>
 	struct mobius_additive_operation {
 
 		static constexpr T neutral_value = 0;
@@ -299,7 +302,7 @@ namespace efficient_DST{
 		}
 	};
 
-	template<typename T>
+	template<typename T = float>
 	struct zeta_multiplicative_operation {
 
 		static constexpr T neutral_value = 1;
@@ -309,7 +312,7 @@ namespace efficient_DST{
 		}
 	};
 
-	template<typename T>
+	template<typename T = float>
 	struct mobius_multiplicative_operation {
 
 		static constexpr T neutral_value = 1;
@@ -319,7 +322,7 @@ namespace efficient_DST{
 		}
 	};
 
-	template<typename T, size_t N, class inclusion, class operation_type>
+	template<class inclusion, class operation_type, size_t N, typename T = float>
 	struct zeta_tranformation {
 
 //		static constexpr T neutral_value = operation_type::neutral_value;
@@ -341,23 +344,23 @@ namespace efficient_DST{
 
 		//template<class inclusion, class value_inplace_operation>
 		static void execute_direct_transformation(
-				powerset_btree<T, N>& focal_points_tree
+				powerset_btree<N, T>& focal_points_tree
 		){
 			//clock_t t;
 			//t = clock();
-			powerset_btree<T, N> focal_points_N_initial_values(focal_points_tree);
+			powerset_btree<N, T> focal_points_N_initial_values(focal_points_tree);
 			/*
-			std::function<T(const std::bitset<N>&)> elements_related_to;
+			std::function<T(const subset&)> elements_related_to;
 			if(order_relation == order_relation_t::subset){
 				elements_related_to = focal_points_N_initial_values.subsets_of;
 			}else{
 				elements_related_to = focal_points_N_initial_values.supersets_of;
 			}*/
-			const std::vector<set_N_value<T, N>* >& focal_points = focal_points_N_initial_values.elements();
+			const std::vector<set_N_value<N, T>* >& focal_points = focal_points_N_initial_values.elements();
 			T val;
 			for (size_t i = 0; i < focal_points.size(); ++i) {
 				val = focal_points[i]->value;
-				const std::vector<set_N_value<T, N>* >& elements = inclusion::elements_related_to(
+				const std::vector<set_N_value<N, T>* >& elements = inclusion::elements_related_to(
 					focal_points_N_initial_values,
 					focal_points[i]->set
 				);
@@ -381,7 +384,7 @@ namespace efficient_DST{
 
 		//template<class inclusion, class value_inplace_operation>
 		static void execute_consonant_transformation(
-				powerset_btree<T, N>& support
+				powerset_btree<N, T>& support
 		) {
 			T preceding_value = operation_type::neutral_value();
 			/*
@@ -392,11 +395,11 @@ namespace efficient_DST{
 				comp = std::greater<size_t>();
 			}*/
 //			const std::binary_function<size_t, size_t, bool>& comp = card_map_comparator();
-//			std::map<size_t, std::vector<set_N_value<T, N>* >, comp > support_card_map = support.elements_by_set_cardinality(comp);
+//			std::map<size_t, std::vector<set_N_value<N, T>* >, comp > support_card_map = support.elements_by_set_cardinality(comp);
 			const auto& support_card_map = inclusion::card_mapping(support);
 
 			for (const auto& c_support_elements : support_card_map) {
-				const std::vector<set_N_value<T, N>* >& support_elements = c_support_elements.second;
+				const std::vector<set_N_value<N, T>* >& support_elements = c_support_elements.second;
 //				consonant_operation(support_elements[0]->value, preceding_value);
 				value_inplace_operation(support_elements[0]->value, preceding_value);
 				preceding_value = support_elements[0]->value;
@@ -414,7 +417,7 @@ namespace efficient_DST{
 
 	};
 
-	template<typename T, size_t N, class inclusion, class operation_type>
+	template<class inclusion, class operation_type, size_t N, typename T = float>
 	struct mobius_tranformation {
 
 //		static constexpr T neutral_value = operation_type::neutral_value;
@@ -436,13 +439,13 @@ namespace efficient_DST{
 
 		//template<class inclusion, class value_inplace_operation>
 		static void execute_direct_transformation(
-				powerset_btree<T, N>& focal_points_tree
+				powerset_btree<N, T>& focal_points_tree
 		){
 			//clock_t t;
 			//t = clock();
 			/*
 			std::binary_function<size_t, size_t, bool> comp;
-			std::function<T(const std::bitset<N>&)> elements_related_to;
+			std::function<T(const subset&)> elements_related_to;
 			if(order_relation == order_relation_t::subset){
 				comp = std::less<size_t>();
 				elements_related_to = focal_points_tree.subsets_of;
@@ -452,14 +455,14 @@ namespace efficient_DST{
 			}
 			*/
 //			const std::binary_function<size_t, size_t, bool>& comp = this->card_map_comparator();
-//			std::map<size_t, std::vector<set_N_value<T, N>* >, comp > focal_points_card_map = focal_points_tree.elements_by_set_cardinality(comp);
+//			std::map<size_t, std::vector<set_N_value<N, T>* >, comp > focal_points_card_map = focal_points_tree.elements_by_set_cardinality(comp);
 			const auto& focal_points_card_map = inclusion::card_mapping(focal_points_tree);
 			T val;
 			for (const auto& c_focal_points : focal_points_card_map) {
-				const std::vector<set_N_value<T, N>* >& focal_points = c_focal_points.second;
+				const std::vector<set_N_value<N, T>* >& focal_points = c_focal_points.second;
 				for (size_t i = 0; i < focal_points.size(); ++i) {
 					val = focal_points[i]->value;
-					const std::vector<set_N_value<T, N>* >& elements = inclusion::elements_related_to(focal_points_tree, focal_points[i]->set);
+					const std::vector<set_N_value<N, T>* >& elements = inclusion::elements_related_to(focal_points_tree, focal_points[i]->set);
 					for (size_t ii = 0; ii < elements.size(); ++ii) {
 						if (elements[ii]->set != focal_points[i]->set){
 							value_inplace_operation(val, elements[ii]->value);
@@ -480,7 +483,7 @@ namespace efficient_DST{
 
 		//template<class inclusion, class value_inplace_operation>
 		static void execute_consonant_transformation(
-				powerset_btree<T, N>& support
+				powerset_btree<N, T>& support
 		) {
 			T preceding_value = operation_type::neutral_value();
 			/*
@@ -491,11 +494,11 @@ namespace efficient_DST{
 				comp = std::greater<size_t>();
 			}*/
 //			const std::binary_function<size_t, size_t, bool>& comp = card_map_comparator();
-//			std::map<size_t, std::vector<set_N_value<T, N>* >, comp > support_card_map = support.elements_by_set_cardinality(comp);
+//			std::map<size_t, std::vector<set_N_value<N, T>* >, comp > support_card_map = support.elements_by_set_cardinality(comp);
 			const auto& support_card_map = inclusion::card_mapping(support);
 			T old_value;
 			for (const auto& c_support_elements : support_card_map) {
-				const std::vector<set_N_value<T, N>* >& support_elements = c_support_elements.second;
+				const std::vector<set_N_value<N, T>* >& support_elements = c_support_elements.second;
 //				consonant_operation(support_elements[0]->value, preceding_value);
 				old_value = support_elements[0]->value;
 				value_inplace_operation(support_elements[0]->value, preceding_value);
@@ -513,31 +516,57 @@ namespace efficient_DST{
 		}
 	};
 
-	template<typename T, size_t N, class inclusion, class transformation>
+	template<size_t N, typename T = float>
+	static bool consonance_check(
+		const powerset_btree<N, T>& support
+	){
+		// Cardinality map of focal sets in original_structure
+		std::map<size_t, std::vector<set_N_value<N, T>* >, std::less<size_t> > support_card_map = support.elements_by_ascending_cardinality();
+
+		typename sample_space<N>::subset previous_set = 0;
+		for (const auto& c_support_elements : support_card_map) {
+			const std::vector<set_N_value<N, T>* >& support_elements = c_support_elements.second;
+			// if there are at least two elements with the same cardinality
+			// OR if a lower rank set is not a subset of the current set,
+			// then structure cannot be consonant
+			if (support_elements.size() > 1){
+				return false;
+			}
+			if((previous_set & support_elements[0]->set) != previous_set){
+				return false;
+			}
+			previous_set = support_elements[0]->set;
+		}
+		return true;
+	}
+
+	template<class inclusion, class transformation, size_t N, typename T = float>
 	struct efficient_mobius_inversion {
 
+		typedef typename sample_space<N>::subset subset;
+
 		static bool try_linear_focal_points_computation (
-			const powerset_btree<T, N>& support,
-			powerset_btree<T, N>& focal_points_tree
+			const powerset_btree<N, T>& support,
+			powerset_btree<N, T>& focal_points_tree
 		){
-			const std::vector<set_N_value<T, N>* >& elements = support.elements();
+			const std::vector<set_N_value<N, T>* >& elements = support.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
 				focal_points_tree.insert(elements[i]->set, elements[i]->value);
 			}
 
-			const std::bitset<N>& absorbing_set = inclusion::absorbing_set_for_operation();
-			const std::bitset<N>& dual_absorbing_set = inclusion::absorbing_set_for_dual_operation();
+			const subset& absorbing_set = inclusion::absorbing_set_for_operation();
+			const subset& dual_absorbing_set = inclusion::absorbing_set_for_dual_operation();
 
-			std::bitset<N> U = elements[0]->set;
+			subset U = elements[0]->set;
 			DEBUG(std::clog << "\nU = "<< elements[0]->set;);
 
-			set_N_value<T, N>* newly_inserted_address;
+			set_N_value<N, T>* newly_inserted_address;
 
 			for (size_t i = 1; i < elements.size(); ++i) {
-				const std::bitset<N>& A = elements[i]->set;
+				const subset& A = elements[i]->set;
 				if (A != dual_absorbing_set){
 					DEBUG(std::clog << "\nI = set_operation(U, "<< A << ")\n";);
-					const std::bitset<N>& I = inclusion::set_operation(U, A);
+					const subset& I = inclusion::set_operation(U, A);
 
 					newly_inserted_address = focal_points_tree.insert_or_update_if_null(
 						I,
@@ -558,53 +587,30 @@ namespace efficient_DST{
 		}
 
 		static void execute_direct_transformation(
-			powerset_btree<T, N>& focal_points_tree
+			powerset_btree<N, T>& focal_points_tree
 		) {
 			transformation::execute_direct_transformation(focal_points_tree);
 		}
 
-		static bool consonance_check(
-			const powerset_btree<T, N>& support
-		){
-			// Cardinality map of focal sets in original_structure
-			std::map<size_t, std::vector<set_N_value<T, N>* >, std::less<size_t> > support_card_map = support.elements_by_ascending_cardinality();
-
-			std::bitset<N> previous_set = 0;
-			for (const auto& c_support_elements : support_card_map) {
-				const std::vector<set_N_value<T, N>* >& support_elements = c_support_elements.second;
-				// if there are at least two elements with the same cardinality
-				// OR if a lower rank set is not a subset of the current set,
-				// then structure cannot be consonant
-				if (support_elements.size() > 1){
-					return false;
-				}
-				if((previous_set & support_elements[0]->set) != previous_set){
-					return false;
-				}
-				previous_set = support_elements[0]->set;
-			}
-			return true;
-		}
-
 		static void execute_consonant_transformation(
-			powerset_btree<T, N>& support
+			powerset_btree<N, T>& support
 		) {
 			transformation::execute_consonant_transformation(support);
 		}
 
-		static powerset_btree<T, N> FMT_reduced_to_core(
-				powerset_btree<T, N>& support
+		static powerset_btree<N, T> FMT_reduced_to_core(
+				powerset_btree<N, T>& support
 		) {
-			powerset_btree<T, N> core_reduced_powerset(support.get_FOD(), support.size());
-			const std::vector<std::bitset<N> >& iota_sequence = build_core_reduced_powerset(support, core_reduced_powerset);
+			powerset_btree<N, T> core_reduced_powerset(support.size());
+			const std::vector<subset >& iota_sequence = build_core_reduced_powerset(support, core_reduced_powerset);
 
-			std::vector<set_N_value<T, N>* > powerset_elements = core_reduced_powerset.elements();
+			std::vector<set_N_value<N, T>* > powerset_elements = core_reduced_powerset.elements();
 			for (size_t i = 0; i < iota_sequence.size(); ++i){
 				for (size_t e = 0; e < powerset_elements.size(); ++e){
-					std::bitset<N> set_B = inclusion::set_operation(powerset_elements[e]->set, inclusion::FMT_target(iota_sequence[i]));
+					subset set_B = inclusion::set_operation(powerset_elements[e]->set, inclusion::FMT_target(iota_sequence[i]));
 
 					if (set_B != powerset_elements[e]->set){
-						set_N_value<T, N>* B = core_reduced_powerset.find(set_B);
+						set_N_value<N, T>* B = core_reduced_powerset.find(set_B);
 						transformation::value_inplace_operation(B->value, powerset_elements[e]->value);
 					}
 				}
@@ -616,7 +622,7 @@ namespace efficient_DST{
 				std::vector<T>& transform
 		) {
 			if(transform.size() != pow(2, N)){
-				std::cerr << "\nThe size of the given vector is not 2^N, where N is the given size corresponding to the considered FOD.\n";
+				std::cerr << "\nThe size of the given vector is not 2^N, where N is the given number of outcomes.\n";
 //					return powerset_values;
 			}
 
@@ -638,18 +644,18 @@ namespace efficient_DST{
 		}
 
 		static void build_bridge_map(
-				std::unordered_map<std::bitset<N>, set_N_value<T, N>* >& bridge_map,
-				const powerset_btree<T, N>& focal_points_tree,
-				const std::vector<std::bitset<N> >& iota_sequence
+				std::unordered_map<subset, set_N_value<N, T>* >& bridge_map,
+				const powerset_btree<N, T>& focal_points_tree,
+				const std::vector<subset >& iota_sequence
 		) {
-			const std::vector<set_N_value<T, N>* >& focal_points = focal_points_tree.elements();
+			const std::vector<set_N_value<N, T>* >& focal_points = focal_points_tree.elements();
 
-			powerset_btree<bool, N> proxies_missing_targets(focal_points_tree.get_FOD(), iota_sequence.size());
+			powerset_btree<N, bool> proxies_missing_targets(iota_sequence.size());
 
 			for (size_t i = 0; i < iota_sequence.size(); ++i) {
 				for (size_t e = 0; e < focal_points.size(); ++e){
-//					const std::bitset<N>& set = focal_points[e]->set | iota_sequence[i];
-					const std::bitset<N>& set = inclusion::set_dual_operation(focal_points[e]->set, iota_sequence[i]);
+//					const subset& set = focal_points[e]->set | iota_sequence[i];
+					const subset& set = inclusion::set_dual_operation(focal_points[e]->set, iota_sequence[i]);
 					if (!focal_points_tree.find(set)){
 						proxies_missing_targets.insert(set, true);
 					}
@@ -661,7 +667,7 @@ namespace efficient_DST{
 
 //			const std::binary_function<size_t, size_t, bool>& comp = std::less<size_t>();
 //			const std::binary_function<size_t, size_t, bool>& comp = card_map_dual_comparator();
-//			std::map<size_t, std::vector<set_N_value<T, N>* >, comp > focal_points_card_map = focal_points_tree.elements_by_set_cardinality(comp);
+//			std::map<size_t, std::vector<set_N_value<N, T>* >, comp > focal_points_card_map = focal_points_tree.elements_by_set_cardinality(comp);
 			const auto& focal_points_card_map = inclusion::card_mapping_dual(focal_points_tree);
 			//clock_t t;
 			//t = clock();
@@ -671,11 +677,11 @@ namespace efficient_DST{
 					nb_targets_to_find += proxies_missing_targets.get_nb_sets_of_cardinality(cc);
 				}
 				if (nb_targets_to_find > 0){
-					const std::vector<set_N_value<T, N>* >& focal_points_with_same_size = c_focal_points.second;
+					const std::vector<set_N_value<N, T>* >& focal_points_with_same_size = c_focal_points.second;
 
 					for (size_t i = 0; i < focal_points_with_same_size.size(); ++i){
 //						const std::vector<set_N_value<bool, N>* >& subsets = proxies_missing_targets.subsets_of(focal_points_with_same_size[i]->set);
-						const std::vector<set_N_value<bool, N>* >& proxies = inclusion::sets_dually_related_to(proxies_missing_targets, focal_points_with_same_size[i]->set);
+						const std::vector<set_N_value<N, bool>* >& proxies = inclusion::sets_dually_related_to(proxies_missing_targets, focal_points_with_same_size[i]->set);
 
 						for (size_t s = 0; s < proxies.size(); ++s){
 							bridge_map[proxies[s]->set] = focal_points_with_same_size[i];
@@ -694,15 +700,15 @@ namespace efficient_DST{
 
 
 		static void execute_EMT_with_semilattice(
-				powerset_btree<T, N>& focal_points_tree,
-				const std::vector<std::bitset<N> >& iota_sequence
+				powerset_btree<N, T>& focal_points_tree,
+				const std::vector<subset >& iota_sequence
 		) {
 			//clock_t t;
 
 			if (iota_sequence.size() == 0)
 				return;
 
-			std::vector<std::bitset<N> > sync_sequence;
+			std::vector<subset > sync_sequence;
 			sync_sequence.reserve(iota_sequence.size());
 
 			sync_sequence.emplace_back(iota_sequence[0]);
@@ -710,13 +716,13 @@ namespace efficient_DST{
 //				sync_sequence.emplace_back(sync_sequence[i-1] | iota_sequence[i]);
 				sync_sequence.emplace_back(inclusion::set_dual_operation(sync_sequence[i-1], iota_sequence[i]));
 			}
-			std::unordered_map<std::bitset<N>, set_N_value<T, N>* > bridge_map;
+			std::unordered_map<subset, set_N_value<N, T>* > bridge_map;
 			build_bridge_map(bridge_map, focal_points_tree, iota_sequence);
 
 			//t = clock();
 			size_t nb_iota = iota_sequence.size()-1;
 //			size_t iota_index;
-			const std::vector<set_N_value<T, N>* >& focal_points = focal_points_tree.elements();
+			const std::vector<set_N_value<N, T>* >& focal_points = focal_points_tree.elements();
 			for (size_t i = 0; i < iota_sequence.size(); ++i){
 //				if (transform_type == transform_type_t::zeta)
 //					iota_index = i;
@@ -725,14 +731,14 @@ namespace efficient_DST{
 				const size_t& iota_index = transformation::subgraph_dual_index(nb_iota, i);
 
 				for (size_t e = 0; e < focal_points.size(); ++e){
-//					const std::bitset<N>& proxy = focal_points[e]->set | iota_sequence[iota_index];
-					const std::bitset<N>& proxy = inclusion::set_dual_operation(focal_points[e]->set, iota_sequence[iota_index]);
+//					const subset& proxy = focal_points[e]->set | iota_sequence[iota_index];
+					const subset& proxy = inclusion::set_dual_operation(focal_points[e]->set, iota_sequence[iota_index]);
 
 					if (focal_points[e]->set != proxy){
-						const set_N_value<T, N>* coupled_set = bridge_map[proxy];
-
+						const set_N_value<N, T>* coupled_set = bridge_map[proxy];
 //						if (coupled_set && FOD<N>::is_subset_of(coupled_set->set, focal_points[e]->set | sync_sequence[iota_index])){
-						if (coupled_set && FOD<N>::is_subset_of(coupled_set->set, inclusion::set_dual_operation(focal_points[e]->set, sync_sequence[iota_index]))){
+						const subset& sync_set = inclusion::set_dual_operation(focal_points[e]->set, sync_sequence[iota_index]);
+						if (coupled_set && (coupled_set->set & sync_set) == coupled_set->set){
 							transformation::value_inplace_operation(focal_points[e]->value, coupled_set->value);
 						}
 					}
@@ -744,10 +750,10 @@ namespace efficient_DST{
 
 
 		static void execute_EMT_with_lattice(
-				powerset_btree<T, N>& lattice_support,
-				const std::vector<std::bitset<N> >& iota_sequence
+				powerset_btree<N, T>& lattice_support,
+				const std::vector<subset >& iota_sequence
 		) {
-			const std::vector<set_N_value<T, N>* >& lattice_support_elements = lattice_support.elements();
+			const std::vector<set_N_value<N, T>* >& lattice_support_elements = lattice_support.elements();
 
 			size_t nb_iota = iota_sequence.size()-1;
 //			size_t iota_index;
@@ -759,11 +765,11 @@ namespace efficient_DST{
 				const size_t& iota_index = transformation::subgraph_index(nb_iota, i);
 
 				for (size_t e = 0; e < lattice_support_elements.size(); ++e){
-//					const std::bitset<N>& set_B = lattice_support_elements[e]->set | iota_sequence[iota_index];
-					const std::bitset<N>& set_B = inclusion::set_operation(lattice_support_elements[e]->set, iota_sequence[iota_index]);
+//					const subset& set_B = lattice_support_elements[e]->set | iota_sequence[iota_index];
+					const subset& set_B = inclusion::set_operation(lattice_support_elements[e]->set, iota_sequence[iota_index]);
 
 					if (set_B != lattice_support_elements[e]->set){
-						set_N_value<T, N>* B = lattice_support.find(set_B);
+						set_N_value<N, T>* B = lattice_support.find(set_B);
 
 						if (B){
 							transformation::value_inplace_operation(B->value, lattice_support_elements[e]->value);
@@ -774,11 +780,11 @@ namespace efficient_DST{
 		}
 
 		static void build_semilattice_support(
-				const powerset_btree<T, N>& support,
-				powerset_btree<T, N>& focal_points_tree
+				const powerset_btree<N, T>& support,
+				powerset_btree<N, T>& focal_points_tree
 		) {
-			std::vector<std::bitset<N> > focal_points;
-			const std::vector<set_N_value<T, N>* >& support_elements = support.elements();
+			std::vector<subset > focal_points;
+			const std::vector<set_N_value<N, T>* >& support_elements = support.elements();
 			focal_points.reserve(support.size());
 
 			for (size_t i = 0; i < support_elements.size(); ++i){
@@ -786,12 +792,12 @@ namespace efficient_DST{
 				focal_points_tree.insert(support_elements[i]->set, support_elements[i]->value);
 			}
 
-			set_N_value<T, N>* newly_inserted_address;
+			set_N_value<N, T>* newly_inserted_address;
 
 			for (size_t i = 0; i < support_elements.size(); ++i){
 				size_t end = focal_points.size();
 				for (size_t ii = i+1; ii < end; ++ii){
-					const std::bitset<N>& focal_point = inclusion::set_operation(support_elements[i]->set, focal_points[ii]);
+					const subset& focal_point = inclusion::set_operation(support_elements[i]->set, focal_points[ii]);
 					newly_inserted_address = focal_points_tree.insert_or_update_if_null(
 						focal_point,
 						transformation::neutral_value()
@@ -806,29 +812,29 @@ namespace efficient_DST{
 		/*
 		 * In this function, this->iota_sequence is supposed to contain all regular iota elements (i.e. join-irreducible of this lattice).
 		 */
-		static const std::vector<std::bitset<N> >& build_truncated_lattice_support(
-				const powerset_btree<T, N>& support,
-				powerset_btree<T, N>& truncated_lattice_support
+		static const std::vector<subset >& build_truncated_lattice_support(
+				const powerset_btree<N, T>& support,
+				powerset_btree<N, T>& truncated_lattice_support
 		) {
-			const std::vector<std::bitset<N> >& iota_sequence = inclusion::compute_iota_elements(
+			const std::vector<subset >& iota_sequence = inclusion::compute_iota_elements(
 				support
 			);
 
-			std::vector<std::bitset<N> > focal_points;
+			std::vector<subset > focal_points;
 			focal_points.reserve(support.size());
 
-			const std::vector<set_N_value<T, N>* >& elements = support.elements();
+			const std::vector<set_N_value<N, T>* >& elements = support.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
 				focal_points.emplace_back(elements[i]->set);
 				truncated_lattice_support.insert(elements[i]->set, elements[i]->value);
 			}
 
-			set_N_value<T, N>* newly_inserted_address;
+			set_N_value<N, T>* newly_inserted_address;
 
 			for (size_t i = 0; i < iota_sequence.size(); ++i) {
 				size_t end = focal_points.size();
 				for (size_t ii = 0; ii < end; ++ii) {
-					const std::bitset<N>& new_set = inclusion::set_operation(iota_sequence[i], focal_points[ii]);
+					const subset& new_set = inclusion::set_operation(iota_sequence[i], focal_points[ii]);
 					newly_inserted_address = truncated_lattice_support.insert_or_update_if_null(
 						new_set,
 						transformation::neutral_value()
@@ -845,17 +851,17 @@ namespace efficient_DST{
 			return iota_sequence;
 		}
 
-		static const std::vector<std::bitset<N> >& build_core_reduced_powerset(
-				const powerset_btree<T, N>& support,
-				powerset_btree<T, N>& core_reduced_powerset
+		static const std::vector<subset >& build_core_reduced_powerset(
+				const powerset_btree<N, T>& support,
+				powerset_btree<N, T>& core_reduced_powerset
 		) {
-			const std::vector<set_N_value<T, N>* >& support_elements = support.elements();
-			std::bitset<N> core = 0;
+			const std::vector<set_N_value<N, T>* >& support_elements = support.elements();
+			subset core = 0;
 			for(size_t i = 0; i < support_elements.size(); ++i){
 				core |= support_elements[i]->set;
 			}
-			std::vector<std::bitset<N> > iota_sequence;
-			std::bitset<N> singleton = 1;
+			std::vector<subset > iota_sequence;
+			subset singleton = 1;
 			for(size_t i = 0; i < N; ++i){
 				if ((singleton & core) != 0){
 					iota_sequence.emplace_back(singleton);
@@ -863,11 +869,11 @@ namespace efficient_DST{
 				singleton <<= 1;
 			}
 
-			std::vector<std::bitset<N> > focal_points;
+			std::vector<subset > focal_points;
 			focal_points.reserve(pow(2, iota_sequence.size()));
 
 			singleton = 0;
-			set_N_value<T, N>* inserted_node = support.find(singleton);
+			set_N_value<N, T>* inserted_node = support.find(singleton);
 			if (!inserted_node || inserted_node->is_null){
 				core_reduced_powerset.insert(singleton, transformation::neutral_value());
 			}else{
@@ -878,7 +884,7 @@ namespace efficient_DST{
 			for (size_t i = 0; i < iota_sequence.size(); ++i) {
 				size_t end = focal_points.size();
 				for (size_t ii = 0; ii < end; ++ii) {
-					const std::bitset<N>& new_set = iota_sequence[i] | focal_points[ii];
+					const subset& new_set = iota_sequence[i] | focal_points[ii];
 					inserted_node = support.find(new_set);
 					if (!inserted_node || inserted_node->is_null){
 						inserted_node = core_reduced_powerset.insert_or_update_if_null(new_set, transformation::neutral_value());
@@ -898,9 +904,9 @@ namespace efficient_DST{
 		}
 
 		static scheme_type_t autoset_and_build(
-				const powerset_btree<T, N>& support,
-				powerset_btree<T, N>& focal_points_tree,
-				std::vector<std::bitset<N> >& iota_sequence
+				const powerset_btree<N, T>& support,
+				powerset_btree<N, T>& focal_points_tree,
+				std::vector<subset >& iota_sequence
 		){
 			// check if original_structure is almost Bayesian
 			DEBUG(std::clog << "Linear analysis:" << std::endl;);
@@ -914,7 +920,7 @@ namespace efficient_DST{
 				return scheme_type_t::direct;
 			}else{
 				DEBUG(std::clog << "Consonance check:" << std::endl;);
-				const bool& is_consonant = consonance_check(support);
+				const bool& is_consonant = consonance_check<N, T>(support);
 
 				if(is_consonant){
 					DEBUG(std::clog << "consonant." << std::endl;);
@@ -925,7 +931,7 @@ namespace efficient_DST{
 
 					if(support.size() < 3 * N){
 						DEBUG({
-							std::clog << "Number of focal sets equivalent to |FOD|." << std::endl;
+							std::clog << "Number of focal sets equivalent to number of outcomes." << std::endl;
 							std::clog << "Transform to semilattice:" << std::endl;
 						});
 
@@ -935,10 +941,10 @@ namespace efficient_DST{
 						);
 
 						if(focal_points_tree.size() < 3 * N){
-							DEBUG(std::clog << "Number of focal points also equivalent to |FOD|." << std::endl;);
+							DEBUG(std::clog << "Number of focal points also equivalent to number of outcomes." << std::endl;);
 							return scheme_type_t::direct;
 						}else{
-							DEBUG(std::clog << "Number of focal points superior to |FOD|." << std::endl;);
+							DEBUG(std::clog << "Number of focal points superior to number of outcomes." << std::endl;);
 
 							iota_sequence = inclusion::compute_iota_elements_dual(
 								support
@@ -947,7 +953,7 @@ namespace efficient_DST{
 						}
 					}else{
 						DEBUG({
-							std::clog << "Number of focal sets superior to |FOD|." << std::endl;
+							std::clog << "Number of focal sets superior to number of outcomes." << std::endl;
 							std::clog << "Transform to lattice:" << std::endl;
 						});
 
@@ -962,8 +968,8 @@ namespace efficient_DST{
 		}
 
 		static void execute(
-			powerset_btree<T, N>& focal_points_tree,
-			const std::vector<std::bitset<N> >& iota_sequence,
+			powerset_btree<N, T>& focal_points_tree,
+			const std::vector<subset >& iota_sequence,
 			const scheme_type_t& scheme_type
 		) {
 
@@ -1000,10 +1006,10 @@ namespace efficient_DST{
 			}
 		}
 
-		static powerset_btree<T, N> direct_transformation(
-				const powerset_btree<T, N>& support
+		static powerset_btree<N, T> direct_transformation(
+				const powerset_btree<N, T>& support
 		) {
-			powerset_btree<T, N> focal_points_tree(support.get_FOD(), support.size());
+			powerset_btree<N, T> focal_points_tree(support.size());
 			scheme_type_t scheme_type = scheme_type_t::direct;
 			// check if original_structure is almost Bayesian
 			const bool& is_almost_bayesian = try_linear_focal_points_computation (
@@ -1013,7 +1019,7 @@ namespace efficient_DST{
 
 			if (!is_almost_bayesian){
 				DEBUG(std::clog << "Consonance check:" << std::endl;);
-				const bool& is_consonant = consonance_check(support);
+				const bool& is_consonant = consonance_check<N, T>(support);
 
 				if(is_consonant){
 					focal_points_tree.copy(support);
@@ -1037,15 +1043,15 @@ namespace efficient_DST{
 			return focal_points_tree;
 		}
 
-		static powerset_btree<T, N> EMT_with_semilattice(
-			const powerset_btree<T, N>& support
+		static powerset_btree<N, T> EMT_with_semilattice(
+			const powerset_btree<N, T>& support
 		) {
-			powerset_btree<T, N> focal_points_tree(support.get_FOD(), support.size());
+			powerset_btree<N, T> focal_points_tree(support.size());
 			build_semilattice_support(
 				support,
 				focal_points_tree
 			);
-			const std::vector<std::bitset<N> >& iota_sequence = inclusion::compute_iota_elements_dual(
+			const std::vector<subset >& iota_sequence = inclusion::compute_iota_elements_dual(
 				support
 			);
 			execute_EMT_with_semilattice(
@@ -1055,11 +1061,11 @@ namespace efficient_DST{
 			return focal_points_tree;
 		}
 
-		static powerset_btree<T, N> EMT_with_lattice(
-			const powerset_btree<T, N>& support
+		static powerset_btree<N, T> EMT_with_lattice(
+			const powerset_btree<N, T>& support
 		) {
-			powerset_btree<T, N> truncated_lattice_support(support.get_FOD(), support.size());
-			const std::vector<std::bitset<N> >& iota_sequence = build_truncated_lattice_support(
+			powerset_btree<N, T> truncated_lattice_support(support.size());
+			const std::vector<subset >& iota_sequence = build_truncated_lattice_support(
 				support,
 				truncated_lattice_support
 			);

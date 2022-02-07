@@ -5,8 +5,8 @@
 
 namespace efficient_DST{
 
-	template <typename T, size_t N>
-	class belief : public implicability<T, N> {
+	template <size_t N, typename T = float>
+	class belief : public implicability<N, T> {
 	protected:
 
 		static void display_invalid_belief_message(){
@@ -16,40 +16,40 @@ namespace efficient_DST{
 
 	public:
 
-		belief(const mass<T, N>& m) : implicability<T, N>(m)
+		belief(const mass<N, T>& m) : implicability<N, T>(m)
 		{
 			if(m.at_emptyset() != 0){
 				display_invalid_belief_message();
 			}
 		}
 
-		belief(const implicability<T, N>& b) : implicability<T, N>(b)
+		belief(const implicability<N, T>& b) : implicability<N, T>(b)
 		{
 			if(b.at_emptyset() != 0){
 				display_invalid_belief_message();
 			}
 		}
 
-		belief(
-			const powerset_btree<T, N>& focal_points_values,
-			const scheme_type_t& scheme_type,
-			const std::vector<std::bitset<N> >& iota_sequence,
-			const T& neutral_value
-		) : zeta_transform<T, N, down_inclusion<T, N> >(
-				focal_points_values,
-				scheme_type,
-				iota_sequence,
-				neutral_value
-			)
-		{
-			if(focal_points_values.sub_fod_of_size(0)){
-				display_invalid_belief_message();
-			}
-		}
+//		belief(
+//			const powerset_btree<N, T>& focal_points_values,
+//			const scheme_type_t& scheme_type,
+//			const std::vector<std::bitset<N> >& iota_sequence,
+//			const T& neutral_value
+//		) : zeta_transform<T, N, down_inclusion<N, T> >(
+//				focal_points_values,
+//				scheme_type,
+//				iota_sequence,
+//				neutral_value
+//			)
+//		{
+//			if(focal_points_values.empty_set()){
+//				display_invalid_belief_message();
+//			}
+//		}
 
 
 		template <class fusion_rule>
-		belief<T, N> apply(const belief<T, N>& b2) const {
+		belief<N, T> fuse_with(const belief<N, T>& b2) const {
 			const fusion_rule fusion;
 			return fusion(*this, b2);
 		}

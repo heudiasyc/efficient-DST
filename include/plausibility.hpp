@@ -5,59 +5,45 @@
 
 namespace efficient_DST{
 
-	template <typename T, size_t N>
-	class plausibility : public implicability<T, N> {
+	template <size_t N, typename T = float>
+	class plausibility : public implicability<N, T> {
 	public:
+		using typename powerset_function<N, T>::subset;
+		using zeta_transform<down_inclusion<N, T>, N, T>::operator[];
 
-		plausibility(const mass<T, N>& m) : implicability<T, N>(m)
+		plausibility(const mass<N, T>& m) : implicability<N, T>(m)
 		{}
 
-		plausibility(const implicability<T, N>& b) : implicability<T, N>(b)
+		plausibility(const disjunctive_weight<N, T>& v) : implicability<N, T>(v)
+		{}
+
+		plausibility(const implicability<N, T>& b) : implicability<N, T>(b)
+		{}
+
+		plausibility(const plausibility<N, T>& pl) : implicability<N, T>(pl)
 		{}
 
 
 		template <class fusion_rule>
-		plausibility<T, N> apply(const plausibility<T, N>& p2) const {
+		plausibility<N, T> fuse_with(const plausibility<N, T>& p2) const {
 			const fusion_rule fusion;
 			return fusion(*this, p2);
 		}
 
-		std::vector<T> get_contour() {
-			std::vector<T> contour;
-			contour.reserve(N);
-			std::bitset<N> singleton = 0;
+		T* contour() {
+			T contour[N] = {0};
+			subset singleton = 1;
 
 			for(size_t i = 0; i < N; ++i){
-				singleton[i] = true;
-				contour.emplace_back(find(singleton));
-				singleton[i] = false;
+				contour[i] = (*this)[singleton];
+				singleton <<= 1;
 			}
 			return contour;
 		}
 
-		T at_emptyset() const {
-			set_N_value<T, N>* set_value = this->definition.sub_fod_of_size(N);
-			if(set_value){
-				return 1-set_value->value;
-			}
-			return 1-this->find_non_focal_point_image(~std::bitset<N>(0));
-		}
-
-		T at_fod() const {
-			set_N_value<T, N>* set_value = this->definition.sub_fod_of_size(0);
-			if(set_value){
-				return 1-set_value->value;
-			}
-			return 1-this->find_non_focal_point_image(std::bitset<N>(0));
-		}
-
-		T operator[](const std::vector<std::string>& labels) const {
-			return find(this->definition.get_FOD()->to_set(labels));
-		}
-
-		T find(const std::bitset<N>& set) const {
-			const std::bitset<N>& dual_set = ~set;
-			set_N_value<T, N>* set_value = this->definition[dual_set];
+		T operator[](const subset& set) const {
+			const subset& dual_set = ~set;
+			set_N_value<N, T>* set_value = this->definition[dual_set];
 			if(set_value){
 				return 1-set_value->value;
 			}

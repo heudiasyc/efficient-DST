@@ -13,37 +13,39 @@ namespace efficient_DST{
 
 	enum class operation_type_t: bool { addition, multiplication };
 
-	template <class T, size_t N, class inclusion>
-	class zeta_transform : public powerset_function<T, N> {
+	template <class inclusion, size_t N, typename T = float>
+	class zeta_transform : public powerset_function<N, T> {
 	protected:
+		using typename powerset_function<N, T>::subset;
+		using powerset_function<N, T>::operator[];
+
 		scheme_type_t scheme_type;
-		std::vector<std::bitset<N> > iota_sequence;
-		std::map<size_t, powerset_btree<set_N_value<T, N>*, N > > definition_by_cardinality;
-		T neutral_value;
+		std::vector<subset > iota_sequence;
+		std::map<size_t, powerset_btree<N, set_N_value<N, T>* > > definition_by_cardinality;
 
 	public:
 
-		zeta_transform(const zeta_transform<T, N, inclusion>& z) :
-			powerset_function<T, N>(z.definition),
+		zeta_transform(const zeta_transform<inclusion, N, T>& z) :
+			powerset_function<N, T>(z.outcomes, z.definition, z.default_value),
 			scheme_type(z.scheme_type),
 			iota_sequence(z.iota_sequence),
-			definition_by_cardinality(z.definition_by_cardinality),
-			neutral_value(z.neutral_value)
+			definition_by_cardinality(z.definition_by_cardinality)
 		{}
 
-		zeta_transform(
-			const powerset_btree<T, N>& definition,
-			const scheme_type_t& scheme_type,
-			const std::vector<std::bitset<N> >& iota_sequence,
-			const T& neutral_value
-		) :
-			powerset_function<T, N>(definition),
-			scheme_type(scheme_type),
-			iota_sequence(iota_sequence),
-			neutral_value(neutral_value)
-		{
-			set_definition_by_cardinality();
-		}
+//		zeta_transform(
+//			const sample_space<N>& outcomes,
+//			const powerset_btree<N, T>& definition,
+//			const scheme_type_t& scheme_type,
+//			const std::vector<subset >& iota_sequence,
+//			const T& neutral_value
+//		) :
+//			powerset_function<N, T>(outcomes, definition),
+//			scheme_type(scheme_type),
+//			iota_sequence(iota_sequence),
+//			neutral_value(neutral_value)
+//		{
+//			this->set_definition_by_cardinality();
+//		}
 
 		/*
 		 * Constructor when you have a Möbius transform such as the mass or conjunctive/disjunctive weight function.
@@ -52,8 +54,13 @@ namespace efficient_DST{
 		 * - transform_operation is the operation of the zeta transform (e.g. in DST, we usually use the addition on the mass function
 		 * and the multiplication on the conjunctive/disjunctive weight function).
 		 */
-		zeta_transform(const powerset_btree<T, N>& support, operation_type_t operation_type) :
-			powerset_function<T, N>(support.get_FOD(), N * support.size()),
+		zeta_transform(
+			const sample_space<N>& outcomes,
+			const powerset_btree<N, T>& support,
+			const T& default_value,
+			operation_type_t operation_type
+		) :
+			powerset_function<N, T>(outcomes, N * support.size(), default_value),
 			scheme_type(scheme_type_t::direct)
 		{
 			if (operation_type == operation_type_t::addition){
@@ -61,20 +68,21 @@ namespace efficient_DST{
 			} else {
 				this->compute<multiplication<T>>(support);
 			}
-			set_definition_by_cardinality();
+			this->set_definition_by_cardinality();
 		}
 
-
-		powerset_btree<T, N> inversion(const operation_type_t& operation_type) const {
-			powerset_btree<T, N> mobius_transform_definition(this->definition);
+//		template<class operation_type>
+//		powerset_btree<N, T> inversion() const {
+		powerset_btree<N, T> inversion(const operation_type_t& operation_type) const {
+			powerset_btree<N, T> mobius_transform_definition(this->definition);
 			if (operation_type == operation_type_t::addition){
-				efficient_mobius_inversion<T, N, inclusion, mobius_tranformation<T, N, inclusion, addition<T>> >::execute(
+				efficient_mobius_inversion<inclusion, mobius_tranformation<inclusion, addition<T>, N, T>, N, T >::execute(
 						mobius_transform_definition,
 						this->iota_sequence,
 						this->scheme_type
 				);
 			} else {
-				efficient_mobius_inversion<T, N, inclusion, mobius_tranformation<T, N, inclusion, multiplication<T>> >::execute(
+				efficient_mobius_inversion<inclusion, mobius_tranformation<inclusion, multiplication<T>, N, T>, N, T >::execute(
 						mobius_transform_definition,
 						this->iota_sequence,
 						this->scheme_type
@@ -83,47 +91,24 @@ namespace efficient_DST{
 			return mobius_transform_definition;
 		}
 
-		T at_emptyset() const {
-			set_N_value<T, N>* set_value = this->definition.sub_fod_of_size(0);
+		T operator[](const subset& set) const {
+			set_N_value<N, T>* set_value = this->definition[set];
 			if(set_value){
 				return set_value->value;
 			}
-			std::bitset<N> emptyset = 0;
-			return find_non_focal_point_image(emptyset);
-		}
-
-		T at_fod() const {
-			set_N_value<T, N>* set_value = this->definition.sub_fod_of_size(N);
-			if(set_value){
-				return set_value->value;
-			}
-			std::bitset<N> fod = 0;
-			fod.set();
-			return find_non_focal_point_image(fod);
-		}
-
-		T operator[](const std::vector<std::string>& labels) const {
-			return this->find(this->definition.get_FOD()->to_set(labels));
-		}
-
-		T find(const std::bitset<N>& set) const {
-			set_N_value<T, N>* set_value = this->definition[set];
-			if(set_value){
-				return set_value->value;
-			}
-			return find_non_focal_point_image(set);
+			return this->find_non_focal_point_image(set);
 		}
 
 	protected:
 
-		T find_non_focal_point_image(const std::bitset<N>& set) const {
-			set_N_value<set_N_value<T, N>*, N >* A = nullptr;
+		T find_non_focal_point_image(const subset& set) const {
+			set_N_value<N, set_N_value<N, T>* >* A = nullptr;
 			const size_t& card = set.count();
 
 			for (const auto& c_focal_points : this->definition_by_cardinality) {
 				if(inclusion::naturally_ranked(c_focal_points.first, card)){
-					const powerset_btree<set_N_value<T, N>*, N >& p = c_focal_points.second;
-					const std::vector<set_N_value<set_N_value<T, N>*, N >* >& related_elements = inclusion::addresses_related_to(p, set);
+					const powerset_btree<N, set_N_value<N, T>* >& p = c_focal_points.second;
+					const std::vector<set_N_value<N, set_N_value<N, T>* >* >& related_elements = inclusion::addresses_related_to(p, set);
 
 					if(related_elements.size() > 0){
 						A = related_elements[0];
@@ -134,7 +119,7 @@ namespace efficient_DST{
 			if (A){
 				return A->value->value;
 			}else{
-				return this->neutral_value;
+				return this->default_value;
 			}
 		}
 
@@ -146,10 +131,10 @@ namespace efficient_DST{
 				this->definition_by_cardinality.emplace(
 					std::piecewise_construct,
 					std::make_tuple(c_focal_points.first),
-					std::make_tuple(this->definition.get_FOD(), this->definition.get_block_size())
+					std::make_tuple(this->definition.get_block_size())
 				);
-				powerset_btree<set_N_value<T, N>*, N >& p_c = this->definition_by_cardinality[c_focal_points.first];
-				const std::vector<set_N_value<T, N>* >& elements = c_focal_points.second;
+				powerset_btree<N, set_N_value<N, T>* >& p_c = this->definition_by_cardinality[c_focal_points.first];
+				const std::vector<set_N_value<N, T>* >& elements = c_focal_points.second;
 				for(size_t i = 0; i < elements.size(); ++i){
 					p_c.insert(elements[i]->set, elements[i]);
 				}
@@ -157,9 +142,13 @@ namespace efficient_DST{
 		}
 
 		template<class operation_type>
-		void compute(const powerset_btree<T, N>& support){
+		void compute(const powerset_btree<N, T>& support){
+			if (this->default_value != operation_type::neutral_value()){
+				std::cerr << "Ill-defined support: the default value of your compact definition must match the neutral value for the operator you chose.\n";
+				exit(1);
+			}
 			this->scheme_type = efficient_mobius_inversion<
-				T, N, inclusion, zeta_tranformation<T, N, inclusion, operation_type>
+				inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
 			>::autoset_and_build(
 					support,
 					this->definition,
@@ -167,13 +156,13 @@ namespace efficient_DST{
 			);
 
 			efficient_mobius_inversion<
-				T, N, inclusion, zeta_tranformation<T, N, inclusion, operation_type>
+				inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
 			>::execute(
 					this->definition,
 					this->iota_sequence,
 					this->scheme_type
 			);
-			this->neutral_value = operation_type::neutral_value();
+//			this->default_value = operation_type::neutral_value();
 		}
 	};
 }	// namespace efficient_DST
