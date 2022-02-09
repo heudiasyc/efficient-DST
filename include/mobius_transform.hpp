@@ -17,13 +17,13 @@ namespace efficient_DST{
 //		using powerset_function<N, T>::operator[];
 
 		mobius_transform(
-			sample_space<N>& outcomes,
+			const sample_space<N>& outcomes,
 			const powerset_btree<N, T>& support_values,
 			const T& default_value
 		) : powerset_function<N, T>(outcomes, support_values, default_value)
 		{}
 
-		mobius_transform(sample_space<N>& outcomes, const T& default_value) : powerset_function<N, T>(outcomes, default_value)
+		mobius_transform(const sample_space<N>& outcomes, const T& default_value) : powerset_function<N, T>(outcomes, default_value)
 		{}
 
 //		mobius_transform(

@@ -12,7 +12,7 @@ namespace efficient_DST{
 		using powerset_function<N, T>::emptyset;
 
 		decomposition_weight(
-			sample_space<N>& outcomes,
+			const sample_space<N>& outcomes,
 			const powerset_btree<N, T>& log_focal_sets
 		) : mobius_transform<N, T>(outcomes, log_focal_sets, 1)
 		{
@@ -21,7 +21,7 @@ namespace efficient_DST{
 		}
 
 		decomposition_weight(
-			sample_space<N>& outcomes
+			const sample_space<N>& outcomes
 		) : mobius_transform<N, T>(outcomes, 1)
 		{}
 

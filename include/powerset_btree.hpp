@@ -356,6 +356,7 @@ namespace efficient_DST{
 							++depth;
 							cursor <<= 1;
 							is_left_child = false;
+							leaf = leaf->right;
 							//insert(inserted_node, set, final_depth, value, depth, cursor, leaf->right, false);
 						}else{
 							inserted_node = create_node(set, value, final_depth, leaf, nullptr, nullptr);
@@ -376,6 +377,7 @@ namespace efficient_DST{
 						++depth;
 						cursor <<= 1;
 						is_left_child = true;
+						leaf = leaf->left;
 						//insert(inserted_node, set, final_depth, value, depth, cursor, leaf->left, true);
 					}else{
 						inserted_node = create_node(set, value, final_depth, leaf, nullptr, nullptr);

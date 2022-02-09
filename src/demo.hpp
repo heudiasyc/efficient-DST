@@ -31,26 +31,41 @@ void demo(){
 
     w0.set_emptyset_value(0.82);
     w0.set_value({"f"}, 803.12195);
-    w0.print();
     w0.set_value({"f", "g"}, 0.14286);
-    w0.print();
     w0.set_value({"f", "j"}, 0.02381);
-    w0.print();
     w0.set_value({"e", "f", "i", "o"}, 0.125);
-    w0.print();
     w0.set_value({"f", "l"}, 0.03571);
 
     std::cout << "\nConjunctive weights from w0" << std::endl;
 
     w0.print();
 
-    commonality<N> q0(w0);
+    std::cout << "\n============================================\n";
+
+    mass<N> m(outcomes);
+
+    m.set_emptyset_value(0.02);
+    m.set_value({"f"}, 0.4);
+    m.set_value({"f", "g"}, 0.08);
+    m.set_value({"f", "j"}, 0.03);
+    m.set_value({"e", "f", "i", "o"}, 0.37);
+    m.set_value({"f", "i"}, 0.1);
+
+    commonality<N> q0(m);
 
     std::cout << "\nCommonality values from w0" << std::endl;
 
     q0.print();
 
 	std::cout << "\n============================================\n";
+
+	conjunctive_weight<N> w(q0);
+
+	w.print();
+
+	commonality<N> q(w);
+
+	q.print();
 //
 //	mass<double, N> m0(q0);
 //
