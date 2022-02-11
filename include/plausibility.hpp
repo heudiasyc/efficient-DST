@@ -9,7 +9,8 @@ namespace efficient_DST{
 	class plausibility : public implicability<N, T> {
 	public:
 		using typename powerset_function<N, T>::subset;
-		using zeta_transform<down_inclusion<N, T>, N, T>::operator[];
+		using powerset_function<N, T>::emptyset;
+		using powerset_function<N, T>::fullset;
 
 		plausibility(const mass<N, T>& m) : implicability<N, T>(m)
 		{}
@@ -30,7 +31,22 @@ namespace efficient_DST{
 			return fusion(*this, p2);
 		}
 
-		T* contour() {
+		std::unordered_map<size_t, T> contour() {
+			std::unordered_map<size_t, T> contour;
+			subset singleton = 1;
+			T val;
+
+			for(size_t i = 0; i < N; ++i){
+				val = (*this)[singleton];
+				if (val != this->default_value){
+					contour.emplace(i, val);
+				}
+				singleton <<= 1;
+			}
+			return contour;
+		}
+
+		T* contour_array() {
 			T contour[N] = {0};
 			subset singleton = 1;
 
@@ -39,6 +55,18 @@ namespace efficient_DST{
 				singleton <<= 1;
 			}
 			return contour;
+		}
+
+		T at_emptyset() const {
+			return (*this)[emptyset];
+		}
+
+		T at_fullset() const {
+			return (*this)[fullset];
+		}
+
+		T operator[](const std::vector<std::string>& labels) const {
+			return (*this)[this->outcomes.get_subset(labels)];
 		}
 
 		T operator[](const subset& set) const {

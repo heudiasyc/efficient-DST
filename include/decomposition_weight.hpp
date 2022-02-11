@@ -9,7 +9,9 @@ namespace efficient_DST{
 	template <size_t N, typename T = float>
 	class decomposition_weight : public mobius_transform<N, T>{
 	public:
+		using typename powerset_function<N, T>::subset;
 		using powerset_function<N, T>::emptyset;
+		using powerset_function<N, T>::fullset;
 
 		decomposition_weight(
 			const sample_space<N>& outcomes,
@@ -27,6 +29,36 @@ namespace efficient_DST{
 
 		virtual ~decomposition_weight(){}
 
+
+		T at_emptyset() const {
+			return (*this)[emptyset];
+		}
+
+		T at_fullset() const {
+			return (*this)[fullset];
+		}
+
+		T operator[](const std::vector<std::string>& labels) const {
+			return (*this)[this->outcomes.get_subset(labels)];
+		}
+
+		T operator[](const subset& set) const {
+			set_N_value<N, T>* set_value = this->definition[set];
+			if(set_value)
+				return 1/set_value->value;
+			else
+				return this->default_value;
+		}
+
+		std::ostream& print() const {
+			std::vector<set_N_value<N, T>* > values = this->definition.elements();
+			std::cout << std::endl;
+			for (size_t i = 0; i < values.size(); ++i) {
+				std::cout << set_N_value<N, T>::to_string(1/values[i]->value) + "\t <- " + this->outcomes.to_string(values[i]->set) << std::endl;
+			}
+
+			return std::cout;
+		}
 
 		void regularize() {
 			this->definition.nullify(this->definition[emptyset]);

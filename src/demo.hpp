@@ -29,43 +29,63 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    w0.set_emptyset_value(0.82);
-    w0.set_value({"f"}, 803.12195);
-    w0.set_value({"f", "g"}, 0.14286);
-    w0.set_value({"f", "j"}, 0.02381);
-    w0.set_value({"e", "f", "i", "o"}, 0.125);
-    w0.set_value({"f", "l"}, 0.03571);
+    w0.assign_emptyset(0.82);
+    w0.assign({"f"}, 803.12195);
+    w0.assign({"f", "g"}, 0.14286);
+    w0.assign({"f", "j"}, 0.02381);
+    w0.assign({"e", "f", "i", "o"}, 0.125);
+    w0.assign({"f", "l"}, 0.03571);
 
-    std::cout << "\nConjunctive weights from w0" << std::endl;
+    std::cout << "\nConjunctive weights in w0" << std::endl;
 
     w0.print();
 
-    std::cout << "\n============================================\n";
-
-    mass<N> m(outcomes);
-
-    m.set_emptyset_value(0.02);
-    m.set_value({"f"}, 0.4);
-    m.set_value({"f", "g"}, 0.08);
-    m.set_value({"f", "j"}, 0.03);
-    m.set_value({"e", "f", "i", "o"}, 0.37);
-    m.set_value({"f", "i"}, 0.1);
-
-    commonality<N> q0(m);
+    commonality<N> q0(w0);
 
     std::cout << "\nCommonality values from w0" << std::endl;
 
     q0.print();
 
-	std::cout << "\n============================================\n";
+    mass<N> m0(q0);
 
-	conjunctive_weight<N> w(q0);
+    std::cout << "\nMass values from w0" << std::endl;
+
+    m0.print();
+
+    std::cout << "\n============================================\n";
+
+    mass<N> m(outcomes);
+
+    m.assign_emptyset(0.42);
+//    m.assign({"f"}, 0.4);
+    m.assign({"f", "g"}, 0.08);
+    m.assign({"f", "j"}, 0.03);
+    m.assign({"e", "f", "i", "o"}, 0.37);
+    m.assign({"f", "i"}, 0.1);
+
+    std::cout << "\nMass values m" << std::endl;
+
+    m.print();
+
+    commonality<N> q(m);
+
+    std::cout << "\nCommonality values from m" << std::endl;
+
+    q.print();
+
+	conjunctive_weight<N> w(q);
+
+	std::cout << "\nConjunctive weights from m" << std::endl;
 
 	w.print();
 
-	commonality<N> q(w);
+	std::cout << "\n============================================\n";
 
-	q.print();
+	commonality<N> q_again(w);
+
+	std::cout << "\nAgain commonality values from m" << std::endl;
+
+	q_again.print();
 //
 //	mass<double, N> m0(q0);
 //

@@ -36,7 +36,7 @@ namespace efficient_DST{
 		}
 
 		void nullify(const std::vector<std::string>& labels) {
-			this->nullify(this->definition[this->outcomes.get_subset(labels)]);
+			this->nullify(this->outcomes.get_subset(labels));
 		}
 
 		void nullify(const subset& set) {
@@ -56,32 +56,32 @@ namespace efficient_DST{
 			remove_negligible_values(this->definition, this->default_value);
 		}
 
-		void set_values(const std::unordered_map<subset, T>& values) {
+		void assign(const std::unordered_map<subset, T>& values) {
 			for (const auto& labels_U_value : values) {
-				this->set_value(labels_U_value.first, labels_U_value.second);
+				this->assign(labels_U_value.first, labels_U_value.second);
 			}
 		}
 
-		void set_values(const std::unordered_map<std::vector<std::string>, T>& values) {
+		void assign(const std::unordered_map<std::vector<std::string>, T>& values) {
 			for (const auto& labels_U_value : values) {
-				this->set_value(labels_U_value.first, labels_U_value.second);
+				this->assign(labels_U_value.first, labels_U_value.second);
 			}
 		}
 
-		void set_value(const subset& set, const T& value) {
+		void assign(const subset& set, const T& value) {
 			this->definition.update_or_insert(set, value);
 		}
 
-		void set_value(const std::vector<std::string>& labels, const T& value) {
-			this->set_value(this->outcomes.get_subset(labels), value);
+		void assign(const std::vector<std::string>& labels, const T& value) {
+			this->assign(this->outcomes.get_subset(labels), value);
 		}
 
-		void set_emptyset_value(const T& value) {
-			this->set_value(emptyset, value);
+		void assign_emptyset(const T& value) {
+			this->assign(emptyset, value);
 		}
 
-		void set_fullset_value(const T& value) {
-			this->set_value(fullset, value);
+		void assign_fullset(const T& value) {
+			this->assign(fullset, value);
 		}
 	};
 

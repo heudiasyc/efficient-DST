@@ -17,7 +17,8 @@ namespace efficient_DST{
 	class zeta_transform : public powerset_function<N, T> {
 	protected:
 		using typename powerset_function<N, T>::subset;
-		using powerset_function<N, T>::operator[];
+		using powerset_function<N, T>::emptyset;
+		using powerset_function<N, T>::fullset;
 
 		scheme_type_t scheme_type;
 		std::vector<subset > iota_sequence;
@@ -63,6 +64,7 @@ namespace efficient_DST{
 			powerset_function<N, T>(outcomes, N * support.size(), default_value),
 			scheme_type(scheme_type_t::direct)
 		{
+			std::cout << "zeta transform instantiation\n";
 			if (operation_type == operation_type_t::addition){
 				this->compute<addition<T>>(support);
 			} else {
@@ -77,18 +79,32 @@ namespace efficient_DST{
 			powerset_btree<N, T> mobius_transform_definition(this->definition);
 			if (operation_type == operation_type_t::addition){
 				efficient_mobius_inversion<inclusion, mobius_tranformation<inclusion, addition<T>, N, T>, N, T >::execute(
+						this->definition,
 						mobius_transform_definition,
 						this->iota_sequence,
 						this->scheme_type
 				);
 			} else {
 				efficient_mobius_inversion<inclusion, mobius_tranformation<inclusion, multiplication<T>, N, T>, N, T >::execute(
+						this->definition,
 						mobius_transform_definition,
 						this->iota_sequence,
 						this->scheme_type
 				);
 			}
 			return mobius_transform_definition;
+		}
+
+		T at_emptyset() const {
+			return (*this)[emptyset];
+		}
+
+		T at_fullset() const {
+			return (*this)[fullset];
+		}
+
+		T operator[](const std::vector<std::string>& labels) const {
+			return (*this)[this->outcomes.get_subset(labels)];
 		}
 
 		T operator[](const subset& set) const {
@@ -147,6 +163,7 @@ namespace efficient_DST{
 				std::cerr << "Ill-defined support: the default value of your compact definition must match the neutral value for the operator you chose.\n";
 				exit(1);
 			}
+			std::cout << "zeta transform compute init\n";
 			this->scheme_type = efficient_mobius_inversion<
 				inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
 			>::autoset_and_build(
@@ -154,10 +171,11 @@ namespace efficient_DST{
 					this->definition,
 					this->iota_sequence
 			);
-
+			std::cout << "zeta transform compute autoset done:" << (int) this->scheme_type << "\n";
 			efficient_mobius_inversion<
 				inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
 			>::execute(
+					support,
 					this->definition,
 					this->iota_sequence,
 					this->scheme_type

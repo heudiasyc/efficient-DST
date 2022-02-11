@@ -12,51 +12,80 @@ namespace efficient_DST{
 	public:
 		using typename powerset_function<N, T>::subset;
 		using powerset_function<N, T>::emptyset;
+		using powerset_function<N, T>::fullset;
 
 		disjunctive_weight(const disjunctive_weight<N, T>& v) : decomposition_weight<N, T>(v.outcomes, v.definition)
 		{}
 
 		disjunctive_weight(
-			sample_space<N>& outcomes,
+			const sample_space<N>& outcomes,
 			const powerset_btree<N, T>& support
 		) : decomposition_weight<N, T>(outcomes, support)
 		{}
 
-		disjunctive_weight(sample_space<N>& outcomes) : decomposition_weight<N, T>(outcomes)
+		disjunctive_weight(const sample_space<N>& outcomes) : decomposition_weight<N, T>(outcomes)
 		{}
 
 		disjunctive_weight(
 			const zeta_transform<down_inclusion<N, T>, N, T >& b
 		) : decomposition_weight<N, T>(b.get_sample_space(), b.inversion(operation_type_t::multiplication))
 		{
-			invert_values(this->definition);
+//			invert_values(this->definition);
 		}
 
-		/*
-		 * The disjunctive weight function is the inverse of the multiplicative Möbius transform of the implicability function.
-		 * So, invert its values before computing it.
-		 */
-		powerset_btree<N, T> inverted_definition() const {
-			powerset_btree<N, T> inverted_definition(this->definition);
-			invert_values(inverted_definition);
-			return inverted_definition;
-		}
+//		/*
+//		 * The disjunctive weight function is the inverse of the multiplicative Möbius transform of the implicability function.
+//		 * So, invert its values before computing it.
+//		 */
+//		powerset_btree<N, T> inverted_definition() const {
+//			powerset_btree<N, T> inverted_definition(this->definition);
+//			invert_values(inverted_definition);
+//			return inverted_definition;
+//		}
 
-		void set_value(const subset& set, const T& value) {
+		void assign(const subset& set, const T& value) {
 			if (set != emptyset){
-				this->definition.update_or_insert(set, value);
+				this->definition.update_or_insert(set, 1/value);
 				// The following part ensures that v(emptyset) is defined (as it is not when directly building v).
 				// Indeed, v(emptyset) may be required for the computation of the implicability function.
 				// v(emptyset)^{-1} is equal to the product of all other weights.
 				set_N_value<N, T>* emptyset = this->definition.empty_set();
 				if(emptyset){
-					emptyset->value /= value;
+					emptyset->value *= value;
 				}else{
-					this->set_emptyset_value(1/value);
+					this->definition.insert(emptyset, value);
 				}
 			}else{
 				std::cout << "Cannot directly assign the emptyset value of a disjunctive decomposition. Ignoring command.\n";
 			}
+		}
+
+		void assign(const std::unordered_map<subset, T>& values) {
+			for (const auto& labels_U_value : values) {
+				this->assign(labels_U_value.first, labels_U_value.second);
+			}
+		}
+
+		void assign(const std::unordered_map<std::vector<std::string>, T>& values) {
+			for (const auto& labels_U_value : values) {
+				this->assign(labels_U_value.first, labels_U_value.second);
+			}
+		}
+
+		void assign(const std::vector<std::string>& labels, const T& value) {
+			this->assign(this->outcomes.get_subset(labels), value);
+		}
+
+		void assign_emptyset(const T& value) {
+			this->assign(emptyset, value);
+		}
+
+		void assign_fullset(const T& value) {
+			this->assign(fullset, value);
+		}
+
+		void nullify(const std::vector<std::string>& labels) {
+			this->nullify(this->outcomes.get_subset(labels));
 		}
 
 		void nullify(const subset& set) {
@@ -70,7 +99,7 @@ namespace efficient_DST{
 						// The following part ensures that v(emptyset) is defined (as it is not when directly building v).
 						// Indeed, v(emptyset) may be required for the computation of the implicability function.
 						// v(emptyset)^{-1} is equal to the product of all other weights.
-						this->set_emptyset_value(A->value);
+						this->definition.insert(emptyset, A->value);
 					}
 					this->definition.nullify(A);
 				}
@@ -99,14 +128,14 @@ namespace efficient_DST{
 			return fusion(*this, v2);
 		}
 
-	protected:
-
-		static void invert_values(powerset_btree<N, T>& values) {
-			std::vector<set_N_value<N, T>* > elements = values.elements();
-			for (size_t i = 0; i < elements.size(); ++i){
-				elements[i]->value = 1 / elements[i]->value;
-			}
-		}
+//	protected:
+//
+//		static void invert_values(powerset_btree<N, T>& values) {
+//			std::vector<set_N_value<N, T>* > elements = values.elements();
+//			for (size_t i = 0; i < elements.size(); ++i){
+//				elements[i]->value = 1 / elements[i]->value;
+//			}
+//		}
 	};
 
 } // namespace efficient_DST

@@ -344,11 +344,12 @@ namespace efficient_DST{
 
 		//template<class inclusion, class value_inplace_operation>
 		static void execute_direct_transformation(
+				const powerset_btree<N, T>& support,
 				powerset_btree<N, T>& focal_points_tree
 		){
 			//clock_t t;
 			//t = clock();
-			powerset_btree<N, T> focal_points_N_initial_values(focal_points_tree);
+//			powerset_btree<N, T> focal_points_N_initial_values(focal_points_tree);
 			/*
 			std::function<T(const subset&)> elements_related_to;
 			if(order_relation == order_relation_t::subset){
@@ -356,12 +357,12 @@ namespace efficient_DST{
 			}else{
 				elements_related_to = focal_points_N_initial_values.supersets_of;
 			}*/
-			const std::vector<set_N_value<N, T>* >& focal_points = focal_points_N_initial_values.elements();
+			const std::vector<set_N_value<N, T>* >& focal_points = focal_points_tree.elements();
 			T val;
 			for (size_t i = 0; i < focal_points.size(); ++i) {
 				val = focal_points[i]->value;
 				const std::vector<set_N_value<N, T>* >& elements = inclusion::elements_related_to(
-					focal_points_N_initial_values,
+					support,
 					focal_points[i]->set
 				);
 				DEBUG(std::clog << "Elements related to " << focal_points[i]->set << " : \n";);
@@ -371,7 +372,7 @@ namespace efficient_DST{
 						value_inplace_operation(val, elements[ii]->value);
 					}
 				}
-				focal_points_tree.update_or_insert(focal_points[i]->set, val);
+				focal_points[i]->value = val;
 			}
 			//t = clock() - t;
 			//std::cout << (((float) t)/CLOCKS_PER_SEC) << std::endl;
@@ -439,6 +440,7 @@ namespace efficient_DST{
 
 		//template<class inclusion, class value_inplace_operation>
 		static void execute_direct_transformation(
+				const powerset_btree<N, T>& initial_focal_points_tree,	// useless here but maintains the isomorphism with execute_direct_transformation from zeta_transformation
 				powerset_btree<N, T>& focal_points_tree
 		){
 			//clock_t t;
@@ -456,6 +458,7 @@ namespace efficient_DST{
 			*/
 //			const std::binary_function<size_t, size_t, bool>& comp = this->card_map_comparator();
 //			std::map<size_t, std::vector<set_N_value<N, T>* >, comp > focal_points_card_map = focal_points_tree.elements_by_set_cardinality(comp);
+			std::cout << "Direct Mobius transformation\n";
 			const auto& focal_points_card_map = inclusion::card_mapping(focal_points_tree);
 			T val;
 			for (const auto& c_focal_points : focal_points_card_map) {
@@ -468,7 +471,7 @@ namespace efficient_DST{
 							value_inplace_operation(val, elements[ii]->value);
 						}
 					}
-					focal_points_tree.insert(focal_points[i]->set, val);
+					focal_points[i]->value = val;
 				}
 			}
 			//t = clock() - t;
@@ -549,6 +552,7 @@ namespace efficient_DST{
 			const powerset_btree<N, T>& support,
 			powerset_btree<N, T>& focal_points_tree
 		){
+			std::cout << "Starting linear analysis\n";
 			const std::vector<set_N_value<N, T>* >& elements = support.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
 				focal_points_tree.insert(elements[i]->set, elements[i]->value);
@@ -568,6 +572,7 @@ namespace efficient_DST{
 					DEBUG(std::clog << "\nI = set_operation(U, "<< A << ")\n";);
 					const subset& I = inclusion::set_operation(U, A);
 
+					std::cout << "Neutral value = " << transformation::neutral_value() << "\n";
 					newly_inserted_address = focal_points_tree.insert_or_update_if_null(
 						I,
 						transformation::neutral_value()
@@ -583,13 +588,17 @@ namespace efficient_DST{
 				absorbing_set,
 				transformation::neutral_value()
 			);
+			std::cout << "Printing linearly analyzed tree:\n";
+			focal_points_tree.print();
+			std::cout << "END PRINTING\n";
 			return true;
 		}
 
 		static void execute_direct_transformation(
+			const powerset_btree<N, T>& support,
 			powerset_btree<N, T>& focal_points_tree
 		) {
-			transformation::execute_direct_transformation(focal_points_tree);
+			transformation::execute_direct_transformation(support, focal_points_tree);
 		}
 
 		static void execute_consonant_transformation(
@@ -783,6 +792,7 @@ namespace efficient_DST{
 				const powerset_btree<N, T>& support,
 				powerset_btree<N, T>& focal_points_tree
 		) {
+			std::cout << "Building semilattice support\n";
 			std::vector<subset > focal_points;
 			const std::vector<set_N_value<N, T>* >& support_elements = support.elements();
 			focal_points.reserve(support.size());
@@ -816,6 +826,7 @@ namespace efficient_DST{
 				const powerset_btree<N, T>& support,
 				powerset_btree<N, T>& truncated_lattice_support
 		) {
+			std::cout << "Building lattice support\n";
 			const std::vector<subset >& iota_sequence = inclusion::compute_iota_elements(
 				support
 			);
@@ -917,6 +928,7 @@ namespace efficient_DST{
 
 			if(is_almost_bayesian){
 				DEBUG(std::clog << "almost Bayesian." << std::endl;);
+				std::cout << "Almost Bayesian\n";
 				return scheme_type_t::direct;
 			}else{
 				DEBUG(std::clog << "Consonance check:" << std::endl;);
@@ -968,6 +980,7 @@ namespace efficient_DST{
 		}
 
 		static void execute(
+			const powerset_btree<N, T>& support,
 			powerset_btree<N, T>& focal_points_tree,
 			const std::vector<subset >& iota_sequence,
 			const scheme_type_t& scheme_type
@@ -976,6 +989,7 @@ namespace efficient_DST{
 			switch (scheme_type) {
 				case scheme_type_t::direct:
 					execute_direct_transformation(
+						support,
 						focal_points_tree
 					);
 					break;
@@ -1033,6 +1047,7 @@ namespace efficient_DST{
 			}
 			if(scheme_type == scheme_type_t::direct){
 				execute_direct_transformation(
+					support,
 					focal_points_tree
 				);
 			}else{

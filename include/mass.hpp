@@ -19,7 +19,7 @@ namespace efficient_DST{
 		{}
 
 		mass(
-			sample_space<N>& outcomes,
+			const sample_space<N>& outcomes,
 			const powerset_btree<N, T>& focal_sets
 		) : mobius_transform<N, T>(outcomes, focal_sets, 0)
 		{
@@ -27,10 +27,10 @@ namespace efficient_DST{
 			this->normalize();
 		}
 
-		mass(sample_space<N>& outcomes) : mobius_transform<N, T>(outcomes, 0)
+		mass(const sample_space<N>& outcomes) : mobius_transform<N, T>(outcomes, 0)
 		{}
 
-		mass(sample_space<N>& outcomes, const special_case_t s_case) : mobius_transform<N, T>(outcomes, 0)
+		mass(const sample_space<N>& outcomes, const special_case_t s_case) : mobius_transform<N, T>(outcomes, 0)
 		{
 			switch(s_case){
 				// create a mass function with all mass attributed to the empty set

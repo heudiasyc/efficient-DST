@@ -18,7 +18,7 @@ namespace efficient_DST{
 
 		implicability(
 			const disjunctive_weight<N, T>& v
-		) : zeta_transform<down_inclusion<N, T>, N, T>(v.get_sample_space(), v.inverted_definition(), v.get_default_value(), operation_type_t::multiplication)
+		) : zeta_transform<down_inclusion<N, T>, N, T>(v.get_sample_space(), v.get_definition(), v.get_default_value(), operation_type_t::multiplication)
 		{}
 
 		implicability(

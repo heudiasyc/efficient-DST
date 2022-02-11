@@ -106,16 +106,16 @@ namespace efficient_DST{
 			return (*this)[fullset];
 		}
 
+		T operator[](const std::vector<std::string>& labels) const {
+			return (*this)[this->outcomes.get_subset(labels)];
+		}
+
 		T operator[](const subset& set) const {
 			set_N_value<N, T>* set_value = this->definition[set];
 			if(set_value)
 				return set_value->value;
 			else
 				return this->default_value;
-		}
-
-		T operator[](const std::vector<std::string>& labels) const {
-			return (*this)[this->outcomes.get_subset(labels)];
 		}
 
 		std::ostream& print() const {

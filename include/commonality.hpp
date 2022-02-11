@@ -18,7 +18,7 @@ namespace efficient_DST{
 
 		commonality(
 			const conjunctive_weight<N, T>& w
-		) : zeta_transform<up_inclusion<N, T>, N, T>(w.get_sample_space(), w.inverted_definition(), w.get_default_value(), operation_type_t::multiplication)
+		) : zeta_transform<up_inclusion<N, T>, N, T>(w.get_sample_space(), w.get_definition(), w.get_default_value(), operation_type_t::multiplication)
 		{}
 
 		commonality(

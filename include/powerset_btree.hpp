@@ -57,6 +57,10 @@ namespace efficient_DST{
 		const std::string to_string(const sample_space<N>& outcomes) const {
 			return to_string(this->value) + "\t <- " + outcomes.to_string(this->set);
 		}
+
+		const std::string to_string() const {
+			return to_string(this->value) + "\t <- " + this->set.to_string();
+		}
 	};
 
 	template <size_t N, class T = float>
@@ -176,6 +180,16 @@ namespace efficient_DST{
 			return os;
 		}
 
+		std::ostream& print() const {
+			std::vector<set_N_value<N, T>* > values = this->elements();
+			std::cout << std::endl;
+			for (size_t i = 0; i < values.size(); ++i) {
+				std::cout << values[i]->to_string() << std::endl;
+			}
+
+			return std::cout;
+		}
+
 		/////////////////////////////////////////
 
 		void init_tree(){
@@ -271,21 +285,27 @@ namespace efficient_DST{
 
 			node<N, T>* inserted_node;
 			const size_t& final_depth = get_final_element_number(set);
-			std::cout << "Final index = " << final_depth << "\n";
+			std::cout << "Inserting set " << set << " with value " << value << "\n";
+//			std::cout << "Final index = " << final_depth << "\n";
 			size_t depth = 0;
 			subset cursor = 1;
 			node<N, T>* leaf = this->root;
 			bool is_left_child;
 
 			for(;;){
+				// f i inserted twice because we passed final_depth without noticing it, due to cursor <<= leaf->depth - depth and depth = leaf->depth
+				// it is necessary to check that depth <= final_depth at some point and act accordingly
+				if (final_depth == 4){
+					std::cout << "Current set = " << leaf->to_string() << "\n";
+				}
 				if(depth < leaf->depth){
 					// take skipped depths into account
 					cursor <<= leaf->depth - depth;
-					// Search for elements except the one at leaf->depth that are in leaf->set but not in set
-					if ((~(set | cursor) & leaf->set) != 0){
+					depth = leaf->depth;
+					if (final_depth < depth || (leaf->set & (set | cursor)) != leaf->set){
 						// if leaf->set (ignoring current depth) is not a subset of set, then we already know that our search stops here
 						node<N, T>* parent_node = leaf->parent;
-						if ((~leaf->set & set) == 0){
+						if ((leaf->set & set) == set){
 							// if leaf->set is a superset of set
 							inserted_node = create_node(set, value, final_depth, parent_node, nullptr, leaf);
 							leaf->parent = inserted_node;
@@ -348,7 +368,6 @@ namespace efficient_DST{
 						}
 						return inserted_node;
 					}
-					depth = leaf->depth;
 				}
 				if((set & cursor) != 0){
 					if(depth != final_depth){
@@ -388,6 +407,20 @@ namespace efficient_DST{
 			}
 		}
 
+		void update(set_N_value<N, T>* inserted_node, const T& value){
+			if (inserted_node){
+				std::cout << "Updating set " << inserted_node->set << " with value " << value << "\n";
+				if (inserted_node->is_null){
+					inserted_node->is_null = false;
+					++this->number_of_non_null_values;
+					++this->cardinality_distribution_non_null[inserted_node->cardinality];
+				}
+				inserted_node->value = value;
+			}else{
+				std::cerr << "No pointer given. Ignoring update.\n";
+			}
+		}
+
 		set_N_value<N, T>* insert_or_update_if_null(const subset& set, const T& value){
 			set_N_value<N, T>* inserted_node = find(set);
 			if (inserted_node){
@@ -407,8 +440,8 @@ namespace efficient_DST{
 
 		set_N_value<N, T>* update_or_insert(const subset& set, const T& value){
 			set_N_value<N, T>* inserted_node = find(set);
-			std::cout << "Inserting set " << set << " with value " << value << "\n";
 			if (inserted_node){
+				std::cout << "Updating set " << set << " with value " << value << "\n";
 				if (inserted_node->is_null){
 					inserted_node->is_null = false;
 					++this->number_of_non_null_values;
@@ -947,7 +980,7 @@ namespace efficient_DST{
 		/////////////////////////////////////////
 
 		/*
-		 * from must be the position of a bit evaluating to 1
+		 * 'from' must be the position of a bit evaluating to 1
 		 */
 		static void tile_set_bit(subset& mask, size_t from, size_t to){
 			size_t shift_diff = 1;
@@ -1133,19 +1166,14 @@ namespace efficient_DST{
 				subset cursor,
 				node<N, T> *leaf) {
 
-			// if leaf->depth > final_depth, then leaf has other elements than the ones of key
-			if(leaf->depth > final_depth){
-				return;
-			}
-
 			if(depth < leaf->depth){
 				// take skipped depths into account
 				cursor <<= leaf->depth - depth;
-				// Search for elements except the one at leaf->depth that are in leaf->set but not in set
-				if ((~(set | cursor) & leaf->set) != 0){
+				depth = leaf->depth;
+				if (final_depth < depth || (leaf->set & (set | cursor)) != leaf->set){
+					// if leaf->set (ignoring current depth) is not a subset of set, then we already know that our search stops here
 					return;
 				}
-				depth = leaf->depth;
 			}
 			if((set & cursor) != 0){
 			//if(set[depth]){
@@ -1179,21 +1207,16 @@ namespace efficient_DST{
 				subset cursor,
 				node<N, T> *leaf) {
 
-			// if leaf->depth > final_depth, then leaf has other elements than the ones of key
-			if(leaf->depth > final_depth){
-				return;
-			}
-
 			if(depth < leaf->depth){
 				// take skipped depths into account
 				cursor <<= leaf->depth - depth;
-				// Search for elements except the one at leaf->depth that are in leaf->set but not in set
-				if (~(set | cursor) & leaf->set != 0){
+				depth = leaf->depth;
+				if (final_depth < depth || (leaf->set & (set | cursor)) != leaf->set){
+					// if leaf->set (ignoring current depth) is not a subset of set, then we already know that our search stops here
 					return;
 				}
-				depth = leaf->depth;
 			}
-			if(set & cursor != 0){
+			if((set & cursor) != 0){
 			//if(set[depth]){
 				if(!leaf->is_null){
 					subset_values[leaf->cardinality].emplace_back(leaf);
