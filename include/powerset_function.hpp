@@ -57,7 +57,7 @@ namespace efficient_DST{
 
 	public:
 		// allow user to configure the floating-point tolerance
-		static constexpr T precision = 1e-10;
+		static constexpr T precision = 5e-8;
 
 		static inline bool is_equivalent_to_zero(const T& value) {
 			return (value < zero ? -value : value) <= precision;
@@ -118,15 +118,19 @@ namespace efficient_DST{
 				return this->default_value;
 		}
 
-		std::ostream& print() const {
-			std::vector<set_N_value<N, T>* > values = this->definition.elements();
-			std::cout << std::endl;
-			for (size_t i = 0; i < values.size(); ++i) {
-				std::cout << values[i]->to_string(this->outcomes) << std::endl;
-			}
-
-			return std::cout;
+		std::ostream& print(const bool& including_null = false) const {
+			return this->definition.print(this->outcomes, including_null);
 		}
+
+//		std::ostream& print() const {
+//			std::vector<set_N_value<N, T>* > values = this->definition.elements();
+//			std::cout << std::endl;
+//			for (size_t i = 0; i < values.size(); ++i) {
+//				std::cout << values[i]->to_string(this->outcomes) << std::endl;
+//			}
+//
+//			return std::cout;
+//		}
 	};
 }		// namespace efficient_DST
 

@@ -553,44 +553,44 @@ namespace efficient_DST{
 			powerset_btree<N, T>& focal_points_tree
 		){
 			std::cout << "Starting linear analysis\n";
+			const subset& absorbing_set = inclusion::absorbing_set_for_operation();
+			subset dual_absorbing_set = absorbing_set;
 			const std::vector<set_N_value<N, T>* >& elements = support.elements();
 			for (size_t i = 0; i < elements.size(); ++i){
+				dual_absorbing_set = inclusion::set_dual_operation(dual_absorbing_set, elements[i]->set);
 				focal_points_tree.insert(elements[i]->set, elements[i]->value);
 			}
-
-			const subset& absorbing_set = inclusion::absorbing_set_for_operation();
-			const subset& dual_absorbing_set = inclusion::absorbing_set_for_dual_operation();
 
 			subset U = elements[0]->set;
 			DEBUG(std::clog << "\nU = "<< elements[0]->set;);
 
-			set_N_value<N, T>* newly_inserted_address;
+			set_N_value<N, T>* inserted_node;
 
 			for (size_t i = 1; i < elements.size(); ++i) {
 				const subset& A = elements[i]->set;
 				if (A != dual_absorbing_set){
 					DEBUG(std::clog << "\nI = set_operation(U, "<< A << ")\n";);
 					const subset& I = inclusion::set_operation(U, A);
-
-					std::cout << "Neutral value = " << transformation::neutral_value() << "\n";
-					newly_inserted_address = focal_points_tree.insert_or_update_if_null(
+//					std::cout << I << " = set_operation(" << U << ", "<< A << ")\n";
+					inserted_node = focal_points_tree.insert_set_if_smaller_than(
 						I,
-						transformation::neutral_value()
+						transformation::neutral_value(),
+						1
 					);
-					if (newly_inserted_address && newly_inserted_address->cardinality > 1){
-						DEBUG(std::clog << newly_inserted_address->cardinality << "=> Linear focal points computation aborted.\n";);
+					if (!inserted_node){
+						DEBUG(std::clog << "Linear focal points computation aborted.\n";);
 						return false;
 					}
 					U = inclusion::set_dual_operation(U, A);
 				}
 			}
-			focal_points_tree.insert_or_update_if_null(
+			focal_points_tree.insert_set(
 				absorbing_set,
 				transformation::neutral_value()
 			);
 			std::cout << "Printing linearly analyzed tree:\n";
-			focal_points_tree.print();
-			std::cout << "END PRINTING\n";
+			focal_points_tree.print(true);
+//			std::cout << "END PRINTING\n";
 			return true;
 		}
 
@@ -808,7 +808,7 @@ namespace efficient_DST{
 				size_t end = focal_points.size();
 				for (size_t ii = i+1; ii < end; ++ii){
 					const subset& focal_point = inclusion::set_operation(support_elements[i]->set, focal_points[ii]);
-					newly_inserted_address = focal_points_tree.insert_or_update_if_null(
+					newly_inserted_address = focal_points_tree.insert_set(
 						focal_point,
 						transformation::neutral_value()
 					);
@@ -846,7 +846,7 @@ namespace efficient_DST{
 				size_t end = focal_points.size();
 				for (size_t ii = 0; ii < end; ++ii) {
 					const subset& new_set = inclusion::set_operation(iota_sequence[i], focal_points[ii]);
-					newly_inserted_address = truncated_lattice_support.insert_or_update_if_null(
+					newly_inserted_address = truncated_lattice_support.insert_set(
 						new_set,
 						transformation::neutral_value()
 					);

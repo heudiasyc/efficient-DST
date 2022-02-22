@@ -3,14 +3,14 @@
 #include <vector>
 
 #include <mass.hpp>
-#include <commonality.hpp>
 #include <belief.hpp>
+#include <commonality_function.hpp>
 #include <plausibility.hpp>
-#include <conjunctive_weight.hpp>
-#include <disjunctive_weight.hpp>
+#include <conjunctive_decomposition.hpp>
+#include <disjunctive_decomposition.hpp>
 #include <implicability.hpp>
 //#include <pignistic_probability.hpp>
-//#include <rule_conjunctive.hpp>
+#include <rule_conjunctive.hpp>
 //#include <rule_conjunctive_cautious.hpp>
 //#include <rule_disjunctive_bold.hpp>
 //#include <rule_disjunctive.hpp>
@@ -25,32 +25,52 @@ void demo(){
     std::string labels[] = {"e", "f", "g", "h", "i", "j", "l", "o"};
     sample_space<N> outcomes(labels);
 
-    conjunctive_weight<N> w0(outcomes);
+    conjunctive_decomposition<N> w0(outcomes);
 
     std::cout << "\n============================================\n";
 
     w0.assign_emptyset(0.82);
-    w0.assign({"f"}, 803.12195);
+    w0.assign({"f"}, 0.67);
     w0.assign({"f", "g"}, 0.14286);
     w0.assign({"f", "j"}, 0.02381);
     w0.assign({"e", "f", "i", "o"}, 0.125);
     w0.assign({"f", "l"}, 0.03571);
 
-    std::cout << "\nConjunctive weights in w0" << std::endl;
+//    const powerset_btree<N>& def = w0.get_definition();
+//    const std::vector<set_N_value<N>* >& elements = def.elements();
+//    float val = 1;
+//    for (size_t i = 0; i < elements.size(); ++i){
+//    	val *= elements[i]->value;
+//    }
+//    std::cout << "val = " << val << std::endl;
+
+    std::cout << "\nConjunctive decomposition in w0" << std::endl;
 
     w0.print();
 
-    commonality<N> q0(w0);
+    std::cout << "\n============================================\n";
+
+    commonality_function<N> q0(w0);
 
     std::cout << "\nCommonality values from w0" << std::endl;
 
     q0.print();
+
+    std::cout << "\n============================================\n";
 
     mass<N> m0(q0);
 
     std::cout << "\nMass values from w0" << std::endl;
 
     m0.print();
+
+    std::cout << "\n============================================\n";
+
+    mass<N> m00(w0);
+
+    std::cout << "\nMass values directly from w0" << std::endl;
+
+    m00.print();
 
     std::cout << "\n============================================\n";
 
@@ -61,31 +81,54 @@ void demo(){
     m.assign({"f", "g"}, 0.08);
     m.assign({"f", "j"}, 0.03);
     m.assign({"e", "f", "i", "o"}, 0.37);
-    m.assign({"f", "i"}, 0.1);
+    m.assign({"f", "i"}, 0.05);
+    m.assign({"e", "f", "g", "i", "j", "l", "o"}, 0.05);
 
     std::cout << "\nMass values m" << std::endl;
 
     m.print();
 
-    commonality<N> q(m);
+    std::cout << "\n============================================\n";
+
+    commonality_function<N> q(m);
 
     std::cout << "\nCommonality values from m" << std::endl;
 
     q.print();
 
-	conjunctive_weight<N> w(q);
+    std::cout << "\n============================================\n";
+
+	weight_function<N> we(q);
 
 	std::cout << "\nConjunctive weights from m" << std::endl;
+
+	we.print();
+
+	std::cout << "\n============================================\n";
+
+	conjunctive_decomposition<N> w(q);
+
+	std::cout << "\nConjunctive decomposition from m" << std::endl;
 
 	w.print();
 
 	std::cout << "\n============================================\n";
 
-	commonality<N> q_again(w);
+	mass<N> m_again(w);
+
+	std::cout << "\nAgain mass values from m" << std::endl;
+
+	m_again.print();
+
+	std::cout << "\n============================================\n";
+
+	commonality_function<N> q_again(w);
 
 	std::cout << "\nAgain commonality values from m" << std::endl;
 
 	q_again.print();
+
+	std::cout << "\n============================================\n";
 //
 //	mass<double, N> m0(q0);
 //

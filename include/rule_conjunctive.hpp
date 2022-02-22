@@ -1,49 +1,74 @@
 #ifndef EFFICIENT_DST_RULE_CONJUNCTIVE_HPP
 #define EFFICIENT_DST_RULE_CONJUNCTIVE_HPP
 
+#include <unordered_set>
+
 #include <rule_classic_general.hpp>
-#include <commonality.hpp>
+#include <commonality_function.hpp>
 #include <conjunctive_weight.hpp>
 #include <mass.hpp>
 
 namespace efficient_DST{
 
-	template <typename T, size_t N>
-	class rule_conjunctive : public rule_classic_general<T, N>{
+	template <class inclusion, size_t N, typename T = float>
+	class rule_conjunctive : public rule_classic_general<up_inclusion<N, T>, N, T>{
 	public:
+		using typename rule_classic_general<up_inclusion<N, T>, N, T>::subset;
 
 		std::string to_string() const {
 			return "Conjunctive rule";
 		}
 
-		mass<T, N> operator()(const mass<T, N>& m1, const mass<T, N>& m2) const {
-			const powerset_btree<T, N>& m1_definition = m1.get_definition();
-			const powerset_btree<T, N>& m2_definition = m2.get_definition();
-
-			if (m1_definition.size() * m2_definition.size() < 0.5 * m1_definition.get_FOD_size() * pow(2, m1_definition.get_FOD_size())){
-				return rule_classic_general<T, N>::operator ()(m1, m2, FOD<N>::set_intersection);
+		mass<N, T> operator()(const mass<N, T>& m1, const mass<N, T>& m2) const {
+			const powerset_btree<N, T>& m1_definition = m1.get_definition();
+			const powerset_btree<N, T>& m2_definition = m2.get_definition();
+			size_t prod = m1_definition.size() * m2_definition.size();
+			if (prod == 0)
+				return mass<N, T>(m1.get_sample_space());
+			if (log2(prod / N) < N + 2){
+				return rule_classic_general<up_inclusion<N, T>, N, T>::operator()(m1, m2);
 			}else{
-				zeta_transform<T, N, up_inclusion<T, N> > q1(m1_definition, operation_type_t::addition);
-				zeta_transform<T, N, up_inclusion<T, N> > q2(m2_definition, operation_type_t::addition);
-				commonality<T, N> q12 = operator()(*(commonality<T, N>*) &q1, *(commonality<T, N>*) &q2);
-				return mass<T, N>(q12);
+				return mass<N, T>((*this)(commonality_function<N, T>(m1), commonality_function<N, T>(m2)));
 			}
 		}
 
 
-		commonality<T, N> operator()(const commonality<T, N>& q1, const commonality<T, N>& q2) const {
-			const powerset_btree<T, N>& w1_inverted_definition = q1.inversion(operation_type_t::multiplication);
-			const powerset_btree<T, N>& w2_inverted_definition = q2.inversion(operation_type_t::multiplication);
-			zeta_transform<T, N, up_inclusion<T, N> > q12(
-				rule_classic_general<T, N>::weight_fusion(w1_inverted_definition, w2_inverted_definition),
-				operation_type_t::multiplication
-			);
-			return *(commonality<T, N>*) &q12;
+		commonality_function<N, T> operator()(const commonality_function<N, T>& q1, const commonality_function<N, T>& q2) const {
+			return commonality_function<N, T>((*this)(conjunctive_weight<N, T>(q1), conjunctive_weight<N, T>(q2)));
 		}
 
 
-		conjunctive_weight<T, N> operator()(const conjunctive_weight<T, N>& w1, const conjunctive_weight<T, N>& w2) const {
-			return conjunctive_weight<T, N>(rule_classic_general<T, N>::weight_fusion(w1.get_definition(), w2.get_definition()));
+		conjunctive_weight<N, T> operator()(const conjunctive_weight<N, T>& w1, const conjunctive_weight<N, T>& w2) const {
+			std::unordered_set<subset > manifest;
+			const powerset_btree<N, T>& w1_definition = w1.get_definition();
+			const powerset_btree<N, T>& w2_definition = w2.get_definition();
+			const std::vector<set_N_value<N, T>* >& focal_points_w1 = w1_definition.elements();
+			const std::vector<set_N_value<N, T>* >& focal_points_w2 = w2_definition.elements();
+			for (size_t i = 0; i < focal_points_w1.size(); ++i) {
+				manifest.emplace(focal_points_w1[i]->set);
+			}
+			for (size_t i = 0; i < focal_points_w2.size(); ++i) {
+				manifest.emplace(focal_points_w2[i]->set);
+			}
+			conjunctive_weight<N, T> w12(w1.get_sample_space());
+			powerset_btree<N, T>& w12_definition = w12.definition_();
+			set_N_value<N, T>* node;
+			T val;
+			for (const auto& set : manifest) {
+//				w12.assign(set, w1[set] * w2[set]);
+				val = 1;
+				node = w1_definition[set];
+				if (node){
+					val = node->value;
+				}
+				node = w2_definition[set];
+				if (node){
+					val *= node->value;
+				}
+				if (!powerset_function<N, T>::is_equivalent_to_zero(val - 1))
+					w12_definition.insert(set, val);
+			}
+			return w12;
 		}
 	};
 

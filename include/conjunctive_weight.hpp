@@ -1,34 +1,34 @@
 #ifndef EFFICIENT_DST_CONJUNCTIVE_WEIGHT_HPP
 #define EFFICIENT_DST_CONJUNCTIVE_WEIGHT_HPP
 
-#include <decomposition_weight.hpp>
+#include <weight_function.hpp>
 #include <powerset_function.hpp>
 #include <zeta_transform.hpp>
 
 namespace efficient_DST{
 
 	template <size_t N, typename T = float>
-	class conjunctive_weight : public decomposition_weight<N, T> {
+	class conjunctive_weight : public weight_function<N, T> {
 	public:
 		using typename powerset_function<N, T>::subset;
 		using powerset_function<N, T>::emptyset;
 		using powerset_function<N, T>::fullset;
 
-		conjunctive_weight(const conjunctive_weight<N, T>& w) : decomposition_weight<N, T>(w.outcomes, w.definition)
+		conjunctive_weight(const conjunctive_weight<N, T>& w) : weight_function<N, T>(w.outcomes, w.definition)
 		{}
 
 		conjunctive_weight(
 			const sample_space<N>& outcomes,
 			const powerset_btree<N, T>& support
-		) : decomposition_weight<N, T>(outcomes, support)
+		) : weight_function<N, T>(outcomes, support)
 		{}
 
-		conjunctive_weight(const sample_space<N>& outcomes) : decomposition_weight<N, T>(outcomes)
+		conjunctive_weight(const sample_space<N>& outcomes) : weight_function<N, T>(outcomes)
 		{}
 
 		conjunctive_weight(
 			const zeta_transform<up_inclusion<N, T>, N, T>& q
-		) : decomposition_weight<N, T>(q.get_sample_space(), q.inversion(operation_type_t::multiplication))
+		) : weight_function<N, T>(q.get_sample_space(), q.inversion(operation_type_t::multiplication))
 		{
 //			invert_values(this->definition);
 		}

@@ -1,32 +1,38 @@
-#ifndef EFFICIENT_DST_COMMONALITY_HPP
-#define EFFICIENT_DST_COMMONALITY_HPP
+#ifndef EFFICIENT_DST_COMMONALITY_FUNCTION_HPP
+#define EFFICIENT_DST_COMMONALITY_FUNCTION_HPP
 
 #include <mass.hpp>
-#include <conjunctive_weight.hpp>
+#include <conjunctive_decomposition.hpp>
 #include <zeta_transform.hpp>
 
 namespace efficient_DST{
 
 	template <size_t N, typename T = float>
-	class commonality : public zeta_transform<up_inclusion<N, T>, N, T> {
+	class commonality_function : public zeta_transform<up_inclusion<N, T>, N, T> {
 	public:
 
-		commonality(
+		commonality_function(
 			const mass<N, T>& m
 		) : zeta_transform<up_inclusion<N, T>, N, T>(m.get_sample_space(), m.get_definition(), m.get_default_value(), operation_type_t::addition)
 		{}
 
-		commonality(
-			const conjunctive_weight<N, T>& w
+		commonality_function(
+			const conjunctive_decomposition<N, T>& w
 		) : zeta_transform<up_inclusion<N, T>, N, T>(w.get_sample_space(), w.get_definition(), w.get_default_value(), operation_type_t::multiplication)
-		{}
+		{
+			const std::vector<set_N_value<N, T>* >& focal_log_elements = w.get_definition().elements();
+			for (size_t i = 0; i < focal_log_elements.size(); ++i){
+				focal_log_elements[i]->value *= w.normalizing_set_assignment.value;
+			}
+			this->definition.update_or_insert(w.normalizing_set_assignment.set, w.normalizing_set_assignment.value);
+		}
 
-		commonality(
-			const commonality<N, T>& q
+		commonality_function(
+			const commonality_function<N, T>& q
 		) : zeta_transform<up_inclusion<N, T>, N, T>(q)
 		{}
 
-//		commonality(
+//		commonality_function(
 //			const powerset_btree<N, T>& focal_points_values,
 //			const scheme_type_t& scheme_type,
 //			const std::vector<subset >& iota_sequence,
@@ -41,7 +47,7 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		commonality<N, T> fuse_with(const commonality<N, T>& q2) const {
+		commonality_function<N, T> fuse_with(const commonality_function<N, T>& q2) const {
 			const fusion_rule fusion;
 			return fusion(*this, q2);
 		}
@@ -49,4 +55,4 @@ namespace efficient_DST{
 
 } // namespace efficient_DST
 
-#endif // EFFICIENT_DST_COMMONALITY_HPP
+#endif // EFFICIENT_DST_COMMONALITY_FUNCTION_HPP

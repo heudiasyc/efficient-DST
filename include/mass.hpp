@@ -3,6 +3,8 @@
 
 #include <mobius_transform.hpp>
 #include <zeta_transform.hpp>
+#include <conjunctive_decomposition.hpp>
+
 
 namespace efficient_DST{
 
@@ -45,6 +47,82 @@ namespace efficient_DST{
 
 		mass(const zeta_transform<down_inclusion<N, T>, N, T >& b) : mass<N, T>(b.get_sample_space(), b.inversion(operation_type_t::addition))
 		{}
+
+		mass(const conjunctive_decomposition<N, T >& w_dec) : mass<N, T>(w_dec.get_sample_space())
+		{
+			w_dec.get_definition().print(this->outcomes);
+			fuse_decomposition<up_inclusion<N, T> >(w_dec, *this);
+			this->print(true);
+			this->remove_negligible_values();
+			normalize();
+		}
+
+
+		template<class inclusion>
+		mass<N, T> fuse_decomposition(const decomposition<inclusion, N, T>& w_dec){
+			mass<N, T> m1(this->outcomes);
+			fuse_decomposition(w_dec, m1);
+			this->remove_negligible_values();
+			normalize();
+			return m1;
+		}
+
+		template<class inclusion>
+		void fuse_decomposition(const decomposition<inclusion, N, T>& w_dec, mass<N, T>& m1){
+			const powerset_btree<N, T>& inverse_weights = w_dec.get_definition();
+			const std::vector<set_N_value<N, T>* >& elements = inverse_weights.elements();
+			mass<N, T> m12(this->outcomes);
+			size_t i = 0;
+			if (elements[i]->set == w_dec.normalizing_set_assignment.set){
+				++i;
+			}
+			T weight = 1/elements[i]->value;
+			m1.assign(w_dec.normalizing_set_assignment.set, weight);
+			m1.assign(elements[i]->set, 1-weight);
+			for (++i; i < elements.size(); ++i){
+				if (elements[i]->set != w_dec.normalizing_set_assignment.set){
+					mass<N, T> m2(this->outcomes);
+					weight = 1/elements[i]->value;
+					m2.assign(w_dec.normalizing_set_assignment.set, weight);
+					m2.assign(elements[i]->set, 1-weight);
+					m1.natural_fusion_with<inclusion>(m2, m12);
+					m1.clear();
+					m1.definition.copy(m12.definition);
+					m12.clear();
+				}
+			}
+		}
+
+		template<class inclusion>
+		mass<N, T> natural_fusion_with(const mass<N, T>& m2) const {
+			mass<N, T> m12(this->outcomes);
+			natural_fusion_with<inclusion>(m2, m12);
+			m12.remove_negligible_values();
+			m12.normalize();
+			return m12;
+		}
+
+		template<class inclusion>
+		void natural_fusion_with(const mass<N, T>& m2, mass<N, T>& m12) const {
+			const std::vector<set_N_value<N, T>* >& focal_sets_1 = this->definition.elements();
+			const std::vector<set_N_value<N, T>* >& focal_sets_2 = m2.definition.elements();
+			powerset_btree<N, T>& focal_sets_12 = m12.definition;
+
+			for (size_t i1 = 0; i1 < focal_sets_1.size(); ++i1){
+				for (size_t i2 = 0; i2 < focal_sets_2.size(); ++i2){
+					const subset& set = inclusion::set_operation(focal_sets_1[i1]->set, focal_sets_2[i2]->set);
+					set_N_value<N, T>* node = focal_sets_12[set];
+					if (node){
+						node->value += focal_sets_1[i1]->value * focal_sets_2[i2]->value;
+					}else{
+						focal_sets_12.insert(set, focal_sets_1[i1]->value * focal_sets_2[i2]->value);
+					}
+				}
+			}
+//			mass<N, T> m12(m1.get_sample_space(), focal_sets_12);
+//			m12.remove_negligible_values();
+//			m12.normalize();
+		}
 
 
 		template <class fusion_rule>

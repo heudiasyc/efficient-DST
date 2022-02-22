@@ -31,6 +31,10 @@ namespace efficient_DST{
 //		) : powerset_function<N, T>(z.additive_inversion())
 //		{}
 
+		powerset_btree<N, T> definition_(){
+			return this->definition;
+		}
+
 		void clear() {
 			this->definition.nullify();
 		}

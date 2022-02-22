@@ -10,8 +10,8 @@
 
 
 #include <mass.hpp>
-#include <commonality.hpp>
 #include <belief.hpp>
+#include <commonality_function.hpp>
 #include <plausibility.hpp>
 #include <pignistic_probability.hpp>
 #include <conjunctive_weight.hpp>

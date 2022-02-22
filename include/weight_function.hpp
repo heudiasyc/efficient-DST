@@ -1,5 +1,5 @@
-#ifndef EFFICIENT_DST_DECOMPOSITION_WEIGHT_HPP
-#define EFFICIENT_DST_DECOMPOSITION_WEIGHT_HPP
+#ifndef EFFICIENT_DST_WEIGHT_FUNCTION_HPP
+#define EFFICIENT_DST_WEIGHT_FUNCTION_HPP
 
 #include <mobius_transform.hpp>
 #include <zeta_transform.hpp>
@@ -7,13 +7,13 @@
 namespace efficient_DST{
 
 	template <size_t N, typename T = float>
-	class decomposition_weight : public mobius_transform<N, T>{
+	class weight_function : public mobius_transform<N, T>{
 	public:
 		using typename powerset_function<N, T>::subset;
 		using powerset_function<N, T>::emptyset;
 		using powerset_function<N, T>::fullset;
 
-		decomposition_weight(
+		weight_function(
 			const sample_space<N>& outcomes,
 			const powerset_btree<N, T>& log_focal_sets
 		) : mobius_transform<N, T>(outcomes, log_focal_sets, 1)
@@ -22,43 +22,17 @@ namespace efficient_DST{
 			this->normalize();
 		}
 
-		decomposition_weight(
+		weight_function(
 			const sample_space<N>& outcomes
 		) : mobius_transform<N, T>(outcomes, 1)
 		{}
 
-		virtual ~decomposition_weight(){}
+		weight_function(const zeta_transform<up_inclusion<N, T>, N, T >& q) : weight_function<N, T>(q.get_sample_space(), q.inversion(operation_type_t::multiplication))
+		{}
 
+		weight_function(const zeta_transform<down_inclusion<N, T>, N, T >& b) : weight_function<N, T>(b.get_sample_space(), b.inversion(operation_type_t::multiplication))
+		{}
 
-		T at_emptyset() const {
-			return (*this)[emptyset];
-		}
-
-		T at_fullset() const {
-			return (*this)[fullset];
-		}
-
-		T operator[](const std::vector<std::string>& labels) const {
-			return (*this)[this->outcomes.get_subset(labels)];
-		}
-
-		T operator[](const subset& set) const {
-			set_N_value<N, T>* set_value = this->definition[set];
-			if(set_value)
-				return 1/set_value->value;
-			else
-				return this->default_value;
-		}
-
-		std::ostream& print() const {
-			std::vector<set_N_value<N, T>* > values = this->definition.elements();
-			std::cout << std::endl;
-			for (size_t i = 0; i < values.size(); ++i) {
-				std::cout << set_N_value<N, T>::to_string(1/values[i]->value) + "\t <- " + this->outcomes.to_string(values[i]->set) << std::endl;
-			}
-
-			return std::cout;
-		}
 
 		void regularize() {
 			this->definition.nullify(this->definition[emptyset]);
@@ -89,6 +63,16 @@ namespace efficient_DST{
 			}
 		}
 
+//		std::ostream& print() const {
+//			std::vector<set_N_value<N, T>* > values = this->definition.elements();
+//			std::cout << std::endl;
+//			for (size_t i = 0; i < values.size(); ++i) {
+//				std::cout << set_N_value<N, T>::to_string(values[i]->value) + "\t <- " + this->outcomes.to_string(values[i]->set) << std::endl;
+//			}
+//
+//			return std::cout;
+//		}
+
 //		void remove_negligible_values() {
 //			remove_negligible_values(this->definition);
 //		}
@@ -100,4 +84,4 @@ namespace efficient_DST{
 
 } // namespace efficient_DST
 
-#endif // EFFICIENT_DST_DECOMPOSITION_WEIGHT_HPP
+#endif // EFFICIENT_DST_WEIGHT_FUNCTION_HPP

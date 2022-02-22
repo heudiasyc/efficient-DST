@@ -64,7 +64,6 @@ namespace efficient_DST{
 			while(b < this->reusable_slots.size() && this->reusable_slots[b].size() == 0){
 				++b;
 			}
-
 			if(b == this->slots.size()){
 				// if there is none, create a new slot
 
@@ -159,6 +158,7 @@ namespace efficient_DST{
 			this->slots.clear();
 			this->reusable_slots.clear();
 			this->block_by_slot.clear();
+			this->add_new_block();
 		}
 
 	protected:
