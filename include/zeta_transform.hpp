@@ -182,6 +182,26 @@ namespace efficient_DST{
 			);
 //			this->default_value = operation_type::neutral_value();
 		}
+
+		void normalize(const subset& normalizing_set, const T& normalizing_value){
+			set_N_value<N, T>* normalizing_assignment = this->definition[normalizing_set];
+			const std::vector<set_N_value<N, T>* >& focal_log_elements = this->definition.elements();
+			if(normalizing_assignment && normalizing_assignment->value != normalizing_value){
+				for (size_t i = 0; i < focal_log_elements.size(); ++i){
+					if(focal_log_elements[i]->set != normalizing_set){
+						focal_log_elements[i]->value /= normalizing_assignment->value;
+					}
+				}
+			}
+			if(!normalizing_assignment || normalizing_assignment->value != normalizing_value){
+				for (size_t i = 0; i < focal_log_elements.size(); ++i){
+					if(focal_log_elements[i]->set != normalizing_set){
+						focal_log_elements[i]->value *= normalizing_value;
+					}
+				}
+				this->definition.update_or_insert(normalizing_set, normalizing_value);
+			}
+		}
 	};
 }	// namespace efficient_DST
 

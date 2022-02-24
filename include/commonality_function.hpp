@@ -25,23 +25,7 @@ namespace efficient_DST{
 			const conjunctive_decomposition<N, T>& w
 		) : zeta_transform<up_inclusion<N, T>, N, T>(w.get_sample_space(), w.get_definition(), w.get_default_value(), operation_type_t::multiplication)
 		{
-			set_N_value<N, T>* normalizing_set = this->definition[w.normalizing_set];
-			const std::vector<set_N_value<N, T>* >& focal_log_elements = this->definition.elements();
-			if(normalizing_set && normalizing_set->value != w.normalizing_value){
-				for (size_t i = 0; i < focal_log_elements.size(); ++i){
-					if(focal_log_elements[i]->set != w.normalizing_set){
-						focal_log_elements[i]->value /= normalizing_set->value;
-					}
-				}
-			}
-			if(!normalizing_set || normalizing_set->value != w.normalizing_value){
-				for (size_t i = 0; i < focal_log_elements.size(); ++i){
-					if(focal_log_elements[i]->set != w.normalizing_set){
-						focal_log_elements[i]->value *= w.normalizing_value;
-					}
-				}
-				this->definition.update_or_insert(w.normalizing_set, w.normalizing_value);
-			}
+			this->normalize(w.normalizing_set, w.normalizing_value);
 		}
 
 		commonality_function(
