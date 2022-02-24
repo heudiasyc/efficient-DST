@@ -1,15 +1,14 @@
+#include <belief_function.hpp>
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include <mass.hpp>
-#include <belief.hpp>
 #include <commonality_function.hpp>
-#include <plausibility.hpp>
 #include <conjunctive_decomposition.hpp>
 #include <disjunctive_decomposition.hpp>
-#include <implicability.hpp>
-//#include <pignistic_probability.hpp>
+#include <implicability_function.hpp>
+#include <mass_function.hpp>
+#include <plausibility_function.hpp>
 #include <rule_conjunctive.hpp>
 //#include <rule_conjunctive_cautious.hpp>
 //#include <rule_disjunctive_bold.hpp>
@@ -59,7 +58,7 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    mass<N, T> m0(q0);
+    mass_function<N, T> m0(q0);
 
     std::cout << "\nMass values from w0" << std::endl;
 
@@ -83,7 +82,7 @@ void demo(){
 //	w0.assign({"e", "f", "i", "o"}, 0.125);
 //	w0.assign({"f", "l"}, 0.03571);
 
-    mass<N, T> m00(w0);
+    mass_function<N, T> m00(w0);
 
     std::cout << "\nMass values directly from w0" << std::endl;
 
@@ -129,7 +128,7 @@ void demo(){
 
     q000.print();
 //
-    mass<N> m(outcomes);
+    mass_function<N, T> m(outcomes);
 
 	m.assign_emptyset(0.82);
     m.assign({"f"}, 0.12251);

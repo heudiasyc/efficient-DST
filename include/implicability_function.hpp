@@ -1,28 +1,33 @@
-#ifndef EFFICIENT_DST_IMPLICABILITY_HPP
-#define EFFICIENT_DST_IMPLICABILITY_HPP
+#ifndef EFFICIENT_DST_IMPLICABILITY_FUNCTION_HPP
+#define EFFICIENT_DST_IMPLICABILITY_FUNCTION_HPP
 
-#include <mass.hpp>
-#include <disjunctive_weight.hpp>
+#include <mass_function.hpp>
+#include <disjunctive_decomposition.hpp>
 #include <zeta_transform.hpp>
 
 namespace efficient_DST{
 
 	template <size_t N, typename T = float>
-	class implicability : public zeta_transform<down_inclusion<N, T>, N, T> {
+	class implicability_function : public zeta_transform<down_inclusion<N, T>, N, T> {
 	public:
 
-		implicability(
-			const mass<N, T>& m
+		implicability_function(
+			const mass_function<N, T>& m
 		) : zeta_transform<down_inclusion<N, T>, N, T>(m.get_sample_space(), m.get_definition(), m.get_default_value(), operation_type_t::addition)
 		{}
 
-		implicability(
-			const disjunctive_weight<N, T>& v
+		implicability_function(
+			const weight_function<N, T>& v
 		) : zeta_transform<down_inclusion<N, T>, N, T>(v.get_sample_space(), v.get_definition(), v.get_default_value(), operation_type_t::multiplication)
 		{}
 
-		implicability(
-			const implicability<N, T>& b
+		implicability_function(
+			const disjunctive_decomposition<N, T>& v
+		) : zeta_transform<down_inclusion<N, T>, N, T>(v.get_sample_space(), v.get_definition(), v.get_default_value(), operation_type_t::multiplication)
+		{}
+
+		implicability_function(
+			const implicability_function<N, T>& b
 		) : zeta_transform<down_inclusion<N, T>, N, T>(b)
 		{}
 
@@ -41,7 +46,7 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		implicability<N, T> fuse_with(const implicability<N, T>& b2) const {
+		implicability_function<N, T> fuse_with(const implicability_function<N, T>& b2) const {
 			const fusion_rule fusion;
 			return fusion(*this, b2);
 		}
@@ -49,4 +54,4 @@ namespace efficient_DST{
 
 } // namespace efficient_DST
 
-#endif // EFFICIENT_DST_IMPLICABILITY_HPP
+#endif // EFFICIENT_DST_IMPLICABILITY_FUNCTION_HPP

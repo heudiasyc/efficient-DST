@@ -1,5 +1,5 @@
-#ifndef EFFICIENT_DST_MASS_HPP
-#define EFFICIENT_DST_MASS_HPP
+#ifndef EFFICIENT_DST_MASS_FUNCTION_HPP
+#define EFFICIENT_DST_MASS_FUNCTION_HPP
 
 #include <mobius_transform.hpp>
 #include <zeta_transform.hpp>
@@ -11,16 +11,16 @@ namespace efficient_DST{
 	enum class special_case_t: bool { degenerate, vacuous };
 
 	template <size_t N, typename T = float>
-	class mass : public mobius_transform<N, T>{
+	class mass_function : public mobius_transform<N, T>{
 	public:
 		using typename powerset_function<N, T>::subset;
 		using powerset_function<N, T>::emptyset;
 		using powerset_function<N, T>::fullset;
 
-		mass(const mass<N, T>& m) : mobius_transform<N, T>(m.outcomes, m.definition, 0)
+		mass_function(const mass_function<N, T>& m) : mobius_transform<N, T>(m.outcomes, m.definition, 0)
 		{}
 
-		mass(
+		mass_function(
 			const sample_space<N>& outcomes,
 			const powerset_btree<N, T>& focal_sets
 		) : mobius_transform<N, T>(outcomes, focal_sets, 0)
@@ -29,10 +29,10 @@ namespace efficient_DST{
 			this->normalize();
 		}
 
-		mass(const sample_space<N>& outcomes) : mobius_transform<N, T>(outcomes, 0)
+		mass_function(const sample_space<N>& outcomes) : mobius_transform<N, T>(outcomes, 0)
 		{}
 
-		mass(const sample_space<N>& outcomes, const special_case_t s_case) : mobius_transform<N, T>(outcomes, 0)
+		mass_function(const sample_space<N>& outcomes, const special_case_t s_case) : mobius_transform<N, T>(outcomes, 0)
 		{
 			switch(s_case){
 				// create a mass function with all mass attributed to the empty set
@@ -42,13 +42,13 @@ namespace efficient_DST{
 			}
 		}
 
-		mass(const zeta_transform<up_inclusion<N, T>, N, T >& q) : mass<N, T>(q.get_sample_space(), q.inversion(operation_type_t::addition))
+		mass_function(const zeta_transform<up_inclusion<N, T>, N, T >& q) : mass_function<N, T>(q.get_sample_space(), q.inversion(operation_type_t::addition))
 		{}
 
-		mass(const zeta_transform<down_inclusion<N, T>, N, T >& b) : mass<N, T>(b.get_sample_space(), b.inversion(operation_type_t::addition))
+		mass_function(const zeta_transform<down_inclusion<N, T>, N, T >& b) : mass_function<N, T>(b.get_sample_space(), b.inversion(operation_type_t::addition))
 		{}
 
-		mass(const conjunctive_decomposition<N, T >& w_dec) : mass<N, T>(w_dec.get_sample_space())
+		mass_function(const conjunctive_decomposition<N, T >& w_dec) : mass_function<N, T>(w_dec.get_sample_space())
 		{
 //			w_dec.get_definition().print(this->outcomes);
 			fuse_decomposition<up_inclusion<N, T> >(w_dec, *this);
@@ -59,8 +59,8 @@ namespace efficient_DST{
 
 
 		template<class inclusion>
-		mass<N, T> fuse_decomposition(const decomposition<inclusion, N, T>& w_dec){
-			mass<N, T> m1(this->outcomes);
+		mass_function<N, T> fuse_decomposition(const decomposition<inclusion, N, T>& w_dec){
+			mass_function<N, T> m1(this->outcomes);
 			fuse_decomposition(w_dec, m1);
 			this->remove_negligible_values();
 			normalize();
@@ -68,24 +68,24 @@ namespace efficient_DST{
 		}
 
 		template<class inclusion>
-		void fuse_decomposition(const decomposition<inclusion, N, T>& w_dec, mass<N, T>& m1){
+		void fuse_decomposition(const decomposition<inclusion, N, T>& w_dec, mass_function<N, T>& m1){
 //			std::cout << "Decomposition to fuse:\n";
 //			w_dec.print();
 			const powerset_btree<N, T>& inverse_weights = w_dec.get_definition();
 			const std::vector<set_N_value<N, T>* >& elements = inverse_weights.elements();
-			mass<N, T> m12(this->outcomes);
+			mass_function<N, T> m12(this->outcomes);
 			size_t i = 0;
-			if (elements[i]->set == w_dec.normalizing_set_assignment.set){
+			if (elements[i]->set == w_dec.normalizing_set){
 				++i;
 			}
 			T weight = 1/elements[i]->value;
-			m1.assign(w_dec.normalizing_set_assignment.set, weight);
+			m1.assign(w_dec.normalizing_set, weight);
 			m1.assign(elements[i]->set, 1-weight);
 			for (++i; i < elements.size(); ++i){
-				if (elements[i]->set != w_dec.normalizing_set_assignment.set){
-					mass<N, T> m2(this->outcomes);
+				if (elements[i]->set != w_dec.normalizing_set){
+					mass_function<N, T> m2(this->outcomes);
 					weight = 1/elements[i]->value;
-					m2.assign(w_dec.normalizing_set_assignment.set, weight);
+					m2.assign(w_dec.normalizing_set, weight);
 					m2.assign(elements[i]->set, 1-weight);
 					m1.natural_fusion_with<inclusion>(m2, m12);
 					m1.clear();
@@ -96,8 +96,8 @@ namespace efficient_DST{
 		}
 
 		template<class inclusion>
-		mass<N, T> natural_fusion_with(const mass<N, T>& m2) const {
-			mass<N, T> m12(this->outcomes);
+		mass_function<N, T> natural_fusion_with(const mass_function<N, T>& m2) const {
+			mass_function<N, T> m12(this->outcomes);
 			natural_fusion_with<inclusion>(m2, m12);
 			m12.remove_negligible_values();
 			m12.normalize();
@@ -105,7 +105,7 @@ namespace efficient_DST{
 		}
 
 		template<class inclusion>
-		void natural_fusion_with(const mass<N, T>& m2, mass<N, T>& m12) const {
+		void natural_fusion_with(const mass_function<N, T>& m2, mass_function<N, T>& m12) const {
 			const std::vector<set_N_value<N, T>* >& focal_sets_1 = this->definition.elements();
 			const std::vector<set_N_value<N, T>* >& focal_sets_2 = m2.definition.elements();
 			powerset_btree<N, T>& focal_sets_12 = m12.definition;
@@ -128,7 +128,7 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		mass<N, T> fuse_with(const mass<N, T>& m2) const {
+		mass_function<N, T> fuse_with(const mass_function<N, T>& m2) const {
 			const fusion_rule fusion;
 			return fusion(*this, m2);
 		}
@@ -317,4 +317,4 @@ namespace efficient_DST{
 
 } // namespace efficient_DST
 
-#endif // EFFICIENT_DST_MASS_HPP
+#endif // EFFICIENT_DST_MASS_FUNCTION_HPP

@@ -5,8 +5,8 @@
 
 #include <rule_classic_general.hpp>
 #include <commonality_function.hpp>
-#include <conjunctive_weight.hpp>
-#include <mass.hpp>
+#include <conjunctive_decomposition.hpp>
+#include <mass_function.hpp>
 
 namespace efficient_DST{
 
@@ -19,26 +19,26 @@ namespace efficient_DST{
 			return "Conjunctive rule";
 		}
 
-		mass<N, T> operator()(const mass<N, T>& m1, const mass<N, T>& m2) const {
+		mass_function<N, T> operator()(const mass_function<N, T>& m1, const mass_function<N, T>& m2) const {
 			const powerset_btree<N, T>& m1_definition = m1.get_definition();
 			const powerset_btree<N, T>& m2_definition = m2.get_definition();
 			size_t prod = m1_definition.size() * m2_definition.size();
 			if (prod == 0)
-				return mass<N, T>(m1.get_sample_space());
+				return mass_function<N, T>(m1.get_sample_space());
 			if (log2(prod / N) < N + 2){
 				return rule_classic_general<up_inclusion<N, T>, N, T>::operator()(m1, m2);
 			}else{
-				return mass<N, T>((*this)(commonality_function<N, T>(m1), commonality_function<N, T>(m2)));
+				return mass_function<N, T>((*this)(commonality_function<N, T>(m1), commonality_function<N, T>(m2)));
 			}
 		}
 
 
 		commonality_function<N, T> operator()(const commonality_function<N, T>& q1, const commonality_function<N, T>& q2) const {
-			return commonality_function<N, T>((*this)(conjunctive_weight<N, T>(q1), conjunctive_weight<N, T>(q2)));
+			return commonality_function<N, T>((*this)(weight_function<N, T>(q1), weight_function<N, T>(q2)));
 		}
 
 
-		conjunctive_weight<N, T> operator()(const conjunctive_weight<N, T>& w1, const conjunctive_weight<N, T>& w2) const {
+		weight_function<N, T> operator()(const weight_function<N, T>& w1, const weight_function<N, T>& w2) const {
 			std::unordered_set<subset > manifest;
 			const powerset_btree<N, T>& w1_definition = w1.get_definition();
 			const powerset_btree<N, T>& w2_definition = w2.get_definition();
@@ -50,7 +50,7 @@ namespace efficient_DST{
 			for (size_t i = 0; i < focal_points_w2.size(); ++i) {
 				manifest.emplace(focal_points_w2[i]->set);
 			}
-			conjunctive_weight<N, T> w12(w1.get_sample_space());
+			weight_function<N, T> w12(w1.get_sample_space());
 			powerset_btree<N, T>& w12_definition = w12.definition_();
 			set_N_value<N, T>* node;
 			T val;

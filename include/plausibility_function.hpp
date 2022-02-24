@@ -1,32 +1,35 @@
-#ifndef EFFICIENT_DST_PLAUSIBILITY_HPP
-#define EFFICIENT_DST_PLAUSIBILITY_HPP
+#ifndef EFFICIENT_DST_PLAUSIBILITY_FUNCTION_HPP
+#define EFFICIENT_DST_PLAUSIBILITY_FUNCTION_HPP
 
-#include <implicability.hpp>
+#include <implicability_function.hpp>
 
 namespace efficient_DST{
 
 	template <size_t N, typename T = float>
-	class plausibility : public implicability<N, T> {
+	class plausibility_function : public implicability_function<N, T> {
 	public:
 		using typename powerset_function<N, T>::subset;
 		using powerset_function<N, T>::emptyset;
 		using powerset_function<N, T>::fullset;
 
-		plausibility(const mass<N, T>& m) : implicability<N, T>(m)
+		plausibility_function(const mass_function<N, T>& m) : implicability_function<N, T>(m)
 		{}
 
-		plausibility(const disjunctive_weight<N, T>& v) : implicability<N, T>(v)
+		plausibility_function(const weight_function<N, T>& v) : implicability_function<N, T>(v)
 		{}
 
-		plausibility(const implicability<N, T>& b) : implicability<N, T>(b)
+		plausibility_function(const disjunctive_decomposition<N, T>& v) : implicability_function<N, T>(v)
 		{}
 
-		plausibility(const plausibility<N, T>& pl) : implicability<N, T>(pl)
+		plausibility_function(const implicability_function<N, T>& b) : implicability_function<N, T>(b)
+		{}
+
+		plausibility_function(const plausibility_function<N, T>& pl) : implicability_function<N, T>(pl)
 		{}
 
 
 		template <class fusion_rule>
-		plausibility<N, T> fuse_with(const plausibility<N, T>& p2) const {
+		plausibility_function<N, T> fuse_with(const plausibility_function<N, T>& p2) const {
 			const fusion_rule fusion;
 			return fusion(*this, p2);
 		}
@@ -81,5 +84,5 @@ namespace efficient_DST{
 
 } // namespace efficient_DST
 
-#endif // EFFICIENT_DST_PLAUSIBILITY_HPP
+#endif // EFFICIENT_DST_PLAUSIBILITY_FUNCTION_HPP
 

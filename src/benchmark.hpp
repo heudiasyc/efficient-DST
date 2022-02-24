@@ -1,3 +1,4 @@
+#include <belief_function.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -9,14 +10,13 @@
 #include <random>
 
 
-#include <mass.hpp>
-#include <belief.hpp>
 #include <commonality_function.hpp>
-#include <plausibility.hpp>
-#include <pignistic_probability.hpp>
 #include <conjunctive_weight.hpp>
 #include <disjunctive_weight.hpp>
-#include <implicability.hpp>
+#include <implicability_function.hpp>
+#include <mass_function.hpp>
+#include <pignistic_probability_function.hpp>
+#include <plausibility_function.hpp>
 #include <rule_conjunctive.hpp>
 #include <rule_conjunctive_cautious.hpp>
 #include <rule_disjunctive_bold.hpp>

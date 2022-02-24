@@ -1,12 +1,12 @@
-#ifndef EFFICIENT_DST_BELIEF_HPP
-#define EFFICIENT_DST_BELIEF_HPP
+#ifndef EFFICIENT_DST_BELIEF_FUNCTION_HPP
+#define EFFICIENT_DST_BELIEF_FUNCTION_HPP
 
-#include <implicability.hpp>
+#include <implicability_function.hpp>
 
 namespace efficient_DST{
 
 	template <size_t N, typename T = float>
-	class belief : public implicability<N, T> {
+	class belief_function : public implicability_function<N, T> {
 	protected:
 
 		static void display_invalid_belief_message(){
@@ -16,14 +16,14 @@ namespace efficient_DST{
 
 	public:
 
-		belief(const mass<N, T>& m) : implicability<N, T>(m)
+		belief_function(const mass_function<N, T>& m) : implicability_function<N, T>(m)
 		{
 			if(m.at_emptyset() != 0){
 				display_invalid_belief_message();
 			}
 		}
 
-		belief(const implicability<N, T>& b) : implicability<N, T>(b)
+		belief_function(const implicability_function<N, T>& b) : implicability_function<N, T>(b)
 		{
 			if(b.at_emptyset() != 0){
 				display_invalid_belief_message();
@@ -49,7 +49,7 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		belief<N, T> fuse_with(const belief<N, T>& b2) const {
+		belief_function<N, T> fuse_with(const belief_function<N, T>& b2) const {
 			const fusion_rule fusion;
 			return fusion(*this, b2);
 		}
@@ -57,4 +57,4 @@ namespace efficient_DST{
 
 } // namespace efficient_DST
 
-#endif // EFFICIENT_DST_BELIEF_HPP
+#endif // EFFICIENT_DST_BELIEF_FUNCTION_HPP

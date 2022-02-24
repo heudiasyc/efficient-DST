@@ -6,27 +6,27 @@
 
 namespace efficient_DST{
 
-	template <size_t N, typename T = float>
-	class disjunctive_decomposition : public decomposition<down_inclusion<N, T>, N, T> {
+	template <size_t N, typename T = float, bool adaptive_uncertainty = true>
+	class disjunctive_decomposition : public decomposition<down_inclusion<N, T>, N, T, adaptive_uncertainty> {
 	public:
 		using typename powerset_function<N, T>::subset;
 		using powerset_function<N, T>::emptyset;
 		using powerset_function<N, T>::fullset;
 
 
-		disjunctive_decomposition(const disjunctive_decomposition<N, T>& w) : decomposition<down_inclusion<N, T>, N, T>(w.outcomes, w.definition)
+		disjunctive_decomposition(const disjunctive_decomposition<N, T>& w) : decomposition<down_inclusion<N, T>, N, T, adaptive_uncertainty>(w.outcomes, w.definition)
 		{}
 
-		disjunctive_decomposition(const sample_space<N>& outcomes) : decomposition<down_inclusion<N, T>, N, T>(outcomes)
+		disjunctive_decomposition(const sample_space<N>& outcomes) : decomposition<down_inclusion<N, T>, N, T, adaptive_uncertainty>(outcomes)
 		{}
 
 		disjunctive_decomposition(
 			const zeta_transform<down_inclusion<N, T>, N, T>& b
-		) : decomposition<down_inclusion<N, T>, N, T>(b)
+		) : decomposition<down_inclusion<N, T>, N, T, adaptive_uncertainty>(b)
 		{}
 
 		template <class fusion_rule>
-		disjunctive_decomposition<N, T> fuse_with(const disjunctive_decomposition<N, T>& v2) const {
+		disjunctive_decomposition<N, T, adaptive_uncertainty> fuse_with(const disjunctive_decomposition<N, T, adaptive_uncertainty>& v2) const {
 			const fusion_rule fusion;
 			return fusion(*this, v2);
 		}

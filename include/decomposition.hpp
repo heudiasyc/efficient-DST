@@ -6,31 +6,32 @@
 
 namespace efficient_DST{
 
-	template <class inclusion, size_t N, typename T = float>
+	template <class inclusion, size_t N, typename T = float, bool adaptive_uncertainty = true>
 	class decomposition : public weight_function<N, T> {
 	public:
 		using typename powerset_function<N, T>::subset;
 		using powerset_function<N, T>::emptyset;
 		using powerset_function<N, T>::fullset;
 
-		set_N_value<N, T> normalizing_set_assignment;
+		subset normalizing_set;
+		T normalizing_value = 1;
 
 
 		decomposition(const weight_function<N, T>& w) : weight_function<N, T>(w.outcomes, w.definition)
 		{
-			compute_normalizing_set_assignment();
+			compute_normalizing_assignment();
 		}
 
 		decomposition(const sample_space<N>& outcomes) : weight_function<N, T>(outcomes)
 		{
-			compute_normalizing_set_assignment();
+			compute_normalizing_set();
 		}
 
 		decomposition(
 			const zeta_transform<inclusion, N, T>& q
 		) : weight_function<N, T>(q)
 		{
-			compute_normalizing_set_assignment();
+			compute_normalizing_assignment();
 		}
 
 
@@ -54,7 +55,7 @@ namespace efficient_DST{
 			std::vector<set_N_value<N, T>* > values = this->definition.elements(including_null);
 			std::cout << std::endl;
 			for (size_t i = 0; i < values.size(); ++i) {
-				if(values[i]->set != this->normalizing_set_assignment.set){
+				if(values[i]->set != this->normalizing_set){
 					if (values[i]->is_null)
 						std::cout << "NULL\t <- " + this->outcomes.to_string(values[i]->set) << std::endl;
 					else
@@ -66,14 +67,16 @@ namespace efficient_DST{
 		}
 
 		void assign(const subset& set, const T& mass) {
-//			if (set != fullset){
 			T weight = 1-mass;
+			if(weight == 0){
+				std::cout << "Cannot have any categorical simple belief assignment in an uncertainty decomposition. Ignoring command.\n";
+				return;
+			}
 			this->definition.update_or_insert(set, 1/weight);
-			this->normalizing_set_assignment.set = inclusion::set_dual_operation(this->normalizing_set_assignment.set, set);
-			this->normalizing_set_assignment.value *= weight;
-//			}else{
-//				std::cout << "Cannot directly assign the fullset value of a conjunctive decomposition. Ignoring command.\n";
-//			}
+			this->normalizing_value *= weight;
+			if(adaptive_uncertainty){
+				this->normalizing_set = inclusion::set_dual_operation(this->normalizing_set, set);
+			}
 		}
 
 		void assign(const std::unordered_map<subset, T>& values) {
@@ -108,7 +111,7 @@ namespace efficient_DST{
 				this->compute_normalizing_set_assignment();
 			}
 //			}else{
-//				std::cout << "Cannot directly assign the fullset value of a conjunctive decomposition. Ignoring command.\n";
+//				std::cout << "Cannot directly assign the normalizing value of a decomposition. Ignoring command.\n";
 //			}
 		}
 
@@ -116,15 +119,41 @@ namespace efficient_DST{
 //			compute_encompassing_set_assignment(this->definition);
 //		}
 
-		void compute_normalizing_set_assignment(){
-			this->normalizing_set_assignment = set_N_value<N, T>(emptyset, 1);
+		void compute_normalizing_set(){
+			if(adaptive_uncertainty){
+				this->normalizing_set = inclusion::absorbing_set_for_operation();
+				const std::vector<set_N_value<N, T>* >& focal_log_elements = this->definition.elements();
+				for (size_t i = 0; i < focal_log_elements.size(); ++i){
+					this->normalizing_set = inclusion::set_dual_operation(this->normalizing_set, focal_log_elements[i]->set);
+				}
+			}else{
+				this->normalizing_set = inclusion::absorbing_set_for_dual_operation();
+			}
+		}
+
+		void compute_normalizing_value(){
+			this->normalizing_value = 1;
 			const std::vector<set_N_value<N, T>* >& focal_log_elements = this->definition.elements();
 			for (size_t i = 0; i < focal_log_elements.size(); ++i){
-				this->normalizing_set_assignment.set = inclusion::set_dual_operation(this->normalizing_set_assignment.set, focal_log_elements[i]->set);
+				if (focal_log_elements[i]->set != this->normalizing_set)
+					this->normalizing_value /= focal_log_elements[i]->value;
+			}
+		}
+
+		void compute_normalizing_assignment(){
+			const std::vector<set_N_value<N, T>* >& focal_log_elements = this->definition.elements();
+			this->normalizing_value = 1;
+			if(adaptive_uncertainty){
+				this->normalizing_set = inclusion::absorbing_set_for_operation();
+				for (size_t i = 0; i < focal_log_elements.size(); ++i){
+					this->normalizing_set = inclusion::set_dual_operation(this->normalizing_set, focal_log_elements[i]->set);
+				}
+			}else{
+				this->normalizing_set = inclusion::absorbing_set_for_dual_operation();
 			}
 			for (size_t i = 0; i < focal_log_elements.size(); ++i){
-				if (focal_log_elements[i]->set != this->normalizing_set_assignment.set)
-					this->normalizing_set_assignment.value /= focal_log_elements[i]->value;
+				if (focal_log_elements[i]->set != this->normalizing_set)
+					this->normalizing_value /= focal_log_elements[i]->value;
 			}
 		}
 	};
