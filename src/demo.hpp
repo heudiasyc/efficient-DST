@@ -20,12 +20,13 @@
 
 void demo(){
     using namespace efficient_DST;
+    typedef float T;
 
     const size_t N = 8;
     std::string labels[] = {"e", "f", "g", "h", "i", "j", "l", "o"};
     sample_space<N> outcomes(labels);
 
-    conjunctive_decomposition<N> w0(outcomes);
+    conjunctive_decomposition<N, T> w0(outcomes);
 
     std::cout << "\n============================================\n";
 
@@ -36,8 +37,8 @@ void demo(){
     w0.assign({"e", "f", "i", "o"}, 0.125);
     w0.assign({"f", "l"}, 0.03571);
 
-//    const powerset_btree<N>& def = w0.get_definition();
-//    const std::vector<set_N_value<N>* >& elements = def.elements();
+//    const powerset_btree<N, T>& def = w0.get_definition();
+//    const std::vector<set_N_value<N, T>* >& elements = def.elements();
 //    float val = 1;
 //    for (size_t i = 0; i < elements.size(); ++i){
 //    	val *= elements[i]->value;
@@ -50,7 +51,7 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    commonality_function<N> q0(w0);
+    commonality_function<N, T> q0(w0);
 
     std::cout << "\nCommonality values from w0" << std::endl;
 
@@ -58,15 +59,31 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    mass<N> m0(q0);
+    mass<N, T> m0(q0);
 
     std::cout << "\nMass values from w0" << std::endl;
 
     m0.print();
-
+//
     std::cout << "\n============================================\n";
 
-    mass<N> m00(w0);
+//    w0.clear();
+//    w0.assign_emptyset(0.42);
+//    w0.assign({"f"}, -2.37103);
+//    w0.assign({"f", "g"}, 0.61538);
+//    w0.assign({"f", "j"}, 0.375);
+//    w0.assign({"e", "f", "i", "o"}, 0.88095);
+////    w0.assign({"f", "i"}, 0.10638);
+//    w0.assign({"f", "l"}, 0.10638);
+
+//	w0.assign_emptyset(0.82);
+//	w0.assign({"f"}, 0.67);
+//	w0.assign({"f", "g"}, 0.14286);
+//	w0.assign({"f", "j"}, 0.02381);
+//	w0.assign({"e", "f", "i", "o"}, 0.125);
+//	w0.assign({"f", "l"}, 0.03571);
+
+    mass<N, T> m00(w0);
 
     std::cout << "\nMass values directly from w0" << std::endl;
 
@@ -74,23 +91,69 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
+    commonality_function<N, T> q00(m00);
+
+    std::cout << "\nCommonality values from m00" << std::endl;
+
+    q00.print();
+
+	std::cout << "\n============================================\n";
+
+	weight_function<N, T> we00(q00);
+
+	std::cout << "\nWeights from m00" << std::endl;
+
+	we00.print();
+
+    std::cout << "\n============================================\n";
+
+    commonality_function<N, T> qe000(we00);
+
+    std::cout << "\nCommonality values from we00" << std::endl;
+
+    qe000.print();
+
+	std::cout << "\n============================================\n";
+
+	conjunctive_decomposition<N, T> w00(q00);
+
+	std::cout << "\nConjunctive decomposition from m00" << std::endl;
+
+	w00.print();
+
+    std::cout << "\n============================================\n";
+
+    commonality_function<N, T> q000(w00);
+
+    std::cout << "\nCommonality values from w00" << std::endl;
+
+    q000.print();
+//
     mass<N> m(outcomes);
 
-    m.assign_emptyset(0.42);
-//    m.assign({"f"}, 0.4);
-    m.assign({"f", "g"}, 0.08);
-    m.assign({"f", "j"}, 0.03);
-    m.assign({"e", "f", "i", "o"}, 0.37);
-    m.assign({"f", "i"}, 0.05);
-    m.assign({"e", "f", "g", "i", "j", "l", "o"}, 0.05);
-
+	m.assign_emptyset(0.82);
+    m.assign({"f"}, 0.12251);
+	m.assign({"f", "g"}, 0.00699);
+	m.assign({"f", "j"}, 0.00102);
+	m.assign({"e", "f", "i", "o"}, 0.00599);
+	m.assign({"f", "l"}, 0.00155);
+	m.assign({"e", "f", "g", "i", "j", "l", "o"}, 0.04194);
+//
+//    m.assign_emptyset(0.42);
+////    m.assign({"f"}, 0.4);
+//    m.assign({"f", "g"}, 0.08);
+//    m.assign({"f", "j"}, 0.03);
+//    m.assign({"e", "f", "i", "o"}, 0.37);
+//    m.assign({"f", "i"}, 0.05);
+//    m.assign({"e", "f", "g", "i", "j", "l", "o"}, 0.05);
+//
     std::cout << "\nMass values m" << std::endl;
 
     m.print();
 
     std::cout << "\n============================================\n";
 
-    commonality_function<N> q(m);
+    commonality_function<N, T> q(m);
 
     std::cout << "\nCommonality values from m" << std::endl;
 
@@ -98,37 +161,37 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-	weight_function<N> we(q);
+	weight_function<N, T> we(q);
 
-	std::cout << "\nConjunctive weights from m" << std::endl;
+	std::cout << "\nWeights from m" << std::endl;
 
 	we.print();
-
-	std::cout << "\n============================================\n";
-
-	conjunctive_decomposition<N> w(q);
-
-	std::cout << "\nConjunctive decomposition from m" << std::endl;
-
-	w.print();
-
-	std::cout << "\n============================================\n";
-
-	mass<N> m_again(w);
-
-	std::cout << "\nAgain mass values from m" << std::endl;
-
-	m_again.print();
-
-	std::cout << "\n============================================\n";
-
-	commonality_function<N> q_again(w);
-
-	std::cout << "\nAgain commonality values from m" << std::endl;
-
-	q_again.print();
-
-	std::cout << "\n============================================\n";
+//
+//	std::cout << "\n============================================\n";
+//
+//	conjunctive_decomposition<N, T> w(q);
+////
+//	std::cout << "\nConjunctive decomposition from m" << std::endl;
+//
+//	w.print();
+//
+//	std::cout << "\n============================================\n";
+//
+//	mass<N, T> m_again(w);
+//
+//	std::cout << "\nAgain mass values from m" << std::endl;
+//
+//	m_again.print();
+//
+//	std::cout << "\n============================================\n";
+//
+//	commonality_function<N, T> q_again(w);
+//
+//	std::cout << "\nAgain commonality values from m" << std::endl;
+//
+//	q_again.print();
+//
+//	std::cout << "\n============================================\n";
 //
 //	mass<double, N> m0(q0);
 //

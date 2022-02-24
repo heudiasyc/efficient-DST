@@ -50,9 +50,9 @@ namespace efficient_DST{
 
 		mass(const conjunctive_decomposition<N, T >& w_dec) : mass<N, T>(w_dec.get_sample_space())
 		{
-			w_dec.get_definition().print(this->outcomes);
+//			w_dec.get_definition().print(this->outcomes);
 			fuse_decomposition<up_inclusion<N, T> >(w_dec, *this);
-			this->print(true);
+//			this->print(true);
 			this->remove_negligible_values();
 			normalize();
 		}
@@ -69,6 +69,8 @@ namespace efficient_DST{
 
 		template<class inclusion>
 		void fuse_decomposition(const decomposition<inclusion, N, T>& w_dec, mass<N, T>& m1){
+//			std::cout << "Decomposition to fuse:\n";
+//			w_dec.print();
 			const powerset_btree<N, T>& inverse_weights = w_dec.get_definition();
 			const std::vector<set_N_value<N, T>* >& elements = inverse_weights.elements();
 			mass<N, T> m12(this->outcomes);

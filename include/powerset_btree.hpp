@@ -1386,7 +1386,6 @@ namespace efficient_DST{
 				}
 				mask |= mask << diff;
 
-
 //				subset mask = (const subset) cursor;
 //				tile_set_bit(mask, depth, leaf->depth);
 //				cursor <<= leaf->depth - depth;
@@ -1411,6 +1410,7 @@ namespace efficient_DST{
 				if (final_depth != depth || ((set & cursor) == 0)){
 					++depth;
 					cursor <<= 1;
+					mask |= cursor;
 					if(leaf->left){
 						supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf->left);
 					}
@@ -1421,6 +1421,7 @@ namespace efficient_DST{
 					if(leaf->right){
 						++depth;
 						cursor <<= 1;
+						mask |= cursor;
 						supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf->right);
 					}
 				}
@@ -1428,6 +1429,7 @@ namespace efficient_DST{
 				if ((set & cursor) == 0){
 					++depth;
 					cursor <<= 1;
+					mask |= cursor;
 					if(leaf->left){
 						supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf->left);
 					}
@@ -1438,6 +1440,7 @@ namespace efficient_DST{
 					if(leaf->right){
 						++depth;
 						cursor <<= 1;
+						mask |= cursor;
 						supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf->right);
 					}
 				}
@@ -1471,7 +1474,6 @@ namespace efficient_DST{
 				}
 				mask |= mask << diff;
 
-
 //				subset mask = (const subset) cursor;
 //				tile_set_bit(mask, depth, leaf->depth);
 //				cursor <<= leaf->depth - depth;
@@ -1496,6 +1498,7 @@ namespace efficient_DST{
 				if (final_depth != depth || ((set & cursor) == 0)){
 					++depth;
 					cursor <<= 1;
+					mask |= cursor;
 					if(leaf->left){
 						supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf->left);
 					}
@@ -1506,6 +1509,7 @@ namespace efficient_DST{
 					if(leaf->right){
 						++depth;
 						cursor <<= 1;
+						mask |= cursor;
 						supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf->right);
 					}
 				}
@@ -1513,6 +1517,7 @@ namespace efficient_DST{
 				if ((set & cursor) == 0){
 					++depth;
 					cursor <<= 1;
+					mask |= cursor;
 					if(leaf->left){
 						supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf->left);
 					}
@@ -1523,6 +1528,7 @@ namespace efficient_DST{
 					if(leaf->right){
 						++depth;
 						cursor <<= 1;
+						mask |= cursor;
 						supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf->right);
 					}
 				}

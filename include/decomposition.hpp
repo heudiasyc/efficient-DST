@@ -47,7 +47,7 @@ namespace efficient_DST{
 		}
 
 		T operator[](const subset& set) const {
-			return 1 - weight_function<N, T>::operator [](set);
+			return 1 - weight_function<N, T>::operator[](set);
 		}
 
 		std::ostream& print(const bool& including_null = false) const {
