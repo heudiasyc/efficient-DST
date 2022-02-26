@@ -4,6 +4,7 @@
 #include <mobius_transform.hpp>
 #include <zeta_transform.hpp>
 #include <conjunctive_decomposition.hpp>
+#include <disjunctive_decomposition.hpp>
 
 
 namespace efficient_DST{
@@ -26,7 +27,7 @@ namespace efficient_DST{
 		) : mobius_transform<N, T>(outcomes, focal_sets, 0)
 		{
 			this->remove_negligible_values();
-			this->normalize();
+//			this->normalize();
 		}
 
 		mass_function(const sample_space<N>& outcomes) : mobius_transform<N, T>(outcomes, 0)
@@ -52,6 +53,15 @@ namespace efficient_DST{
 		{
 //			w_dec.get_definition().print(this->outcomes);
 			fuse_decomposition<up_inclusion<N, T> >(w_dec, *this);
+//			this->print(true);
+			this->remove_negligible_values();
+			normalize();
+		}
+
+		mass_function(const disjunctive_decomposition<N, T >& w_dec) : mass_function<N, T>(w_dec.get_sample_space())
+		{
+//			w_dec.get_definition().print(this->outcomes);
+			fuse_decomposition<down_inclusion<N, T> >(w_dec, *this);
 //			this->print(true);
 			this->remove_negligible_values();
 			normalize();

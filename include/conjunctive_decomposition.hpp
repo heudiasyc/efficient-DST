@@ -13,8 +13,7 @@ namespace efficient_DST{
 		using powerset_function<N, T>::emptyset;
 		using powerset_function<N, T>::fullset;
 
-
-		conjunctive_decomposition(const conjunctive_decomposition<N, T>& w) : decomposition<up_inclusion<N, T>, N, T, adaptive_uncertainty>(w.outcomes, w.definition)
+		conjunctive_decomposition(const weight_function<N, T>& w) : decomposition<up_inclusion<N, T>, N, T, adaptive_uncertainty>(w)
 		{}
 
 		conjunctive_decomposition(const sample_space<N>& outcomes) : decomposition<up_inclusion<N, T>, N, T, adaptive_uncertainty>(outcomes)

@@ -17,8 +17,9 @@ namespace efficient_DST{
 		T normalizing_value = 1;
 
 
-		decomposition(const weight_function<N, T>& w) : weight_function<N, T>(w.outcomes, w.definition)
+		decomposition(const weight_function<N, T>& w) : weight_function<N, T>(w.get_sample_space(), w.get_definition())
 		{
+			this->remove_negligible_values();
 			compute_normalizing_assignment();
 		}
 
@@ -31,6 +32,7 @@ namespace efficient_DST{
 			const zeta_transform<inclusion, N, T>& q
 		) : weight_function<N, T>(q)
 		{
+			this->remove_negligible_values();
 			compute_normalizing_assignment();
 		}
 

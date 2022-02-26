@@ -588,8 +588,6 @@ namespace efficient_DST{
 				absorbing_set,
 				transformation::neutral_value()
 			);
-			std::cout << "Printing linearly analyzed tree:\n";
-			focal_points_tree.print(true);
 //			std::cout << "END PRINTING\n";
 			return true;
 		}
@@ -661,8 +659,9 @@ namespace efficient_DST{
 
 			powerset_btree<N, bool> proxies_missing_targets(iota_sequence.size());
 
-			for (size_t i = 0; i < iota_sequence.size(); ++i) {
-				for (size_t e = 0; e < focal_points.size(); ++e){
+			for (size_t e = 0; e < focal_points.size(); ++e){
+				bridge_map[focal_points[e]->set] = focal_points[e];
+				for (size_t i = 0; i < iota_sequence.size(); ++i) {
 //					const subset& set = focal_points[e]->set | iota_sequence[i];
 					const subset& set = inclusion::set_dual_operation(focal_points[e]->set, iota_sequence[i]);
 					if (!focal_points_tree.find(set)){
@@ -926,7 +925,8 @@ namespace efficient_DST{
 				focal_points_tree
 			);
 
-			if(is_almost_bayesian){
+			if(false){
+//			if(is_almost_bayesian){
 				DEBUG(std::clog << "almost Bayesian." << std::endl;);
 				std::cout << "Almost Bayesian\n";
 				return scheme_type_t::direct;
@@ -941,7 +941,8 @@ namespace efficient_DST{
 				}else{
 					DEBUG(std::clog << "not consonant." << std::endl;);
 
-					if(support.size() < 3 * N){
+//					if(support.size() < 3 * N){
+					if(true){
 						DEBUG({
 							std::clog << "Number of focal sets equivalent to number of outcomes." << std::endl;
 							std::clog << "Transform to semilattice:" << std::endl;
@@ -952,7 +953,8 @@ namespace efficient_DST{
 							focal_points_tree
 						);
 
-						if(focal_points_tree.size() < 3 * N){
+//						if(focal_points_tree.size() < 3 * N){
+						if(false){
 							DEBUG(std::clog << "Number of focal points also equivalent to number of outcomes." << std::endl;);
 							return scheme_type_t::direct;
 						}else{

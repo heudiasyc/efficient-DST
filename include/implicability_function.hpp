@@ -23,7 +23,7 @@ namespace efficient_DST{
 
 		implicability_function(
 			const disjunctive_decomposition<N, T>& v
-		) : zeta_transform<up_inclusion<N, T>, N, T>(v.get_sample_space(), v.get_definition(), v.get_default_value(), operation_type_t::multiplication)
+		) : zeta_transform<down_inclusion<N, T>, N, T>(v.get_sample_space(), v.get_definition(), v.get_default_value(), operation_type_t::multiplication)
 		{
 			this->normalize(v.normalizing_set, v.normalizing_value);
 		}
