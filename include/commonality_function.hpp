@@ -29,6 +29,26 @@ namespace efficient_DST{
 		}
 
 		commonality_function(
+			const mass_function<N, T>& m,
+			scheme_type_t scheme_type
+		) : zeta_transform<up_inclusion<N, T>, N, T>(m.get_sample_space(), m.get_definition(), m.get_default_value(), operation_type_t::addition, scheme_type)
+		{}
+
+		commonality_function(
+			const weight_function<N, T>& w,
+			scheme_type_t scheme_type
+		) : zeta_transform<up_inclusion<N, T>, N, T>(w.get_sample_space(), w.get_definition(), w.get_default_value(), operation_type_t::multiplication, scheme_type)
+		{}
+
+		commonality_function(
+			const conjunctive_decomposition<N, T>& w,
+			scheme_type_t scheme_type
+		) : zeta_transform<up_inclusion<N, T>, N, T>(w.get_sample_space(), w.get_definition(), w.get_default_value(), operation_type_t::multiplication, scheme_type)
+		{
+			this->normalize(w.normalizing_set, w.normalizing_value);
+		}
+
+		commonality_function(
 			const commonality_function<N, T>& q
 		) : zeta_transform<up_inclusion<N, T>, N, T>(q)
 		{}

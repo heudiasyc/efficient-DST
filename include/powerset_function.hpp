@@ -57,7 +57,7 @@ namespace efficient_DST{
 
 	public:
 		// allow user to configure the floating-point tolerance
-		static constexpr T precision = 5e-7;
+		static constexpr T precision = (T) efficient_DST::precision;
 
 		static inline bool is_equivalent_to_zero(const T& value) {
 			return (value < zero ? -value : value) <= precision;

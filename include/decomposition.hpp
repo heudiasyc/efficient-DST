@@ -61,7 +61,8 @@ namespace efficient_DST{
 					if (values[i]->is_null)
 						std::cout << "NULL\t <- " + this->outcomes.to_string(values[i]->set) << std::endl;
 					else
-						std::cout << set_N_value<N, T>::to_string(1-1/values[i]->value) + "\t <- " + this->outcomes.to_string(values[i]->set) << std::endl;
+						std::cout << set_N_value<N, T>::to_string(1-1/values[i]->value) + "\t <- " + this->outcomes.to_string(values[i]->set) << "\t,\t "
+						<< set_N_value<N, T>::to_string(1/values[i]->value) + "\t <- " + this->outcomes.to_string(this->normalizing_set) << std::endl;
 				}
 			}
 //			this->definition.print_layout();

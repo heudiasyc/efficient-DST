@@ -21,6 +21,15 @@ namespace efficient_DST{
 		plausibility_function(const disjunctive_decomposition<N, T>& v) : implicability_function<N, T>(v)
 		{}
 
+		plausibility_function(const mass_function<N, T>& m, scheme_type_t scheme_type) : implicability_function<N, T>(m, scheme_type)
+		{}
+
+		plausibility_function(const weight_function<N, T>& v, scheme_type_t scheme_type) : implicability_function<N, T>(v, scheme_type)
+		{}
+
+		plausibility_function(const disjunctive_decomposition<N, T>& v, scheme_type_t scheme_type) : implicability_function<N, T>(v, scheme_type)
+		{}
+
 		plausibility_function(const implicability_function<N, T>& b) : implicability_function<N, T>(b)
 		{}
 

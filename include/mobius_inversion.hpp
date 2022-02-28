@@ -718,7 +718,6 @@ namespace efficient_DST{
 
 			std::vector<subset > sync_sequence;
 			sync_sequence.reserve(iota_sequence.size());
-
 			sync_sequence.emplace_back(iota_sequence[0]);
 			for (size_t i = 1; i < iota_sequence.size(); ++i){
 //				sync_sequence.emplace_back(sync_sequence[i-1] | iota_sequence[i]);
@@ -746,7 +745,7 @@ namespace efficient_DST{
 						const set_N_value<N, T>* coupled_set = bridge_map[proxy];
 //						if (coupled_set && FOD<N>::is_subset_of(coupled_set->set, focal_points[e]->set | sync_sequence[iota_index])){
 						const subset& sync_set = inclusion::set_dual_operation(focal_points[e]->set, sync_sequence[iota_index]);
-						if (coupled_set && (coupled_set->set & sync_set) == coupled_set->set){
+						if (coupled_set && inclusion::set_operation(coupled_set->set, sync_set) == coupled_set->set){
 							transformation::value_inplace_operation(focal_points[e]->value, coupled_set->value);
 						}
 					}
@@ -763,6 +762,12 @@ namespace efficient_DST{
 		) {
 			const std::vector<set_N_value<N, T>* >& lattice_support_elements = lattice_support.elements();
 
+//			std::cout << "IOTA ELEMENTS:\n";
+//			std::cout << iota_sequence[0] << "\n";
+//			for (size_t i = 1; i < iota_sequence.size(); ++i){
+//				std::cout << iota_sequence[i] << "\n";
+//			}
+
 			size_t nb_iota = iota_sequence.size()-1;
 //			size_t iota_index;
 			for (size_t i = 0; i < iota_sequence.size(); ++i){
@@ -771,15 +776,17 @@ namespace efficient_DST{
 //				else
 //					iota_index = nb_iota - i;
 				const size_t& iota_index = transformation::subgraph_index(nb_iota, i);
+//				std::cout << "Iota " << iota_sequence[iota_index] << " and iota_index " << iota_index << " generate:\n";
 
 				for (size_t e = 0; e < lattice_support_elements.size(); ++e){
 //					const subset& set_B = lattice_support_elements[e]->set | iota_sequence[iota_index];
 					const subset& set_B = inclusion::set_operation(lattice_support_elements[e]->set, iota_sequence[iota_index]);
+//					std::cout << "\tProxy " << set_B << " with element " << lattice_support_elements[e]->set << "\n";
 
 					if (set_B != lattice_support_elements[e]->set){
 						set_N_value<N, T>* B = lattice_support.find(set_B);
-
 						if (B){
+//							std::cout << "\t\t" << B->set << " - " << lattice_support_elements[e]->set << "\n";
 							transformation::value_inplace_operation(B->value, lattice_support_elements[e]->value);
 						}
 					}
@@ -821,14 +828,12 @@ namespace efficient_DST{
 		/*
 		 * In this function, this->iota_sequence is supposed to contain all regular iota elements (i.e. join-irreducible of this lattice).
 		 */
-		static const std::vector<subset >& build_truncated_lattice_support(
+		static void build_truncated_lattice_support(
 				const powerset_btree<N, T>& support,
+				const std::vector<subset >& iota_sequence,
 				powerset_btree<N, T>& truncated_lattice_support
 		) {
 			std::cout << "Building lattice support\n";
-			const std::vector<subset >& iota_sequence = inclusion::compute_iota_elements(
-				support
-			);
 
 			std::vector<subset > focal_points;
 			focal_points.reserve(support.size());
@@ -858,7 +863,6 @@ namespace efficient_DST{
 				std::clog << "\nCropped lattice support: \n";
 				truncated_lattice_support.print(std::clog);
 			});
-			return iota_sequence;
 		}
 
 		static const std::vector<subset >& build_core_reduced_powerset(
@@ -925,8 +929,7 @@ namespace efficient_DST{
 				focal_points_tree
 			);
 
-			if(false){
-//			if(is_almost_bayesian){
+			if(is_almost_bayesian){
 				DEBUG(std::clog << "almost Bayesian." << std::endl;);
 				std::cout << "Almost Bayesian\n";
 				return scheme_type_t::direct;
@@ -941,8 +944,7 @@ namespace efficient_DST{
 				}else{
 					DEBUG(std::clog << "not consonant." << std::endl;);
 
-//					if(support.size() < 3 * N){
-					if(true){
+					if(support.size() < 3 * N){
 						DEBUG({
 							std::clog << "Number of focal sets equivalent to number of outcomes." << std::endl;
 							std::clog << "Transform to semilattice:" << std::endl;
@@ -953,8 +955,7 @@ namespace efficient_DST{
 							focal_points_tree
 						);
 
-//						if(focal_points_tree.size() < 3 * N){
-						if(false){
+						if(focal_points_tree.size() < 3 * N){
 							DEBUG(std::clog << "Number of focal points also equivalent to number of outcomes." << std::endl;);
 							return scheme_type_t::direct;
 						}else{
@@ -970,9 +971,13 @@ namespace efficient_DST{
 							std::clog << "Number of focal sets superior to number of outcomes." << std::endl;
 							std::clog << "Transform to lattice:" << std::endl;
 						});
+						iota_sequence = inclusion::compute_iota_elements(
+							support
+						);
 
-						iota_sequence = build_truncated_lattice_support(
+						build_truncated_lattice_support(
 							support,
+							iota_sequence,
 							focal_points_tree
 						);
 						return scheme_type_t::lattice;
@@ -1023,10 +1028,12 @@ namespace efficient_DST{
 		}
 
 		static powerset_btree<N, T> direct_transformation(
-				const powerset_btree<N, T>& support
+				const powerset_btree<N, T>& support,
+				powerset_btree<N, T>& focal_points_tree,
+				scheme_type_t& scheme_type
 		) {
-			powerset_btree<N, T> focal_points_tree(support.size());
-			scheme_type_t scheme_type = scheme_type_t::direct;
+//			powerset_btree<N, T> focal_points_tree(support.size());
+			scheme_type = scheme_type_t::direct;
 			// check if original_structure is almost Bayesian
 			const bool& is_almost_bayesian = try_linear_focal_points_computation (
 				support,
@@ -1036,7 +1043,6 @@ namespace efficient_DST{
 			if (!is_almost_bayesian){
 				DEBUG(std::clog << "Consonance check:" << std::endl;);
 				const bool& is_consonant = consonance_check<N, T>(support);
-
 				if(is_consonant){
 					focal_points_tree.copy(support);
 					scheme_type = scheme_type_t::consonant;
@@ -1061,14 +1067,17 @@ namespace efficient_DST{
 		}
 
 		static powerset_btree<N, T> EMT_with_semilattice(
-			const powerset_btree<N, T>& support
+			const powerset_btree<N, T>& support,
+			powerset_btree<N, T>& focal_points_tree,
+			std::vector<subset >& iota_sequence
 		) {
-			powerset_btree<N, T> focal_points_tree(support.size());
+//			powerset_btree<N, T> focal_points_tree(support.size());
 			build_semilattice_support(
 				support,
 				focal_points_tree
 			);
-			const std::vector<subset >& iota_sequence = inclusion::compute_iota_elements_dual(
+//			const std::vector<subset >&
+			iota_sequence = inclusion::compute_iota_elements_dual(
 				support
 			);
 			execute_EMT_with_semilattice(
@@ -1079,11 +1088,18 @@ namespace efficient_DST{
 		}
 
 		static powerset_btree<N, T> EMT_with_lattice(
-			const powerset_btree<N, T>& support
+			const powerset_btree<N, T>& support,
+			powerset_btree<N, T>& truncated_lattice_support,
+			std::vector<subset >& iota_sequence
 		) {
-			powerset_btree<N, T> truncated_lattice_support(support.size());
-			const std::vector<subset >& iota_sequence = build_truncated_lattice_support(
+//			powerset_btree<N, T> truncated_lattice_support(support.size());
+//			const std::vector<subset >&
+			iota_sequence = inclusion::compute_iota_elements(
+				support
+			);
+			build_truncated_lattice_support(
 				support,
+				iota_sequence,
 				truncated_lattice_support
 			);
 			execute_EMT_with_lattice(

@@ -73,6 +73,32 @@ namespace efficient_DST{
 			this->set_definition_by_cardinality();
 		}
 
+		/*
+		 * Constructor when you have a Möbius transform such as the mass or conjunctive/disjunctive weight function AND you want a specific computation scheme
+		 * - support is supposed to contain all focal sets and their image.
+		 * - order_relation is the order relation of this zeta transform (e.g. commonality->superset or implicability->subset).
+		 * - transform_operation is the operation of the zeta transform (e.g. in DST, we usually use the addition on the mass function
+		 * and the multiplication on the conjunctive/disjunctive weight function).
+		 */
+		zeta_transform(
+			const sample_space<N>& outcomes,
+			const powerset_btree<N, T>& support,
+			const T& default_value,
+			operation_type_t operation_type,
+			scheme_type_t scheme_type
+		) :
+			powerset_function<N, T>(outcomes, N * support.size(), default_value),
+			scheme_type(scheme_type)
+		{
+			std::cout << "zeta transform instantiation\n";
+			if (operation_type == operation_type_t::addition){
+				this->compute<addition<T>, false>(support);
+			} else {
+				this->compute<multiplication<T>, false>(support);
+			}
+			this->set_definition_by_cardinality();
+		}
+
 //		template<class operation_type>
 //		powerset_btree<N, T> inversion() const {
 		powerset_btree<N, T> inversion(const operation_type_t& operation_type) const {
@@ -157,29 +183,62 @@ namespace efficient_DST{
 			}
 		}
 
-		template<class operation_type>
+		template<class operation_type, bool autoset = true>
 		void compute(const powerset_btree<N, T>& support){
 			if (this->default_value != operation_type::neutral_value()){
 				std::cerr << "Ill-defined support: the default value of your compact definition must match the neutral value for the operator you chose.\n";
 				exit(1);
 			}
 			std::cout << "zeta transform compute init\n";
-			this->scheme_type = efficient_mobius_inversion<
-				inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
-			>::autoset_and_build(
-					support,
-					this->definition,
-					this->iota_sequence
-			);
-			std::cout << "zeta transform compute autoset done:" << (int) this->scheme_type << "\n";
-			efficient_mobius_inversion<
-				inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
-			>::execute(
-					support,
-					this->definition,
-					this->iota_sequence,
-					this->scheme_type
-			);
+			if (autoset){
+				this->scheme_type = efficient_mobius_inversion<
+					inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
+				>::autoset_and_build(
+						support,
+						this->definition,
+						this->iota_sequence
+				);
+				std::cout << "zeta transform compute autoset done:" << (int) this->scheme_type << "\n";
+				efficient_mobius_inversion<
+					inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
+				>::execute(
+						support,
+						this->definition,
+						this->iota_sequence,
+						this->scheme_type
+				);
+			}else{
+				std::cout << "zeta transform computing:" << (int) this->scheme_type << "\n";
+				switch (this->scheme_type){
+					case scheme_type_t::semilattice:
+						efficient_mobius_inversion<
+							inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
+						>::EMT_with_semilattice(
+								support,
+								this->definition,
+								this->iota_sequence
+						);
+						break;
+					case scheme_type_t::lattice:
+						efficient_mobius_inversion<
+							inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
+						>::EMT_with_lattice(
+								support,
+								this->definition,
+								this->iota_sequence
+						);
+						break;
+					default:
+						efficient_mobius_inversion<
+							inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
+						>::direct_transformation(
+								support,
+								this->definition,
+								this->scheme_type
+						);
+						break;
+				}
+			}
 //			this->default_value = operation_type::neutral_value();
 		}
 

@@ -17,6 +17,10 @@
 
 namespace efficient_DST{
 
+	// allow user to configure the floating-point tolerance
+	static constexpr float precision = 5e-7;
+	static constexpr int precision_digits = (int) -log10(precision);
+
 	template <size_t N, class T = float>
 	struct set_N_value{
 		bool is_null;
@@ -46,11 +50,21 @@ namespace efficient_DST{
 		{}
 
 
-		static inline const std::string to_string(const T& n){
+		static inline const std::string to_string(const T& value){
+			int displayed_precision = precision_digits;
+			int magnitude;
+			if (value < 0){
+				--displayed_precision;
+				magnitude = (int) log10(-value);
+			}else{
+				magnitude = (int) log10(value);
+			}
+			if (magnitude > 0)
+				displayed_precision -= magnitude;
 			std::ostringstream stm;
 			stm << std::fixed;
-			stm << std::setprecision(5);
-			stm << n ;
+			stm << std::setprecision(displayed_precision < 0 ? 0 : displayed_precision);
+			stm << value;
 			return stm.str() ;
 		}
 

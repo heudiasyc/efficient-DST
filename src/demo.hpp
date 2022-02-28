@@ -1,4 +1,3 @@
-#include <belief_function.hpp>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -20,6 +19,7 @@
 void demo(){
     using namespace efficient_DST;
     typedef float T;
+    scheme_type_t scheme_type = scheme_type_t::lattice;
 
     const size_t N = 8;
     std::string labels[] = {"e", "f", "g", "h", "i", "j", "l", "o"};
@@ -33,16 +33,8 @@ void demo(){
     w0.assign({"f"}, 0.67);
     w0.assign({"f", "g"}, 0.14286);
     w0.assign({"f", "j"}, 0.02381);
-    w0.assign({"e", "f", "i", "o"}, 0.125);
     w0.assign({"f", "l"}, 0.03571);
-
-//    const powerset_btree<N, T>& def = w0.get_definition();
-//    const std::vector<set_N_value<N, T>* >& elements = def.elements();
-//    float val = 1;
-//    for (size_t i = 0; i < elements.size(); ++i){
-//    	val *= elements[i]->value;
-//    }
-//    std::cout << "val = " << val << std::endl;
+    w0.assign({"e", "f", "i", "o"}, 0.125);
 
     std::cout << "\nConjunctive decomposition in w0" << std::endl;
 
@@ -50,7 +42,7 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    commonality_function<N, T> q0(w0);
+    commonality_function<N, T> q0(w0, scheme_type);
 
     std::cout << "\nCommonality values from w0" << std::endl;
 
@@ -66,251 +58,110 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-//    w0.clear();
-//    w0.assign_emptyset(0.42);
-//    w0.assign({"f"}, -2.37103);
-//    w0.assign({"f", "g"}, 0.61538);
-//    w0.assign({"f", "j"}, 0.375);
-//    w0.assign({"e", "f", "i", "o"}, 0.88095);
-////    w0.assign({"f", "i"}, 0.10638);
-//    w0.assign({"f", "l"}, 0.10638);
+    mass_function<N, T> m00(w0);
 
-//	w0.assign_emptyset(0.82);
-//	w0.assign({"f"}, 0.67);
-//	w0.assign({"f", "g"}, 0.14286);
-//	w0.assign({"f", "j"}, 0.02381);
-//	w0.assign({"e", "f", "i", "o"}, 0.125);
-//	w0.assign({"f", "l"}, 0.03571);
+    std::cout << "\nMass values directly from w0" << std::endl;
 
-//    mass_function<N, T> m00(w0);
-//
-//    std::cout << "\nMass values directly from w0" << std::endl;
-//
-//    m00.print();
-//
-//    std::cout << "\n============================================\n";
-//
-//    commonality_function<N, T> q00(m00);
-//
-//    std::cout << "\nCommonality values from m00" << std::endl;
-//
-//    q00.print();
-//
-//	std::cout << "\n============================================\n";
-//
-//	weight_function<N, T> we00(q00);
-//
-//	std::cout << "\nWeights from m00" << std::endl;
-//
-//	we00.print();
-//
-//    std::cout << "\n============================================\n";
-//
-//    commonality_function<N, T> qe000(we00);
-//
-//    std::cout << "\nCommonality values from we00" << std::endl;
-//
-//    qe000.print();
-//
-//	std::cout << "\n============================================\n";
-//
-//	conjunctive_decomposition<N, T> w00(q00);
-//
-//	std::cout << "\nConjunctive decomposition from m00" << std::endl;
-//
-//	w00.print();
-//
-//    std::cout << "\n============================================\n";
-//
-//    commonality_function<N, T> q000(w00);
-//
-//    std::cout << "\nCommonality values from w00" << std::endl;
-//
-//    q000.print();
-//
-//    mass_function<N, T> m(outcomes);
-//
-//	m.assign_emptyset(0.82);
-//    m.assign({"f"}, 0.12251);
-//	m.assign({"f", "g"}, 0.00699);
-//	m.assign({"f", "j"}, 0.00102);
-//	m.assign({"e", "f", "i", "o"}, 0.00599);
-//	m.assign({"f", "l"}, 0.00155);
-//	m.assign({"e", "f", "g", "i", "j", "l", "o"}, 0.04194);
-////
-////    m.assign_emptyset(0.42);
-//////    m.assign({"f"}, 0.4);
-////    m.assign({"f", "g"}, 0.08);
-////    m.assign({"f", "j"}, 0.03);
-////    m.assign({"e", "f", "i", "o"}, 0.37);
-////    m.assign({"f", "i"}, 0.05);
-////    m.assign({"e", "f", "g", "i", "j", "l", "o"}, 0.05);
-////
-//    std::cout << "\nMass values m" << std::endl;
-//
-//    m.print();
-//
-//    std::cout << "\n============================================\n";
-//
-//    disjunctive_decomposition<N, T> v0(w0);
-//
-//    std::cout << "\n============================================\n";
-//
-//    std::cout << "\nDisjunctive decomposition in v0" << std::endl;
-//
-//    v0.print();
-//
-//    std::cout << "\n============================================\n";
-//
-//    implicability_function<N, T> b0(v0);
-//
-//    std::cout << "\nImplicability values from v0" << std::endl;
-//
-//    b0.print();
-//
-//    std::cout << "\n============================================\n";
-//
-//    mass_function<N, T> mv0(b0);
-//
-//    std::cout << "\nMass values from v0" << std::endl;
-//
-//    mv0.print();
-//
-//	std::cout << "\n============================================\n";
-//
-//    mass_function<N, T> mv00(v0);
-//
-//    std::cout << "\nMass values directly from v0" << std::endl;
-//
-//    mv00.print();
-//
-//    std::cout << "\n============================================\n";
-//
-//    implicability_function<N, T> b00(mv00);
-//
-//    std::cout << "\nImplicability values from mv00" << std::endl;
-//
-//    b00.print();
-//
-//	std::cout << "\n============================================\n";
-//
-//	weight_function<N, T> ve00(b00);
-//
-//	std::cout << "\nWeights from mv00" << std::endl;
-//
-//	ve00.print();
-//
-//    std::cout << "\n============================================\n";
-//
-//    implicability_function<N, T> be000(ve00);
-//
-//    std::cout << "\nImplicability values from ve00" << std::endl;
-//
-//    be000.print();
-//
-//	std::cout << "\n============================================\n";
-//
-//	disjunctive_decomposition<N, T> v00(b00);
-//
-//	std::cout << "\nDisjunctive decomposition from mv00" << std::endl;
-//
-//	v00.print();
-//
-//    std::cout << "\n============================================\n";
-//
-//    implicability_function<N, T> b000(v00);
-//
-//    std::cout << "\nImplicability values from v00" << std::endl;
-//
-//    b000.print();
-////
-//    mass_function<N, T> mv(outcomes);
-//
-//    std::cout << "\nMass values m" << std::endl;
-//
-//    mv.print();
-//
+    m00.print();
 
+    std::cout << "\n============================================\n";
 
+    disjunctive_decomposition<N, T> v0(w0);
 
+    std::cout << "\n============================================\n";
 
+    std::cout << "\nDisjunctive decomposition in v0" << std::endl;
 
+    v0.print();
 
+    std::cout << "\n============================================\n";
 
+    implicability_function<N, T> b0(v0, scheme_type);
 
+    std::cout << "\nImplicability values from v0" << std::endl;
 
+    b0.print();
 
+    std::cout << "\n============================================\n";
 
+    mass_function<N, T> mv0(b0);
 
+    std::cout << "\nMass values from v0" << std::endl;
 
+    mv0.print();
 
+	std::cout << "\n============================================\n";
 
+    mass_function<N, T> mv00(v0);
 
-//
-//	conjunctive_decomposition<N, T> w(q);
-////
-//	std::cout << "\nConjunctive decomposition from m" << std::endl;
-//
-//	w.print();
-//
-//	std::cout << "\n============================================\n";
-//
-//	mass<N, T> m_again(w);
-//
-//	std::cout << "\nAgain mass values from m" << std::endl;
-//
-//	m_again.print();
-//
-//	std::cout << "\n============================================\n";
-//
-//	commonality_function<N, T> q_again(w);
-//
-//	std::cout << "\nAgain commonality values from m" << std::endl;
-//
-//	q_again.print();
-//
-//	std::cout << "\n============================================\n";
-//
-//	mass<double, N> m0(q0);
-//
-//	std::cout << "\nMass values from w0 " << std::endl;
-//
-//    m0.get_definition().print(std::cout);
-//
-//	std::cout << "\n============================================\n";
-//
-//	conjunctive_weight<double, N> w0_back(q0);
-//
-//	std::cout << "\nConjunctive weights back from q0 " << std::endl;
-//
-//    w0_back.get_definition().print(std::cout);
-//
-//	std::cout << "\n============================================\n";
-//
-//    mass<double, N> m(fod);
-///*
-//    m.set_emptyset_value(0.18);
-//    m.set_value({"f", "g"}, 0.06);
-//    m.set_value({"f", "j"}, 0.41);
-//    m.set_value({"e", "f", "i", "o"}, 0.07);
-//    m.set_value({"f", "l"}, 0.27);
-//    m.set_fod_value(0.01);
-//*/
-//
-//    m.set_emptyset_value(0.18);
-//    m.set_value({"e", "f", "g", "i", "j", "l", "o"}, 0.06);
-//    m.set_value({"e", "f", "g", "i"}, 0.38);
-//    m.set_value({"e", "f", "j", "l", "o"}, 0.1);
-//    m.set_value({"f", "g", "i", "j", "l"}, 0.27);
-//    m.set_fod_value(0.01);
-///*
-//	m.set_emptyset_value(0.01);
-//    m.set_value({"h"}, 0.06);
-//    m.set_value({"h", "j", "l", "o"}, 0.38);
-//    m.set_value({"g", "h", "i"}, 0.1);
-//    m.set_value({"e", "h", "o"}, 0.27);
-//    m.set_fod_value(0.18);
-//*/
+    std::cout << "\nMass values directly from v0" << std::endl;
+
+    mv00.print();
+
+    std::cout << "\n============================================\n";
+
+	mass_function<N, T> m(outcomes);
+
+    m.assign_emptyset(0.42);
+//    m.assign({"f"}, 0.4);
+    m.assign({"f", "g"}, 0.08);
+    m.assign({"f", "l"}, 0.03);
+    m.assign({"e", "f", "i", "o"}, 0.37);
+    m.assign({"f", "i"}, 0.05);
+    m.assign({"e", "f", "g", "i", "j", "l", "o"}, 0.05);
+
+	std::cout << "\nMass values m" << std::endl;
+
+	m.print();
+
+    std::cout << "\n============================================\n";
+
+    commonality_function<N, T> q(m, scheme_type);
+
+    std::cout << "\nCommonality values from m" << std::endl;
+
+    q.print();
+
+    std::cout << "\n============================================\n";
+
+    conjunctive_decomposition<N, T> w(q);
+
+    std::cout << "\nConjunctive decomposition in m" << std::endl;
+
+    w.print();
+
+	std::cout << "\n============================================\n";
+
+    mass_function<N, T> mw(w);
+
+    std::cout << "\nMass values directly from w" << std::endl;
+
+    mw.print();
+
+    std::cout << "\n============================================\n";
+
+    implicability_function<N, T> b(m, scheme_type);
+
+    std::cout << "\nImplicability values from m" << std::endl;
+
+    b.print();
+
+    std::cout << "\n============================================\n";
+
+    disjunctive_decomposition<N, T> v(b);
+
+    std::cout << "\nDisjunctive decomposition in m" << std::endl;
+
+    v.print();
+
+	std::cout << "\n============================================\n";
+
+    mass_function<N, T> mv(v);
+
+    std::cout << "\nMass values directly from v" << std::endl;
+
+    mv.print();
+
 //
 //    std::string labels_vec[] = {"a", "b", "c", "d"};
 //    FOD<4> fod_vec(labels_vec);
