@@ -10,7 +10,7 @@
 
 namespace efficient_DST{
 
-	enum class scheme_type_t: int8_t { direct, consonant, semilattice, lattice };
+	enum class scheme_type_t: int8_t { direct, consonant, semilattice, lattice, reduced_FMT };
 
 	template<size_t N, typename T = float>
 	struct iota_elements {
@@ -605,26 +605,6 @@ namespace efficient_DST{
 			transformation::execute_consonant_transformation(support);
 		}
 
-		static powerset_btree<N, T> FMT_reduced_to_core(
-				powerset_btree<N, T>& support
-		) {
-			powerset_btree<N, T> core_reduced_powerset(support.size());
-			const std::vector<subset >& iota_sequence = build_core_reduced_powerset(support, core_reduced_powerset);
-
-			std::vector<set_N_value<N, T>* > powerset_elements = core_reduced_powerset.elements();
-			for (size_t i = 0; i < iota_sequence.size(); ++i){
-				for (size_t e = 0; e < powerset_elements.size(); ++e){
-					subset set_B = inclusion::set_operation(powerset_elements[e]->set, inclusion::FMT_target(iota_sequence[i]));
-
-					if (set_B != powerset_elements[e]->set){
-						set_N_value<N, T>* B = core_reduced_powerset.find(set_B);
-						transformation::value_inplace_operation(B->value, powerset_elements[e]->value);
-					}
-				}
-			}
-			return core_reduced_powerset;
-		}
-
 		static void execute_FMT(
 				std::vector<T>& transform
 		) {
@@ -632,7 +612,6 @@ namespace efficient_DST{
 				std::cerr << "\nThe size of the given vector is not 2^N, where N is the given number of outcomes.\n";
 //					return powerset_values;
 			}
-
 //				std::vector<T> transform(powerset_values);
 			size_t sub_powerset_size, sub_powerset_dual_size, index;
 			for (size_t i = 1; i <= N; ++i){
@@ -648,6 +627,184 @@ namespace efficient_DST{
 				}
 			}
 //				return transform;
+		}
+
+		static std::vector<subset > build_core_reduced_powerset(
+				const powerset_btree<N, T>& support,
+				powerset_btree<N, T>& core_reduced_powerset
+		) {
+			const std::vector<set_N_value<N, T>* >& support_elements = support.elements();
+			subset core = 0;
+			for(size_t i = 0; i < support_elements.size(); ++i){
+				core |= support_elements[i]->set;
+			}
+			std::vector<subset > iota_sequence;
+			subset singleton = 1;
+			for(size_t i = 0; i < N; ++i){
+				if ((singleton & core) != 0){
+					iota_sequence.emplace_back(singleton);
+				}
+				singleton <<= 1;
+			}
+
+			std::vector<subset > focal_points;
+			focal_points.reserve(pow(2, iota_sequence.size()));
+
+			for (size_t i = 0; i < support_elements.size(); ++i){
+				focal_points.emplace_back(support_elements[i]->set);
+				core_reduced_powerset.insert(support_elements[i]->set, support_elements[i]->value);
+			}
+
+			singleton = 0;
+			set_N_value<N, T>* newly_inserted_address = support.find(singleton);
+			core_reduced_powerset.insert_set(
+				singleton,
+				transformation::neutral_value()
+			);
+			if (newly_inserted_address){
+				focal_points.emplace_back(singleton);
+			}
+
+			for (size_t i = 0; i < iota_sequence.size(); ++i) {
+				size_t end = focal_points.size();
+				for (size_t ii = 0; ii < end; ++ii) {
+					const subset& new_set = iota_sequence[i] | focal_points[ii];
+					newly_inserted_address = core_reduced_powerset.insert_set(
+						new_set,
+						transformation::neutral_value()
+					);
+					if (newly_inserted_address){
+						focal_points.emplace_back(new_set);
+					}
+				}
+			}
+			return iota_sequence;
+		}
+
+		static void execute_FMT_reduced_to_core(
+				powerset_btree<N, T>& core_reduced_powerset,
+				const std::vector<subset >& iota_sequence
+		) {
+			std::vector<set_N_value<N, T>* > powerset_elements = core_reduced_powerset.elements();
+			for (size_t i = 0; i < iota_sequence.size(); ++i){
+				for (size_t e = 0; e < powerset_elements.size(); ++e){
+					subset set_B = inclusion::set_operation(powerset_elements[e]->set, inclusion::FMT_target(iota_sequence[i]));
+
+					if (set_B != powerset_elements[e]->set){
+						set_N_value<N, T>* B = core_reduced_powerset.find(set_B);
+						transformation::value_inplace_operation(B->value, powerset_elements[e]->value);
+					}
+				}
+			}
+		}
+
+		/*
+		 * In this function, this->iota_sequence is supposed to contain all regular iota elements (i.e. join-irreducible of this lattice).
+		 */
+		static void build_truncated_lattice_support(
+				const powerset_btree<N, T>& support,
+				const std::vector<subset >& iota_sequence,
+				powerset_btree<N, T>& truncated_lattice_support
+		) {
+			std::cout << "Building lattice support\n";
+
+			std::vector<subset > focal_points;
+			focal_points.reserve(support.size());
+
+			const std::vector<set_N_value<N, T>* >& elements = support.elements();
+			for (size_t i = 0; i < elements.size(); ++i){
+				focal_points.emplace_back(elements[i]->set);
+				truncated_lattice_support.insert(elements[i]->set, elements[i]->value);
+			}
+
+			set_N_value<N, T>* newly_inserted_address;
+
+			for (size_t i = 0; i < iota_sequence.size(); ++i) {
+				size_t end = focal_points.size();
+				for (size_t ii = 0; ii < end; ++ii) {
+					const subset& new_set = inclusion::set_operation(iota_sequence[i], focal_points[ii]);
+					newly_inserted_address = truncated_lattice_support.insert_set(
+						new_set,
+						transformation::neutral_value()
+					);
+					if (newly_inserted_address){
+						focal_points.emplace_back(new_set);
+					}
+				}
+			}
+			DEBUG({
+				std::clog << "\nCropped lattice support: \n";
+				truncated_lattice_support.print(std::clog);
+			});
+		}
+
+		static void execute_EMT_with_lattice(
+				powerset_btree<N, T>& lattice_support,
+				const std::vector<subset >& iota_sequence
+		) {
+			const std::vector<set_N_value<N, T>* >& lattice_support_elements = lattice_support.elements();
+
+//			std::cout << "IOTA ELEMENTS:\n";
+//			std::cout << iota_sequence[0] << "\n";
+//			for (size_t i = 1; i < iota_sequence.size(); ++i){
+//				std::cout << iota_sequence[i] << "\n";
+//			}
+
+			size_t nb_iota = iota_sequence.size()-1;
+//			size_t iota_index;
+			for (size_t i = 0; i < iota_sequence.size(); ++i){
+//				if (transform_type == transform_type_t::Mobius)
+//					iota_index = i;
+//				else
+//					iota_index = nb_iota - i;
+				const size_t& iota_index = transformation::subgraph_index(nb_iota, i);
+//				std::cout << "Iota " << iota_sequence[iota_index] << " and iota_index " << iota_index << " generate:\n";
+
+				for (size_t e = 0; e < lattice_support_elements.size(); ++e){
+//					const subset& set_B = lattice_support_elements[e]->set | iota_sequence[iota_index];
+					const subset& set_B = inclusion::set_operation(lattice_support_elements[e]->set, iota_sequence[iota_index]);
+//					std::cout << "\tProxy " << set_B << " with element " << lattice_support_elements[e]->set << "\n";
+
+					if (set_B != lattice_support_elements[e]->set){
+						set_N_value<N, T>* B = lattice_support.find(set_B);
+						if (B){
+//							std::cout << "\t\t" << B->set << " - " << lattice_support_elements[e]->set << "\n";
+							transformation::value_inplace_operation(B->value, lattice_support_elements[e]->value);
+						}
+					}
+				}
+			}
+		}
+
+		static void build_semilattice_support(
+				const powerset_btree<N, T>& support,
+				powerset_btree<N, T>& focal_points_tree
+		) {
+			std::cout << "Building semilattice support\n";
+			std::vector<subset > focal_points;
+			const std::vector<set_N_value<N, T>* >& support_elements = support.elements();
+			focal_points.reserve(support.size());
+
+			for (size_t i = 0; i < support_elements.size(); ++i){
+				focal_points.emplace_back(support_elements[i]->set);
+				focal_points_tree.insert(support_elements[i]->set, support_elements[i]->value);
+			}
+
+			set_N_value<N, T>* newly_inserted_address;
+
+			for (size_t i = 0; i < support_elements.size(); ++i){
+				size_t end = focal_points.size();
+				for (size_t ii = i+1; ii < end; ++ii){
+					const subset& focal_point = inclusion::set_operation(support_elements[i]->set, focal_points[ii]);
+					newly_inserted_address = focal_points_tree.insert_set(
+						focal_point,
+						transformation::neutral_value()
+					);
+					if (newly_inserted_address){
+						focal_points.emplace_back(focal_point);
+					}
+				}
+			}
 		}
 
 		static void build_bridge_map(
@@ -755,168 +912,6 @@ namespace efficient_DST{
 			//std::cout << (((float) t)/CLOCKS_PER_SEC) << std::endl;
 		}
 
-
-		static void execute_EMT_with_lattice(
-				powerset_btree<N, T>& lattice_support,
-				const std::vector<subset >& iota_sequence
-		) {
-			const std::vector<set_N_value<N, T>* >& lattice_support_elements = lattice_support.elements();
-
-//			std::cout << "IOTA ELEMENTS:\n";
-//			std::cout << iota_sequence[0] << "\n";
-//			for (size_t i = 1; i < iota_sequence.size(); ++i){
-//				std::cout << iota_sequence[i] << "\n";
-//			}
-
-			size_t nb_iota = iota_sequence.size()-1;
-//			size_t iota_index;
-			for (size_t i = 0; i < iota_sequence.size(); ++i){
-//				if (transform_type == transform_type_t::Mobius)
-//					iota_index = i;
-//				else
-//					iota_index = nb_iota - i;
-				const size_t& iota_index = transformation::subgraph_index(nb_iota, i);
-//				std::cout << "Iota " << iota_sequence[iota_index] << " and iota_index " << iota_index << " generate:\n";
-
-				for (size_t e = 0; e < lattice_support_elements.size(); ++e){
-//					const subset& set_B = lattice_support_elements[e]->set | iota_sequence[iota_index];
-					const subset& set_B = inclusion::set_operation(lattice_support_elements[e]->set, iota_sequence[iota_index]);
-//					std::cout << "\tProxy " << set_B << " with element " << lattice_support_elements[e]->set << "\n";
-
-					if (set_B != lattice_support_elements[e]->set){
-						set_N_value<N, T>* B = lattice_support.find(set_B);
-						if (B){
-//							std::cout << "\t\t" << B->set << " - " << lattice_support_elements[e]->set << "\n";
-							transformation::value_inplace_operation(B->value, lattice_support_elements[e]->value);
-						}
-					}
-				}
-			}
-		}
-
-		static void build_semilattice_support(
-				const powerset_btree<N, T>& support,
-				powerset_btree<N, T>& focal_points_tree
-		) {
-			std::cout << "Building semilattice support\n";
-			std::vector<subset > focal_points;
-			const std::vector<set_N_value<N, T>* >& support_elements = support.elements();
-			focal_points.reserve(support.size());
-
-			for (size_t i = 0; i < support_elements.size(); ++i){
-				focal_points.emplace_back(support_elements[i]->set);
-				focal_points_tree.insert(support_elements[i]->set, support_elements[i]->value);
-			}
-
-			set_N_value<N, T>* newly_inserted_address;
-
-			for (size_t i = 0; i < support_elements.size(); ++i){
-				size_t end = focal_points.size();
-				for (size_t ii = i+1; ii < end; ++ii){
-					const subset& focal_point = inclusion::set_operation(support_elements[i]->set, focal_points[ii]);
-					newly_inserted_address = focal_points_tree.insert_set(
-						focal_point,
-						transformation::neutral_value()
-					);
-					if (newly_inserted_address){
-						focal_points.emplace_back(focal_point);
-					}
-				}
-			}
-		}
-
-		/*
-		 * In this function, this->iota_sequence is supposed to contain all regular iota elements (i.e. join-irreducible of this lattice).
-		 */
-		static void build_truncated_lattice_support(
-				const powerset_btree<N, T>& support,
-				const std::vector<subset >& iota_sequence,
-				powerset_btree<N, T>& truncated_lattice_support
-		) {
-			std::cout << "Building lattice support\n";
-
-			std::vector<subset > focal_points;
-			focal_points.reserve(support.size());
-
-			const std::vector<set_N_value<N, T>* >& elements = support.elements();
-			for (size_t i = 0; i < elements.size(); ++i){
-				focal_points.emplace_back(elements[i]->set);
-				truncated_lattice_support.insert(elements[i]->set, elements[i]->value);
-			}
-
-			set_N_value<N, T>* newly_inserted_address;
-
-			for (size_t i = 0; i < iota_sequence.size(); ++i) {
-				size_t end = focal_points.size();
-				for (size_t ii = 0; ii < end; ++ii) {
-					const subset& new_set = inclusion::set_operation(iota_sequence[i], focal_points[ii]);
-					newly_inserted_address = truncated_lattice_support.insert_set(
-						new_set,
-						transformation::neutral_value()
-					);
-					if (newly_inserted_address){
-						focal_points.emplace_back(new_set);
-					}
-				}
-			}
-			DEBUG({
-				std::clog << "\nCropped lattice support: \n";
-				truncated_lattice_support.print(std::clog);
-			});
-		}
-
-		static const std::vector<subset >& build_core_reduced_powerset(
-				const powerset_btree<N, T>& support,
-				powerset_btree<N, T>& core_reduced_powerset
-		) {
-			const std::vector<set_N_value<N, T>* >& support_elements = support.elements();
-			subset core = 0;
-			for(size_t i = 0; i < support_elements.size(); ++i){
-				core |= support_elements[i]->set;
-			}
-			std::vector<subset > iota_sequence;
-			subset singleton = 1;
-			for(size_t i = 0; i < N; ++i){
-				if ((singleton & core) != 0){
-					iota_sequence.emplace_back(singleton);
-				}
-				singleton <<= 1;
-			}
-
-			std::vector<subset > focal_points;
-			focal_points.reserve(pow(2, iota_sequence.size()));
-
-			singleton = 0;
-			set_N_value<N, T>* inserted_node = support.find(singleton);
-			if (!inserted_node || inserted_node->is_null){
-				core_reduced_powerset.insert(singleton, transformation::neutral_value());
-			}else{
-				core_reduced_powerset.insert(singleton, inserted_node->value);
-			}
-			focal_points.emplace_back(singleton);
-
-			for (size_t i = 0; i < iota_sequence.size(); ++i) {
-				size_t end = focal_points.size();
-				for (size_t ii = 0; ii < end; ++ii) {
-					const subset& new_set = iota_sequence[i] | focal_points[ii];
-					inserted_node = support.find(new_set);
-					if (!inserted_node || inserted_node->is_null){
-						inserted_node = core_reduced_powerset.insert_or_update_if_null(new_set, transformation::neutral_value());
-					}else{
-						inserted_node = core_reduced_powerset.insert_or_update_if_null(new_set, inserted_node->value);
-					}
-					if (inserted_node){
-						focal_points.emplace_back(new_set);
-					}
-				}
-			}
-			DEBUG({
-				std::clog << "\nCropped lattice support: \n";
-				core_reduced_powerset.print(std::clog);
-			});
-			return iota_sequence;
-		}
-
 		static scheme_type_t autoset_and_build(
 				const powerset_btree<N, T>& support,
 				powerset_btree<N, T>& focal_points_tree,
@@ -1022,12 +1017,20 @@ namespace efficient_DST{
 
 					break;
 
+				case scheme_type_t::reduced_FMT:
+					execute_FMT_reduced_to_core(
+						focal_points_tree,
+						iota_sequence
+					);
+
+					break;
+
 				default:
 					break;
 			}
 		}
 
-		static powerset_btree<N, T> direct_transformation(
+		static void direct_transformation(
 				const powerset_btree<N, T>& support,
 				powerset_btree<N, T>& focal_points_tree,
 				scheme_type_t& scheme_type
@@ -1063,10 +1066,32 @@ namespace efficient_DST{
 					focal_points_tree
 				);
 			}
-			return focal_points_tree;
 		}
 
-		static powerset_btree<N, T> EMT_with_semilattice(
+		static void FMT(
+				const std::vector<T>& support,
+				std::vector<T>& transform
+		) {
+			transform = support;
+
+			execute_FMT(
+				transform
+			);
+		}
+
+		static void FMT_reduced_to_core(
+				const powerset_btree<N, T>& support,
+				powerset_btree<N, T>& core_reduced_powerset,
+				std::vector<subset >& iota_sequence
+		) {
+			iota_sequence = build_core_reduced_powerset(support, core_reduced_powerset);
+			execute_FMT_reduced_to_core(
+					core_reduced_powerset,
+					iota_sequence
+			);
+		}
+
+		static void EMT_with_semilattice(
 			const powerset_btree<N, T>& support,
 			powerset_btree<N, T>& focal_points_tree,
 			std::vector<subset >& iota_sequence
@@ -1084,10 +1109,9 @@ namespace efficient_DST{
 					focal_points_tree,
 					iota_sequence
 			);
-			return focal_points_tree;
 		}
 
-		static powerset_btree<N, T> EMT_with_lattice(
+		static void EMT_with_lattice(
 			const powerset_btree<N, T>& support,
 			powerset_btree<N, T>& truncated_lattice_support,
 			std::vector<subset >& iota_sequence
@@ -1106,7 +1130,6 @@ namespace efficient_DST{
 					truncated_lattice_support,
 					iota_sequence
 			);
-			return truncated_lattice_support;
 		}
 	};
 }		// namespace efficient_DST

@@ -228,6 +228,15 @@ namespace efficient_DST{
 								this->iota_sequence
 						);
 						break;
+					case scheme_type_t::reduced_FMT:
+						efficient_mobius_inversion<
+							inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
+						>::FMT_reduced_to_core(
+								support,
+								this->definition,
+								this->iota_sequence
+						);
+						break;
 					default:
 						efficient_mobius_inversion<
 							inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T

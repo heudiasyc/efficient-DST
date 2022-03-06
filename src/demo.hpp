@@ -19,7 +19,7 @@
 void demo(){
     using namespace efficient_DST;
     typedef float T;
-    scheme_type_t scheme_type = scheme_type_t::lattice;
+    scheme_type_t scheme_type = scheme_type_t::semilattice;
 
     const size_t N = 8;
     std::string labels[] = {"e", "f", "g", "h", "i", "j", "l", "o"};

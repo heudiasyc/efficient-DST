@@ -365,13 +365,13 @@ namespace efficient_DST{
 								node<N, T>* disjunction_node;
 								if ((set & cursor) == 0){
 									// if leaf->set has the element at depth
-									disjunction_node = create_disjunction_node(disjunction_set, depth, parent_node,
+									disjunction_node = create_disjunction_node(disjunction_set | cursor, depth, parent_node,
 											inserted_node,
 											leaf
 									);
 								}else{
 									// if set has the element at depth
-									disjunction_node = create_disjunction_node(disjunction_set | cursor, depth, parent_node,
+									disjunction_node = create_disjunction_node(disjunction_set, depth, parent_node,
 											leaf,
 											inserted_node
 									);
