@@ -134,7 +134,15 @@ namespace efficient_DST{
 			return a & b;
 		}
 
+		static inline size_t set_operation(const size_t& a, const size_t& b){
+			return a & b;
+		}
+
 		static inline subset set_dual_operation(const subset& a, const subset& b){
+			return a | b;
+		}
+
+		static inline size_t set_dual_operation(const size_t& a, const size_t& b){
 			return a | b;
 		}
 
@@ -207,7 +215,15 @@ namespace efficient_DST{
 			return a | b;
 		}
 
+		static inline size_t set_operation(const size_t& a, const size_t& b){
+			return a | b;
+		}
+
 		static inline subset set_dual_operation(const subset& a, const subset& b){
+			return a & b;
+		}
+
+		static inline size_t set_dual_operation(const size_t& a, const size_t& b){
 			return a & b;
 		}
 
@@ -608,21 +624,27 @@ namespace efficient_DST{
 		static void execute_FMT(
 				std::vector<T>& transform
 		) {
-			if(transform.size() != pow(2, N)){
-				std::cerr << "\nThe size of the given vector is not 2^N, where N is the given number of outcomes.\n";
-//					return powerset_values;
-			}
+//			if(transform.size() != pow(2, N)){
+//				std::cerr << "\nThe size of the given vector is not 2^N, where N is the given number of outcomes.\n";
+////					return powerset_values;
+//			}
 //				std::vector<T> transform(powerset_values);
+			if (transform.size() == 0)
+				return;
+			size_t n = (size_t) log2(transform.size());
 			size_t sub_powerset_size, sub_powerset_dual_size, index;
-			for (size_t i = 1; i <= N; ++i){
+			for (size_t i = 1; i <= n; ++i){
 
-				sub_powerset_size = pow(2, i);
+				sub_powerset_size = 1 << i;
 				for (size_t j = 1; j <= sub_powerset_size; j += 2){
 
-					sub_powerset_dual_size = pow(2, N - i);
+					sub_powerset_dual_size = 1 << (n - i);
 					for (size_t k = 0; k <= sub_powerset_dual_size-1; ++k){
 						index = (j-inclusion::target_index_offset_FMT()) * sub_powerset_dual_size + k;
+//						std::cout << "Pour " << transform[index] << "\n";
+//						std::cout << "index " << index << " / " << (j-inclusion::source_index_offset_FMT()) * sub_powerset_dual_size + k << "\n";
 						transformation::value_inplace_operation(transform[index], transform[(j-inclusion::source_index_offset_FMT()) * sub_powerset_dual_size + k]);
+//						std::cout << "= " << transform[index] << "\n";
 					}
 				}
 			}
@@ -706,8 +728,6 @@ namespace efficient_DST{
 				const std::vector<subset >& iota_sequence,
 				powerset_btree<N, T>& truncated_lattice_support
 		) {
-			std::cout << "Building lattice support\n";
-
 			std::vector<subset > focal_points;
 			focal_points.reserve(support.size());
 
@@ -780,7 +800,6 @@ namespace efficient_DST{
 				const powerset_btree<N, T>& support,
 				powerset_btree<N, T>& focal_points_tree
 		) {
-			std::cout << "Building semilattice support\n";
 			std::vector<subset > focal_points;
 			const std::vector<set_N_value<N, T>* >& support_elements = support.elements();
 			focal_points.reserve(support.size());
@@ -1076,6 +1095,18 @@ namespace efficient_DST{
 
 			execute_FMT(
 				transform
+			);
+		}
+
+		static void FMT_reduced_to_core(
+				const T& support,
+				T& core_reduced_powerset,
+				std::vector<subset >& iota_sequence
+		) {
+			iota_sequence = build_core_reduced_powerset(support, core_reduced_powerset);
+			execute_FMT_reduced_to_core(
+					core_reduced_powerset,
+					iota_sequence
 			);
 		}
 

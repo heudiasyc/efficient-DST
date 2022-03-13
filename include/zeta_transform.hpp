@@ -64,7 +64,6 @@ namespace efficient_DST{
 			powerset_function<N, T>(outcomes, N * support.size(), default_value),
 			scheme_type(scheme_type_t::direct)
 		{
-			std::cout << "zeta transform instantiation\n";
 			if (operation_type == operation_type_t::addition){
 				this->compute<addition<T>>(support);
 			} else {
@@ -90,7 +89,6 @@ namespace efficient_DST{
 			powerset_function<N, T>(outcomes, N * support.size(), default_value),
 			scheme_type(scheme_type)
 		{
-			std::cout << "zeta transform instantiation\n";
 			if (operation_type == operation_type_t::addition){
 				this->compute<addition<T>, false>(support);
 			} else {
@@ -189,7 +187,6 @@ namespace efficient_DST{
 				std::cerr << "Ill-defined support: the default value of your compact definition must match the neutral value for the operator you chose.\n";
 				exit(1);
 			}
-			std::cout << "zeta transform compute init\n";
 			if (autoset){
 				this->scheme_type = efficient_mobius_inversion<
 					inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
@@ -198,7 +195,6 @@ namespace efficient_DST{
 						this->definition,
 						this->iota_sequence
 				);
-				std::cout << "zeta transform compute autoset done:" << (int) this->scheme_type << "\n";
 				efficient_mobius_inversion<
 					inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
 				>::execute(
@@ -208,7 +204,6 @@ namespace efficient_DST{
 						this->scheme_type
 				);
 			}else{
-				std::cout << "zeta transform computing:" << (int) this->scheme_type << "\n";
 				switch (this->scheme_type){
 					case scheme_type_t::semilattice:
 						efficient_mobius_inversion<

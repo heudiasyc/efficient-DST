@@ -50,7 +50,7 @@ namespace efficient_DST{
 
 			for(size_t i = 0; i < N; ++i){
 				val = (*this)[singleton];
-				if (val != this->default_value){
+				if (val != 0){
 					contour.emplace(i, val);
 				}
 				singleton <<= 1;

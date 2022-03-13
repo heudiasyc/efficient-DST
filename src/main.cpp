@@ -6,6 +6,7 @@
 
 #include <powerset_btree.hpp>
 #include "demo.hpp"
+#include "demo_vector.hpp"
 //#include "benchmark_bitset.hpp"
 //#include "benchmark.hpp"
 
@@ -14,6 +15,7 @@
 int main(){
     using namespace efficient_DST;
     demo();
+    demo_vector();
     //benchmark_main();
 
 /*

@@ -1,42 +1,37 @@
-#ifndef EFFICIENT_DST_MASS_FUNCTION_HPP
-#define EFFICIENT_DST_MASS_FUNCTION_HPP
+#ifndef EFFICIENT_DST_MASS_VECTOR_HPP
+#define EFFICIENT_DST_MASS_VECTOR_HPP
 
 #include <mobius_inversion.hpp>
-#include <mobius_transform.hpp>
-#include <mass_vector.hpp>
-#include <zeta_transform.hpp>
-#include <conjunctive_decomposition.hpp>
-#include <disjunctive_decomposition.hpp>
+#include <mobius_transform_vector.hpp>
+#include <zeta_transform_vector.hpp>
+#include <conjunctive_decomposition_vector.hpp>
+#include <disjunctive_decomposition_vector.hpp>
 
 
 namespace efficient_DST{
 
+	enum class special_case_t: bool { degenerate, vacuous };
+
 	template <size_t N, typename T = float>
-	class mass_function : public mobius_transform<N, T>{
+	class mass_vector : public mobius_transform_vector<N, T>{
 	public:
-		using typename powerset_function<N, T>::subset;
-		using powerset_function<N, T>::emptyset;
-		using powerset_function<N, T>::fullset;
 
-		mass_function(const mass_function<N, T>& m) : mobius_transform<N, T>(m.outcomes, m.definition, 0)
+		mass_vector(const mass_vector<N, T>& m) : mobius_transform_vector<N, T>(m.outcomes, m.definition, 0)
 		{}
 
-		mass_function(const mass_vector<N, T>& m) : mobius_transform<N, T>(m.outcomes, m.definition, 0)
-		{}
-
-		mass_function(
+		mass_vector(
 			const sample_space<N>& outcomes,
-			const powerset_btree<N, T>& focal_sets
-		) : mobius_transform<N, T>(outcomes, focal_sets, 0)
+			const std::vector<T>& focal_sets
+		) : mobius_transform_vector<N, T>(outcomes, focal_sets, 0)
 		{
 			this->remove_negligible_values();
 			this->normalize();
 		}
 
-		mass_function(const sample_space<N>& outcomes) : mobius_transform<N, T>(outcomes, 0)
+		mass_vector(const sample_space<N>& outcomes) : mobius_transform_vector<N, T>(outcomes, 0)
 		{}
 
-		mass_function(const sample_space<N>& outcomes, const special_case_t s_case) : mobius_transform<N, T>(outcomes, 0)
+		mass_vector(const sample_space<N>& outcomes, const special_case_t s_case) : mobius_transform_vector<N, T>(outcomes, 0)
 		{
 			switch(s_case){
 				// create a mass function with all mass attributed to the empty set
@@ -46,13 +41,13 @@ namespace efficient_DST{
 			}
 		}
 
-		mass_function(const zeta_transform<up_inclusion<N, T>, N, T >& q) : mass_function<N, T>(q.get_sample_space(), q.inversion(operation_type_t::addition))
+		mass_vector(const zeta_transform_vector<up_inclusion<N, T>, N, T >& q) : mass_vector<N, T>(q.get_sample_space(), q.inversion(operation_type_t::addition))
 		{}
 
-		mass_function(const zeta_transform<down_inclusion<N, T>, N, T >& b) : mass_function<N, T>(b.get_sample_space(), b.inversion(operation_type_t::addition))
+		mass_vector(const zeta_transform_vector<down_inclusion<N, T>, N, T >& b) : mass_vector<N, T>(b.get_sample_space(), b.inversion(operation_type_t::addition))
 		{}
 
-		mass_function(const conjunctive_decomposition<N, T >& w_dec) : mass_function<N, T>(w_dec.get_sample_space())
+		mass_vector(const conjunctive_decomposition_vector<N, T >& w_dec) : mass_vector<N, T>(w_dec.get_sample_space())
 		{
 //			w_dec.get_definition().print(this->outcomes);
 			fuse_decomposition<up_inclusion<N, T> >(w_dec, *this);
@@ -61,7 +56,7 @@ namespace efficient_DST{
 			normalize();
 		}
 
-		mass_function(const disjunctive_decomposition<N, T >& w_dec) : mass_function<N, T>(w_dec.get_sample_space())
+		mass_vector(const disjunctive_decomposition_vector<N, T >& w_dec) : mass_vector<N, T>(w_dec.get_sample_space())
 		{
 //			w_dec.get_definition().print(this->outcomes);
 			fuse_decomposition<down_inclusion<N, T> >(w_dec, *this);
@@ -72,8 +67,8 @@ namespace efficient_DST{
 
 
 		template<class inclusion>
-		mass_function<N, T> fuse_decomposition(const decomposition<inclusion, N, T>& w_dec){
-			mass_function<N, T> m1(this->outcomes);
+		mass_vector<N, T> fuse_decomposition(const decomposition_vector<inclusion, N, T>& w_dec){
+			mass_vector<N, T> m1(this->outcomes);
 			fuse_decomposition(w_dec, m1);
 			this->remove_negligible_values();
 			normalize();
@@ -81,36 +76,32 @@ namespace efficient_DST{
 		}
 
 		template<class inclusion>
-		void fuse_decomposition(const decomposition<inclusion, N, T>& w_dec, mass_function<N, T>& m1){
+		void fuse_decomposition(const decomposition_vector<inclusion, N, T>& w_dec, mass_vector<N, T>& m1){
 //			std::cout << "Decomposition to fuse:\n";
 //			w_dec.print();
-			const powerset_btree<N, T>& inverse_weights = w_dec.get_definition();
-			const std::vector<set_N_value<N, T>* >& elements = inverse_weights.elements();
-			mass_function<N, T> m12(this->outcomes);
-			size_t i = 0;
-			if (elements[i]->set == w_dec.normalizing_set){
-				++i;
-			}
-			T weight = 1/elements[i]->value;
-			m1.assign(w_dec.normalizing_set, weight);
-			m1.assign(elements[i]->set, 1-weight);
-			for (++i; i < elements.size(); ++i){
-				if (elements[i]->set != w_dec.normalizing_set){
-					mass_function<N, T> m2(this->outcomes);
-					weight = 1/elements[i]->value;
-					m2.assign(w_dec.normalizing_set, weight);
-					m2.assign(elements[i]->set, 1-weight);
-					m1.natural_fusion_with<inclusion>(m2, m12);
-					m1.clear();
-					m1.definition.copy(m12.definition);
-					m12.clear();
+			const std::vector<T>& inverse_weights = w_dec.get_definition();
+			mass_vector<N, T> m12(this->outcomes);
+			m1.assign(w_dec.normalizing_set, 1);
+			size_t j = 0;
+			for (size_t i = 0; i < (1 << N); ++i){
+				if (inclusion::set_operation(i, w_dec.normalizing_set) == i){
+					if (i != w_dec.normalizing_set && inverse_weights[j] != 1){
+						mass_vector<N, T> m2(this->outcomes);
+						T weight = 1/inverse_weights[j];
+						m2.assign(w_dec.normalizing_set, weight);
+						m2.assign(i, 1-weight);
+						m1.natural_fusion_with<inclusion>(m2, m12);
+						m1.definition = m12.definition;
+						m12.clear();
+					}
+					++j;
 				}
 			}
 		}
 
 		template<class inclusion>
-		mass_function<N, T> natural_fusion_with(const mass_function<N, T>& m2) const {
-			mass_function<N, T> m12(this->outcomes);
+		mass_vector<N, T> natural_fusion_with(const mass_vector<N, T>& m2) const {
+			mass_vector<N, T> m12(this->outcomes);
 			natural_fusion_with<inclusion>(m2, m12);
 			m12.remove_negligible_values();
 			m12.normalize();
@@ -118,20 +109,14 @@ namespace efficient_DST{
 		}
 
 		template<class inclusion>
-		void natural_fusion_with(const mass_function<N, T>& m2, mass_function<N, T>& m12) const {
-			const std::vector<set_N_value<N, T>* >& focal_sets_1 = this->definition.elements();
-			const std::vector<set_N_value<N, T>* >& focal_sets_2 = m2.definition.elements();
-			powerset_btree<N, T>& focal_sets_12 = m12.definition;
-
-			for (size_t i1 = 0; i1 < focal_sets_1.size(); ++i1){
-				for (size_t i2 = 0; i2 < focal_sets_2.size(); ++i2){
-					const subset& set = inclusion::set_operation(focal_sets_1[i1]->set, focal_sets_2[i2]->set);
-					set_N_value<N, T>* node = focal_sets_12[set];
-					if (node){
-						node->value += focal_sets_1[i1]->value * focal_sets_2[i2]->value;
-					}else{
-						focal_sets_12.insert(set, focal_sets_1[i1]->value * focal_sets_2[i2]->value);
-					}
+		void natural_fusion_with(const mass_vector<N, T>& m2, mass_vector<N, T>& m12) const {
+//			std::cout << "Masses to fuse:\n";
+//			this->print();
+//			m2.print();
+			for (size_t i1 = 0; i1 < this->definition.size(); ++i1){
+				for (size_t i2 = 0; i2 < m2.definition.size(); ++i2){
+					const size_t& set = inclusion::set_operation(i1, i2);
+					m12.definition[set] += this->definition[i1] * m2[i2];
 				}
 			}
 //			mass<N, T> m12(m1.get_sample_space(), focal_sets_12);
@@ -141,13 +126,13 @@ namespace efficient_DST{
 
 
 		template <class fusion_rule>
-		mass_function<N, T> fuse_with(const mass_function<N, T>& m2) const {
+		mass_vector<N, T> fuse_with(const mass_vector<N, T>& m2) const {
 			const fusion_rule fusion;
 			return fusion(*this, m2);
 		}
 
 		void regularize() {
-			this->definition.nullify(this->definition[emptyset]);
+			this->definition[0] = 0;
 			this->normalize();
 		}
 
@@ -155,11 +140,10 @@ namespace efficient_DST{
 			normalize(this->definition);
 		}
 
-		static void normalize(powerset_btree<N, T>& definition) {
+		static void normalize(std::vector<T>& definition) {
 			T sum = 0;
-			const std::vector<set_N_value<N, T>* >& elements = definition.elements();
-			for (size_t i = 0; i < elements.size(); ++i) {
-				sum += elements[i]->value;
+			for (size_t i = 0; i < definition.size(); ++i) {
+				sum += definition[i];
 			}
 			if(sum == 0){
 				std::cerr << "\nSum of mass values equal to 0."
@@ -169,8 +153,8 @@ namespace efficient_DST{
 			}
 			if(sum != 1){
 				// normalize
-				for (size_t i = 0; i < elements.size(); ++i) {
-					elements[i]->value /= sum;
+				for (size_t i = 0; i < definition.size(); ++i) {
+					definition[i] /= sum;
 				}
 			}
 		}
@@ -189,12 +173,11 @@ namespace efficient_DST{
 
 		/// Check if this mass function is valid (i.e. if the sum of all its images is 1)
 		bool is_valid() const {
-			const std::vector<set_N_value<N, T>* >& f_elements = this->definition.elements();
 			T sum = 0;
-			for (size_t i = 0; i < f_elements.size(); ++i) {
-				if(f_elements[i]->value < 0 && !this->is_equivalent_to_zero(f_elements[i]->value))
+			for (size_t i = 0; i < this->definition.size(); ++i) {
+				if(this->definition[i] < 0 && !this->is_equivalent_to_zero(this->definition[i]))
 					return false;
-				sum += f_elements[i]->value;
+				sum += this->definition[i];
 			}
 
 			return this->is_equivalent_to_zero(1-sum);
@@ -232,17 +215,15 @@ namespace efficient_DST{
 
 		/// Categorical mass function has only one focal set.
 		bool is_categorical() const {
-			return this->definition.elements().size() == 1;
+			return this->definition.size() == 1;
 		}
 
 		/// Simple mass function has at most two focal sets, and if it has two,
 		/// Omega is one of them.
 		bool is_simple() const {
-			const std::vector<set_N_value<N, T>* >& elements = this->definition.elements();
-
-			if(elements.size() == 2){
+			if(this->definition.size() == 2){
 				return this->at_fullset() != 0;
-			}else if(elements.size() < 2){
+			}else if(this->definition.size() < 2){
 				return true;
 			}else{
 				return false;
@@ -251,11 +232,13 @@ namespace efficient_DST{
 
 		/// In bayesian mass function, all focal sets are singletons.
 		bool is_bayesian() const {
+			if (this->definition.size() == 0)
+				return false;
 			T sum = 0;
-			const std::vector<set_N_value<N, T>* >& singletons = this->definition.singletons();
-
-			for (size_t i = 0; i < singletons.size(); ++i) {
-				sum += singletons[i]->value;
+			size_t singleton = 1;
+			for (size_t i = 0; i < (size_t) log2(this->definition.size()); ++i) {
+				sum += this->definition[singleton];
+				singleton << 1;
 			}
 			return this->is_equivalent_to_zero(1-sum);
 		}
@@ -274,16 +257,12 @@ namespace efficient_DST{
 		/// Disjoint evidence implies that any two focal sets have no element in common.
 		/// In other words, the intersection of each focal set with the union of other focal sets is empty.
 		bool is_disjoint() const {
-
-			const std::vector<set_N_value<N, T>* >& elements = this->definition.elements();
-			subset U = elements[0]->set;
-
-			for (size_t i = 1; i < elements.size(); ++i) {
-				const subset& set = elements[i]->set;
-				if ((set & U) != 0) {
+			size_t U = 0;
+			for (size_t i = 0; i < this->definition.size(); ++i) {
+				if ((i & U) != 0) {
 					return false;
 				}
-				U |= set;
+				U |= i;
 			}
 			return true;
 		}
@@ -293,17 +272,14 @@ namespace efficient_DST{
 		/// In other words, the union of all focal elements is the FOD,
 		/// and the intersection of each focal set with the union of other focal sets is empty.
 		bool is_partitioned() const {
-			const std::vector<set_N_value<N, T>* >& elements = this->definition.elements();
-			subset U = elements[0]->set;
-
-			for (size_t i = 1; i < elements.size(); ++i) {
-				const subset& set = elements[i]->set;
-				if ((set & U) != 0) {
+			size_t U = 0;
+			for (size_t i = 0; i < this->definition.size(); ++i) {
+				if ((i & U) != 0) {
 					return false;
 				}
-				U |= set;
+				U |= i;
 			}
-			return U == fullset;
+			return U == N-1;
 		}
 
 		/// Mass function without internal conflict is a one where all pairs of
@@ -314,13 +290,11 @@ namespace efficient_DST{
 		/// Therefore, there is internal conflict when there is at least one empty intersection between pairs of focal sets,
 		/// i.e. when the intersection of all focal elements is empty.
 		bool has_internal_conflict() const {
-			const std::vector<set_N_value<N, T>* >& elements = this->definition.elements();
-			subset I = elements[0]->set;
-
-			for (size_t i = 1; i < elements.size(); ++i) {
-				const subset& set = elements[i]->set;
-				I &= set;
-				if (I == emptyset){
+			size_t I = 0;
+			I = ~I;
+			for (size_t i = 0; i < this->definition.size(); ++i) {
+				I &= i;
+				if (I == 0){
 					return true;
 				}
 			}
@@ -330,4 +304,4 @@ namespace efficient_DST{
 
 } // namespace efficient_DST
 
-#endif // EFFICIENT_DST_MASS_FUNCTION_HPP
+#endif // EFFICIENT_DST_MASS_VECTOR_HPP

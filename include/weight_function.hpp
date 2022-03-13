@@ -3,6 +3,7 @@
 
 #include <mobius_transform.hpp>
 #include <zeta_transform.hpp>
+#include <weight_vector.hpp>
 
 namespace efficient_DST{
 
@@ -12,6 +13,12 @@ namespace efficient_DST{
 		using typename powerset_function<N, T>::subset;
 		using powerset_function<N, T>::emptyset;
 		using powerset_function<N, T>::fullset;
+
+		weight_function(const weight_function<N, T>& w) : mobius_transform<N, T>(w.outcomes, w.definition, 1)
+		{}
+
+		weight_function(const weight_vector<N, T>& w) : mobius_transform<N, T>(w.outcomes, w.definition, 1)
+		{}
 
 		weight_function(
 			const sample_space<N>& outcomes,

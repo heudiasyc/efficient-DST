@@ -40,9 +40,6 @@ namespace efficient_DST{
 
 	template <size_t N, typename T = float>
 	class powerset_function {
-	private:
-		static constexpr T zero = 0;
-
 	protected:
 		typedef typename sample_space<N>::subset subset;
 		sample_space<N> outcomes;
@@ -60,7 +57,7 @@ namespace efficient_DST{
 		static constexpr T precision = (T) efficient_DST::precision;
 
 		static inline bool is_equivalent_to_zero(const T& value) {
-			return (value < zero ? -value : value) <= precision;
+			return (value < 0 ? -value : value) <= precision;
 		}
 
 		powerset_function (const sample_space<N>& outcomes, const powerset_btree<N, T>& definition, const T& default_value) :

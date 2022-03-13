@@ -6,7 +6,7 @@
 
 namespace efficient_DST{
 
-	template <class inclusion, size_t N, typename T = float, bool adaptive_uncertainty = true>
+	template <class inclusion, size_t N, typename T = float>
 	class decomposition : public weight_function<N, T> {
 	public:
 		using typename powerset_function<N, T>::subset;
@@ -15,27 +15,45 @@ namespace efficient_DST{
 
 		subset normalizing_set;
 		T normalizing_value = 1;
+		const bool adaptive_uncertainty;
 
 
-		decomposition(const weight_function<N, T>& w) : weight_function<N, T>(w.get_sample_space(), w.get_definition())
+		decomposition(
+			const weight_function<N, T>& w,
+			const bool& adaptive_uncertainty = true
+		) :
+			weight_function<N, T>(w.get_sample_space(), w.get_definition()),
+			adaptive_uncertainty(adaptive_uncertainty)
 		{
 			this->remove_negligible_values();
 			compute_normalizing_assignment();
 		}
 
-		decomposition(const sample_space<N>& outcomes) : weight_function<N, T>(outcomes)
+		decomposition(
+			const sample_space<N>& outcomes,
+			const bool& adaptive_uncertainty = true
+		) :
+			weight_function<N, T>(outcomes),
+			adaptive_uncertainty(adaptive_uncertainty)
 		{
 			compute_normalizing_set();
 		}
 
 		decomposition(
-			const zeta_transform<inclusion, N, T>& q
-		) : weight_function<N, T>(q)
+			const zeta_transform<inclusion, N, T>& q,
+			const bool& adaptive_uncertainty = true
+		) :
+			weight_function<N, T>(q),
+			adaptive_uncertainty(adaptive_uncertainty)
 		{
 			this->remove_negligible_values();
 			compute_normalizing_assignment();
 		}
 
+
+		bool has_adaptive_uncertainty() const {
+			return this->adaptive_uncertainty;
+		}
 
 		T at_emptyset() const {
 			return (*this)[emptyset];
@@ -50,7 +68,7 @@ namespace efficient_DST{
 		}
 
 		T operator[](const subset& set) const {
-			return 1 - weight_function<N, T>::operator[](set);
+			return 1 - 1/weight_function<N, T>::operator[](set);
 		}
 
 		std::ostream& print(const bool& including_null = false) const {
@@ -100,6 +118,10 @@ namespace efficient_DST{
 
 		void assign_emptyset(const T& value) {
 			this->assign(emptyset, value);
+		}
+
+		void assign_fullset(const T& value) {
+			this->assign(fullset, value);
 		}
 
 		void nullify(const std::vector<std::string>& labels) {

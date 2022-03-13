@@ -2,13 +2,12 @@
 #include <string>
 #include <vector>
 
-#include <commonality_function.hpp>
-#include <conjunctive_decomposition.hpp>
-#include <disjunctive_decomposition.hpp>
-#include <implicability_function.hpp>
-#include <mass_function.hpp>
-#include <plausibility_function.hpp>
-#include <rule_conjunctive.hpp>
+#include <commonality_vector.hpp>
+#include <conjunctive_decomposition_vector.hpp>
+#include <disjunctive_decomposition_vector.hpp>
+#include <implicability_vector.hpp>
+#include <mass_vector.hpp>
+#include <plausibility_vector.hpp>
 //#include <rule_conjunctive_cautious.hpp>
 //#include <rule_disjunctive_bold.hpp>
 //#include <rule_disjunctive.hpp>
@@ -17,17 +16,17 @@
 #include <powerset_vector.hpp>
 
 
-void demo(){
+void demo_vector(){
     using namespace efficient_DST;
     typedef float T;
-    scheme_type_t scheme_type = scheme_type_t::semilattice;
-    const bool adaptive_uncertainty = true;
+    bool core_reduced = true;
+    bool adaptive_uncertainty = true;
 
     const size_t N = 8;
     std::string labels[] = {"e", "f", "g", "h", "i", "j", "l", "o"};
     sample_space<N> outcomes(labels);
 
-    conjunctive_decomposition<N, T> w0(outcomes, adaptive_uncertainty);
+    conjunctive_decomposition_vector<N, T> w0(outcomes, adaptive_uncertainty);
 
     std::cout << "\n============================================\n";
 
@@ -38,13 +37,13 @@ void demo(){
     w0.assign({"f", "l"}, 0.03571);
     w0.assign({"e", "f", "i", "o"}, 0.125);
 
-    std::cout << "\nConjunctive decomposition in w0" << std::endl;
+    std::cout << "\nConjunctive decomposition_vector in w0" << std::endl;
 
     w0.print();
 
     std::cout << "\n============================================\n";
 
-    commonality_function<N, T> q0(w0, scheme_type);
+    commonality_vector<N, T> q0(w0, core_reduced);
 
     std::cout << "\nCommonality values from w0" << std::endl;
 
@@ -52,7 +51,7 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    mass_function<N, T> m0(q0);
+    mass_vector<N, T> m0(q0);
 
     std::cout << "\nMass values from w0" << std::endl;
 
@@ -60,7 +59,7 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    mass_function<N, T> m00(w0);
+    mass_vector<N, T> m00(w0);
 
     std::cout << "\nMass values directly from w0" << std::endl;
 
@@ -68,17 +67,17 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    disjunctive_decomposition<N, T> v0(w0, adaptive_uncertainty);
+    disjunctive_decomposition_vector<N, T> v0(w0, adaptive_uncertainty);
 
     std::cout << "\n============================================\n";
 
-    std::cout << "\nDisjunctive decomposition in v0" << std::endl;
+    std::cout << "\nDisjunctive decomposition_vector in v0" << std::endl;
 
     v0.print();
 
     std::cout << "\n============================================\n";
 
-    implicability_function<N, T> b0(v0, scheme_type);
+    implicability_vector<N, T> b0(v0, core_reduced);
 
     std::cout << "\nImplicability values from v0" << std::endl;
 
@@ -86,7 +85,7 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    mass_function<N, T> mv0(b0);
+    mass_vector<N, T> mv0(b0);
 
     std::cout << "\nMass values from v0" << std::endl;
 
@@ -94,7 +93,7 @@ void demo(){
 
 	std::cout << "\n============================================\n";
 
-    mass_function<N, T> mv00(v0);
+    mass_vector<N, T> mv00(v0);
 
     std::cout << "\nMass values directly from v0" << std::endl;
 
@@ -102,7 +101,7 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-	mass_function<N, T> m(outcomes);
+	mass_vector<N, T> m(outcomes);
 
     m.assign_emptyset(0.42);
 //    m.assign({"f"}, 0.4);
@@ -118,7 +117,7 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    commonality_function<N, T> q(m, scheme_type);
+    commonality_vector<N, T> q(m, core_reduced);
 
     std::cout << "\nCommonality values from m" << std::endl;
 
@@ -126,15 +125,15 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    conjunctive_decomposition<N, T> w(q, adaptive_uncertainty);
+    conjunctive_decomposition_vector<N, T> w(q, adaptive_uncertainty);
 
-    std::cout << "\nConjunctive decomposition in m" << std::endl;
+    std::cout << "\nConjunctive decomposition_vector in m" << std::endl;
 
     w.print();
 
 	std::cout << "\n============================================\n";
 
-    mass_function<N, T> mw(w);
+    mass_vector<N, T> mw(w);
 
     std::cout << "\nMass values directly from w" << std::endl;
 
@@ -142,7 +141,7 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    implicability_function<N, T> b(m, scheme_type);
+    implicability_vector<N, T> b(m, core_reduced);
 
     std::cout << "\nImplicability values from m" << std::endl;
 
@@ -150,15 +149,15 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    disjunctive_decomposition<N, T> v(b, adaptive_uncertainty);
+    disjunctive_decomposition_vector<N, T> v(b, adaptive_uncertainty);
 
-    std::cout << "\nDisjunctive decomposition in m" << std::endl;
+    std::cout << "\nDisjunctive decomposition_vector in m" << std::endl;
 
     v.print();
 
 	std::cout << "\n============================================\n";
 
-    mass_function<N, T> mv(v);
+    mass_vector<N, T> mv(v);
 
     std::cout << "\nMass values directly from v" << std::endl;
 

@@ -2,8 +2,6 @@
 #define EFFICIENT_DST_MOBIUS_TRANSFORM_HPP
 
 #include <powerset_function.hpp>
-#include <zeta_transform.hpp>
-#include <mobius_inversion.hpp>
 
 
 namespace efficient_DST{
@@ -22,6 +20,19 @@ namespace efficient_DST{
 			const T& default_value
 		) : powerset_function<N, T>(outcomes, support_values, default_value)
 		{}
+
+		mobius_transform(
+			const sample_space<N>& outcomes,
+			const std::vector<T>& support_values,
+			const T& default_value
+		) : powerset_function<N, T>(outcomes, default_value)
+		{
+			for (size_t i = 0; i < support_values.size(); ++i){
+				if(!powerset_function<N, T>::is_equivalent_to_zero(support_values[i] - default_value)){
+					this->assign((subset) i, support_values[i]);
+				}
+			}
+		}
 
 		mobius_transform(const sample_space<N>& outcomes, const T& default_value) : powerset_function<N, T>(outcomes, default_value)
 		{}
