@@ -8,15 +8,15 @@
 #include "demo.hpp"
 #include "demo_vector.hpp"
 //#include "benchmark_bitset.hpp"
-//#include "benchmark.hpp"
+#include "benchmark.hpp"
 
 
 
 int main(){
     using namespace efficient_DST;
-    demo();
-    demo_vector();
-    //benchmark_main();
+//    demo();
+//    demo_vector();
+    benchmark_main();
 
 /*
     const size_t N = 5000;

@@ -11,31 +11,6 @@
 #include <powerset_btree.hpp>
 
 
-//namespace std {
-//
-//	template <size_t N>
-//	struct hash< array<string, N> >{
-//		size_t operator()(const array<string, N>& key) const{
-//			size_t seed = 0;
-//			for (size_t i = 0; i < key.size(); ++i) {
-//				boost::hash_combine<string>(seed, key[i]);
-//			}
-//			return seed;
-//		}
-//	};
-//
-//	template<>
-//	struct hash< vector<string> >{
-//		size_t operator()(vector<string>& key) const{
-//			size_t seed = 0;
-//			for (size_t i = 0; i < key.size(); ++i) {
-//				boost::hash_combine<string>(seed, key[i]);
-//			}
-//			return seed;
-//		}
-//	};
-//}
-
 namespace efficient_DST{
 
 	template <size_t N, typename T = float>
