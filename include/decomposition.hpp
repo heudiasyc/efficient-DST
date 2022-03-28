@@ -71,8 +71,8 @@ namespace efficient_DST{
 			return 1 - 1/weight_function<N, T>::operator[](set);
 		}
 
-		std::ostream& print(const bool& including_null = false) const {
-			std::vector<set_N_value<N, T>* > values = this->definition.elements(including_null);
+		std::ostream& print(const bool& including_null = false) {
+			const std::vector<set_N_value<N, T> const * >& values = this->definition.elements(including_null);
 			std::cout << std::endl;
 			for (size_t i = 0; i < values.size(); ++i) {
 				if(values[i]->set != this->normalizing_set){
@@ -130,9 +130,9 @@ namespace efficient_DST{
 
 		void nullify(const subset& set) {
 //			if (set != fullset){
-			set_N_value<N, T>* A = this->definition[set];
-			if(A){
-				this->definition.nullify(A);
+			size_t index = this->definition[set];
+			if(index < this->definition.number_of_nodes()){
+				this->definition.nullify(index);
 				this->compute_normalizing_set_assignment();
 			}
 //			}else{
@@ -147,7 +147,7 @@ namespace efficient_DST{
 		void compute_normalizing_set(){
 			if(adaptive_uncertainty){
 				this->normalizing_set = inclusion::absorbing_set_for_operation();
-				const std::vector<set_N_value<N, T>* >& focal_log_elements = this->definition.elements();
+				const std::vector<set_N_value<N, T> const * >& focal_log_elements = this->definition.elements();
 				for (size_t i = 0; i < focal_log_elements.size(); ++i){
 					this->normalizing_set = inclusion::set_dual_operation(this->normalizing_set, focal_log_elements[i]->set);
 				}
@@ -166,7 +166,7 @@ namespace efficient_DST{
 		}
 
 		void compute_normalizing_assignment(){
-			const std::vector<set_N_value<N, T>* >& focal_log_elements = this->definition.elements();
+			const std::vector<set_N_value<N, T> const * >& focal_log_elements = this->definition.elements();
 			this->normalizing_value = 1;
 			if(adaptive_uncertainty){
 				this->normalizing_set = inclusion::absorbing_set_for_operation();

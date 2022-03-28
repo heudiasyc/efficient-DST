@@ -59,10 +59,10 @@ namespace efficient_DST{
 		}
 
 		static void remove_negligible_values(powerset_btree<N, T>& definition, const T& neutral_value) {
-			const std::vector<set_N_value<N, T>* >& elements = definition.elements();
-			for (size_t i = 0; i < elements.size(); ++i) {
-				if(powerset_function<N, T>::is_equivalent_to_zero(elements[i]->value - neutral_value)){
-					definition.nullify(elements[i]);
+			const std::vector<size_t>& indices = definition.elements_indices();
+			for (size_t i = 0; i < indices.size(); ++i) {
+				if(powerset_function<N, T>::is_equivalent_to_zero(definition.get_node(indices[i]).value - neutral_value)){
+					definition.nullify(indices[i]);
 				}
 			}
 		}

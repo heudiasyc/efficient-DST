@@ -85,7 +85,8 @@ namespace efficient_DST{
 //			std::cout << "Decomposition to fuse:\n";
 //			w_dec.print();
 			const powerset_btree<N, T>& inverse_weights = w_dec.get_definition();
-			const std::vector<set_N_value<N, T>* >& elements = inverse_weights.elements();
+			const std::vector<set_N_value<N, T> const * >& elements = inverse_weights.elements();
+
 			mass_function<N, T> m12(this->outcomes);
 			size_t i = 0;
 			if (elements[i]->set == w_dec.normalizing_set){
@@ -101,8 +102,7 @@ namespace efficient_DST{
 					m2.assign(w_dec.normalizing_set, weight);
 					m2.assign(elements[i]->set, 1-weight);
 					m1.natural_fusion_with<inclusion>(m2, m12);
-					m1.clear();
-					m1.definition.copy(m12.definition);
+					m1.definition = m12.definition;
 					m12.clear();
 				}
 			}
@@ -119,16 +119,16 @@ namespace efficient_DST{
 
 		template<class inclusion>
 		void natural_fusion_with(const mass_function<N, T>& m2, mass_function<N, T>& m12) const {
-			const std::vector<set_N_value<N, T>* >& focal_sets_1 = this->definition.elements();
-			const std::vector<set_N_value<N, T>* >& focal_sets_2 = m2.definition.elements();
+			const std::vector<set_N_value<N, T> const * >& focal_sets_1 = this->definition.elements();
+			const std::vector<set_N_value<N, T> const * >& focal_sets_2 = m2.definition.elements();
 			powerset_btree<N, T>& focal_sets_12 = m12.definition;
 
 			for (size_t i1 = 0; i1 < focal_sets_1.size(); ++i1){
 				for (size_t i2 = 0; i2 < focal_sets_2.size(); ++i2){
 					const subset& set = inclusion::set_operation(focal_sets_1[i1]->set, focal_sets_2[i2]->set);
-					set_N_value<N, T>* node = focal_sets_12[set];
-					if (node){
-						node->value += focal_sets_1[i1]->value * focal_sets_2[i2]->value;
+					size_t index = focal_sets_12[set];
+					if (index < focal_sets_12.number_of_nodes()){
+						focal_sets_12._node(index).value += focal_sets_1[i1]->value * focal_sets_2[i2]->value;
 					}else{
 						focal_sets_12.insert(set, focal_sets_1[i1]->value * focal_sets_2[i2]->value);
 					}
@@ -157,7 +157,7 @@ namespace efficient_DST{
 
 		static void normalize(powerset_btree<N, T>& definition) {
 			T sum = 0;
-			const std::vector<set_N_value<N, T>* >& elements = definition.elements();
+			const std::vector<set_N_value<N, T>* >& elements = definition._elements();
 			for (size_t i = 0; i < elements.size(); ++i) {
 				sum += elements[i]->value;
 			}

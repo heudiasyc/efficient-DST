@@ -83,9 +83,9 @@ namespace efficient_DST{
 
 		T operator[](const subset& set) const {
 			const subset& dual_set = ~set;
-			set_N_value<N, T>* set_value = this->definition[dual_set];
-			if(set_value){
-				return 1-set_value->value;
+			set_N_value<N, T>* index = this->definition[dual_set];
+			if(index < this->definition.number_of_nodes()){
+				return 1-this->definition.get_node(index).value;
 			}
 			return 1-this->find_non_focal_point_image(dual_set);
 		}

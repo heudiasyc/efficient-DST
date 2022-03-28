@@ -191,7 +191,7 @@ namespace efficient_DST{
 				const mass_function<N, T>& m,
 				mass_vector<N, T>& m_vec
 		) {
-			const std::vector<set_N_value<N, T>* >& elements = m.get_definition().elements();
+			const std::vector<set_N_value<N, T> const * >& elements = m.get_definition().elements();
 			for (size_t i = 0; i < elements.size(); ++i){
 				m_vec.assign(elements[i]->set.to_ullong(), elements[i]->value);
 			}

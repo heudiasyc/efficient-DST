@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <unordered_map>
-//#include <boost/functional/hash.hpp>
 #include <iostream>
 #include <iomanip>
 
@@ -41,9 +40,9 @@ namespace efficient_DST{
 			default_value(default_value)
 		{}
 
-		powerset_function (const sample_space<N>& outcomes, const size_t& block_size, const T& default_value) :
+		powerset_function (const sample_space<N>& outcomes, const size_t& init_size, const T& default_value) :
 			outcomes(outcomes),
-			definition(block_size),
+			definition(init_size),
 			default_value(default_value)
 		{}
 
@@ -83,9 +82,9 @@ namespace efficient_DST{
 		}
 
 		T operator[](const subset& set) const {
-			set_N_value<N, T>* set_value = this->definition[set];
-			if(set_value)
-				return set_value->value;
+			size_t index = this->definition[set];
+			if(index < definition.number_of_nodes())
+				return definition.get_node(index).value;
 			else
 				return this->default_value;
 		}

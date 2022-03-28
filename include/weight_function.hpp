@@ -52,7 +52,7 @@ namespace efficient_DST{
 
 		static void normalize(powerset_btree<N, T>& definition) {
 			T prod = 1;
-			const std::vector<set_N_value<N, T>* >& elements = definition.elements();
+			const std::vector<set_N_value<N, T>* >& elements = definition._elements();
 			for (size_t i = 0; i < elements.size(); ++i) {
 				prod *= elements[i]->value;
 			}

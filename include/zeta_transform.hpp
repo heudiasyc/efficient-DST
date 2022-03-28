@@ -61,7 +61,7 @@ namespace efficient_DST{
 			const T& default_value,
 			operation_type_t operation_type
 		) :
-			powerset_function<N, T>(outcomes, N * support.size(), default_value),
+			powerset_function<N, T>(outcomes, N * support.number_of_nodes(), default_value),
 			scheme_type(scheme_type_t::direct)
 		{
 			if (operation_type == operation_type_t::addition){
@@ -86,7 +86,7 @@ namespace efficient_DST{
 			operation_type_t operation_type,
 			scheme_type_t scheme_type
 		) :
-			powerset_function<N, T>(outcomes, N * support.size(), default_value),
+			powerset_function<N, T>(outcomes, N * support.number_of_nodes(), default_value),
 			scheme_type(scheme_type)
 		{
 			if (operation_type == operation_type_t::addition){
@@ -132,9 +132,9 @@ namespace efficient_DST{
 		}
 
 		T operator[](const subset& set) const {
-			set_N_value<N, T>* set_value = this->definition[set];
-			if(set_value){
-				return set_value->value;
+			size_t index = this->definition[set];
+			if(index < this->definition.number_of_nodes()){
+				return this->definition.get_node(index).value;
 			}
 			return this->find_non_focal_point_image(set);
 		}
@@ -142,25 +142,20 @@ namespace efficient_DST{
 	protected:
 
 		T find_non_focal_point_image(const subset& set) const {
-			set_N_value<N, set_N_value<N, T>* >* A = nullptr;
 			const size_t& card = set.count();
-
+			std::vector<set_N_value<N, set_N_value<N, T>* >* >& related_elements;
+			related_elements.reserve(1);
 			for (const auto& c_focal_points : this->definition_by_cardinality) {
 				if(inclusion::naturally_ranked(c_focal_points.first, card)){
 					const powerset_btree<N, set_N_value<N, T>* >& p = c_focal_points.second;
-					const std::vector<set_N_value<N, set_N_value<N, T>* >* >& related_elements = inclusion::addresses_related_to(p, set);
+					inclusion::addresses_related_to(p, set, related_elements);
 
 					if(related_elements.size() > 0){
-						A = related_elements[0];
-						break;
+						return related_elements[0]->value->value;
 					}
 				}
 			}
-			if (A){
-				return A->value->value;
-			}else{
-				return this->default_value;
-			}
+			return this->default_value;
 		}
 
 
@@ -171,7 +166,7 @@ namespace efficient_DST{
 				this->definition_by_cardinality.emplace(
 					std::piecewise_construct,
 					std::make_tuple(c_focal_points.first),
-					std::make_tuple(this->definition.get_block_size())
+					std::make_tuple(1.5 * c_focal_points.second.size())
 				);
 				powerset_btree<N, set_N_value<N, T>* >& p_c = this->definition_by_cardinality[c_focal_points.first];
 				const std::vector<set_N_value<N, T>* >& elements = c_focal_points.second;
@@ -247,16 +242,19 @@ namespace efficient_DST{
 		}
 
 		void normalize(const subset& normalizing_set, const T& normalizing_value){
-			set_N_value<N, T>* normalizing_assignment = this->definition[normalizing_set];
-			const std::vector<set_N_value<N, T>* >& focal_log_elements = this->definition.elements();
-			if(normalizing_assignment && normalizing_assignment->value != normalizing_value){
-				for (size_t i = 0; i < focal_log_elements.size(); ++i){
-					if(focal_log_elements[i]->set != normalizing_set){
-						focal_log_elements[i]->value /= normalizing_assignment->value;
+			size_t normalizing_assignment_index = this->definition[normalizing_set];
+			const std::vector<set_N_value<N, T>* >& focal_log_elements = this->definition._elements();
+			if(normalizing_assignment_index < this->definition.number_of_nodes()){
+				const set_N_value<N, T>& normalizing_assignment = this->definition.get_node(normalizing_assignment_index);
+				if (normalizing_assignment.value != normalizing_value){
+					for (size_t i = 0; i < focal_log_elements.size(); ++i){
+						if(focal_log_elements[i]->set != normalizing_set){
+							focal_log_elements[i]->value /= normalizing_assignment.value;
+						}
 					}
 				}
 			}
-			if(!normalizing_assignment || normalizing_assignment->value != normalizing_value){
+			if(normalizing_assignment_index >= this->definition.number_of_nodes() || this->definition.get_node(normalizing_assignment_index).value != normalizing_value){
 				for (size_t i = 0; i < focal_log_elements.size(); ++i){
 					if(focal_log_elements[i]->set != normalizing_set){
 						focal_log_elements[i]->value *= normalizing_value;
