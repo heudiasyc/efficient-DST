@@ -14,9 +14,9 @@
 
 int main(){
     using namespace efficient_DST;
-//    demo();
+    demo();
 //    demo_vector();
-    benchmark_main();
+//    benchmark_main();
 
 /*
     const size_t N = 5000;

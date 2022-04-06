@@ -187,7 +187,7 @@ namespace efficient_DST{
 		}
 
 		std::ostream& print(const bool& including_null = false) const {
-			const std::vector<set_N_value<N, T>* >& indices = this->elements(including_null);
+			const std::vector<set_N_value<N, T> const * >& indices = this->elements(including_null);
 			std::cout << std::endl;
 			for (size_t i = 0; i < indices.size(); ++i) {
 				std::cout << indices[i]->to_string() << std::endl;
@@ -283,7 +283,7 @@ namespace efficient_DST{
 
 		/////////////////////////////////////////
 
-		size_t insert(const subset& set, const T& value) {
+		size_t insert(const subset set, const T value) {
 			node<N, T>& emptyset_node = nodes[0];
 			if (set == 0){
 				if(emptyset_node.is_null){
@@ -295,7 +295,7 @@ namespace efficient_DST{
 				return 0;
 			}
 
-			const size_t& final_depth = get_final_element_number(set);
+			const size_t final_depth = get_final_element_number(set);
 			size_t depth = 0;
 			subset cursor = 1;
 			subset mask = 1;
@@ -341,6 +341,7 @@ namespace efficient_DST{
 									// if leaf->set is a superset of set (and is not set itself)
 									inserted_index = create_node(set, value, final_depth, parent_index, 0, index);
 								}
+								node<N, T>& leaf = nodes[index];
 								leaf.parent = inserted_index;
 								if (is_left_child){
 									nodes[parent_index].left = inserted_index;
@@ -365,6 +366,7 @@ namespace efficient_DST{
 											inserted_index
 									);
 								}
+								node<N, T>& leaf = nodes[index];
 								nodes[inserted_index].parent = disjunction_index;
 								leaf.parent = disjunction_index;
 								if (is_left_child){
@@ -387,6 +389,7 @@ namespace efficient_DST{
 							index = leaf.right;
 						}else{
 							inserted_index = create_node(set, value, final_depth, index, 0, 0);
+							node<N, T>& leaf = nodes[index];
 							leaf.right = inserted_index;
 							return inserted_index;
 						}
@@ -408,6 +411,7 @@ namespace efficient_DST{
 						index = leaf.left;
 					}else{
 						inserted_index = create_node(set, value, final_depth, index, 0, 0);
+						node<N, T>& leaf = nodes[index];
 						leaf.left = inserted_index;
 						return inserted_index;
 					}
@@ -550,6 +554,16 @@ namespace efficient_DST{
 				return 0;
 		}
 
+		std::map<size_t, std::vector<size_t>, std::less<size_t> > elements_indices_by_ascending_cardinality() const {
+			std::map<size_t, std::vector<size_t>, std::less<size_t> > all_values;
+			if(!nodes[0].is_null){
+//				all_values.emplace(0);
+				all_values[0].emplace_back(0);
+			}
+			elements_indices_by_ascending_cardinality(1, all_values);
+			return all_values;
+		}
+
 		std::map<size_t, std::vector<set_N_value<N, T> const * >, std::less<size_t> > elements_by_ascending_cardinality() const {
 			std::map<size_t, std::vector<set_N_value<N, T> const * >, std::less<size_t> > all_values;
 			if(!nodes[0].is_null){
@@ -567,6 +581,16 @@ namespace efficient_DST{
 				all_values[0].emplace_back(&nodes[0]);
 			}
 			_elements_by_ascending_cardinality(1, all_values);
+			return all_values;
+		}
+
+		std::map<size_t, std::vector<size_t>, std::greater<size_t> > elements_indices_by_descending_cardinality() const {
+			std::map<size_t, std::vector<size_t>, std::greater<size_t> > all_values;
+			if(!nodes[0].is_null){
+//				all_values.emplace(0);
+				all_values[0].emplace_back(0);
+			}
+			elements_indices_by_descending_cardinality(1, all_values);
 			return all_values;
 		}
 
@@ -595,8 +619,7 @@ namespace efficient_DST{
 		std::vector<set_N_value<N, T>* > _elements(const bool& including_null = false) {
 			std::vector<set_N_value<N, T>* > all_values;
 			all_values.reserve(including_null ? nodes.size() - free_slots.size() : this->size());
-			if(!including_null && nodes[0].is_null){
-			}else{
+			if(including_null || !nodes[0].is_null){
 				all_values.emplace_back(&nodes[0]);
 			}
 			_elements(1, all_values, including_null);
@@ -606,8 +629,7 @@ namespace efficient_DST{
 		std::vector<set_N_value<N, T> const * > elements(const bool& including_null = false) const {
 			std::vector<set_N_value<N, T> const * > all_values;
 			all_values.reserve(including_null ? nodes.size() - free_slots.size() : this->size());
-			if(!including_null && nodes[0].is_null){
-			}else{
+			if(including_null || !nodes[0].is_null){
 				all_values.emplace_back(&nodes[0]);
 			}
 			elements(1, all_values, including_null);
@@ -617,8 +639,7 @@ namespace efficient_DST{
 		std::vector<size_t> elements_indices(const bool& including_null = false) const {
 			std::vector<size_t> all_values;
 			all_values.reserve(including_null ? nodes.size() - free_slots.size() : this->size());
-			if(!including_null && nodes[0].is_null){
-			}else{
+			if(including_null || !nodes[0].is_null){
 				all_values.emplace_back(0);
 			}
 			elements_indices(1, all_values, including_null);
@@ -870,6 +891,21 @@ namespace efficient_DST{
 		/////////////////////////////////////////
 
 
+		void elements_indices_by_ascending_cardinality(const size_t& index, std::map<size_t, std::vector<size_t>, std::less<size_t> >& all_values) const {
+			const node<N, T>& leaf = nodes[index];
+			if(!leaf.is_null){
+				all_values[leaf.cardinality].emplace_back(index);
+			}
+
+			if(leaf.left){
+				elements_indices_by_ascending_cardinality(leaf.left, all_values);
+			}
+
+			if(leaf.right){
+				elements_indices_by_ascending_cardinality(leaf.right, all_values);
+			}
+		}
+
 		void elements_by_ascending_cardinality(const size_t& index, std::map<size_t, std::vector<set_N_value<N, T> const * >, std::less<size_t> >& all_values) const {
 			const node<N, T>& leaf = nodes[index];
 			if(!leaf.is_null){
@@ -897,6 +933,21 @@ namespace efficient_DST{
 
 			if(leaf.right){
 				_elements_by_ascending_cardinality(leaf.right, all_values);
+			}
+		}
+
+		void elements_indices_by_descending_cardinality(const size_t& index, std::map<size_t, std::vector<size_t>, std::greater<size_t> >& all_values) const {
+			const node<N, T>& leaf = nodes[index];
+			if(!leaf.is_null){
+				all_values[leaf.cardinality].emplace_back(index);
+			}
+
+			if(leaf.left){
+				elements_indices_by_descending_cardinality(leaf.left, all_values);
+			}
+
+			if(leaf.right){
+				elements_indices_by_descending_cardinality(leaf.right, all_values);
 			}
 		}
 

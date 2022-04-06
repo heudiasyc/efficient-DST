@@ -57,6 +57,7 @@ namespace efficient_DST{
 				prod *= elements[i]->value;
 			}
 			if(prod == 0){
+				definition.print(true);
 				std::cerr << "\nProduct of weight values equal to 0."
 						<< "\nThis means that at least one of these weights is null, which is not allowed in a weight function." << std::endl;
 				exit(1);

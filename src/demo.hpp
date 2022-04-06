@@ -20,11 +20,14 @@
 void demo(){
     using namespace efficient_DST;
     typedef float T;
-    scheme_type_t scheme_type = scheme_type_t::semilattice;
+    scheme_type_t scheme_type = scheme_type_t::lattice;
     const bool adaptive_uncertainty = true;
 
     const size_t N = 8;
-    std::string labels[] = {"e", "f", "g", "h", "i", "j", "l", "o"};
+    std::string labels[N];
+	for (size_t i = 0; i < N; ++i){
+		labels[i] = std::to_string(i);
+	}
     sample_space<N> outcomes(labels);
 
     conjunctive_decomposition<N, T> w0(outcomes, adaptive_uncertainty);
@@ -32,11 +35,11 @@ void demo(){
     std::cout << "\n============================================\n";
 
     w0.assign_emptyset(0.82);
-    w0.assign({"f"}, 0.67);
-    w0.assign({"f", "g"}, 0.14286);
-    w0.assign({"f", "j"}, 0.02381);
-    w0.assign({"f", "l"}, 0.03571);
-    w0.assign({"e", "f", "i", "o"}, 0.125);
+    w0.assign({"1"}, 0.67);
+    w0.assign({"1", "2"}, 0.14286);
+    w0.assign({"1", "5"}, 0.02381);
+    w0.assign({"1", "6"}, 0.03571);
+    w0.assign({"0", "1", "4", "7"}, 0.125);
 
     std::cout << "\nConjunctive decomposition in w0" << std::endl;
 
@@ -106,11 +109,11 @@ void demo(){
 
     m.assign_emptyset(0.42);
 //    m.assign({"f"}, 0.4);
-    m.assign({"f", "g"}, 0.08);
-    m.assign({"f", "l"}, 0.03);
-    m.assign({"e", "f", "i", "o"}, 0.37);
-    m.assign({"f", "i"}, 0.05);
-    m.assign({"e", "f", "g", "i", "j", "l", "o"}, 0.05);
+    m.assign({"1", "2"}, 0.08);
+    m.assign({"1", "6"}, 0.03);
+    m.assign({"0", "1", "4", "7"}, 0.37);
+    m.assign({"1", "4"}, 0.05);
+    m.assign({"0", "1", "2", "4", "5", "6", "7"}, 0.05);
 
 	std::cout << "\nMass values m" << std::endl;
 

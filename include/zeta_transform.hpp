@@ -22,6 +22,7 @@ namespace efficient_DST{
 
 		scheme_type_t scheme_type;
 		std::vector<subset > iota_sequence;
+		std::unordered_map<subset, size_t> bridge_map;
 		std::map<size_t, powerset_btree<N, set_N_value<N, T>* > > definition_by_cardinality;
 
 	public:
@@ -61,7 +62,8 @@ namespace efficient_DST{
 			const T& default_value,
 			operation_type_t operation_type
 		) :
-			powerset_function<N, T>(outcomes, N * support.number_of_nodes(), default_value),
+//			powerset_function<N, T>(outcomes, N * support.number_of_nodes(), default_value),
+			powerset_function<N, T>(outcomes, support, default_value),
 			scheme_type(scheme_type_t::direct)
 		{
 			if (operation_type == operation_type_t::addition){
@@ -86,7 +88,8 @@ namespace efficient_DST{
 			operation_type_t operation_type,
 			scheme_type_t scheme_type
 		) :
-			powerset_function<N, T>(outcomes, N * support.number_of_nodes(), default_value),
+//			powerset_function<N, T>(outcomes, N * support.number_of_nodes(), default_value),
+			powerset_function<N, T>(outcomes, support, default_value),
 			scheme_type(scheme_type)
 		{
 			if (operation_type == operation_type_t::addition){
@@ -100,12 +103,14 @@ namespace efficient_DST{
 //		template<class operation_type>
 //		powerset_btree<N, T> inversion() const {
 		powerset_btree<N, T> inversion(const operation_type_t& operation_type) const {
+			std::cout << "INVERSION\n";
 			powerset_btree<N, T> mobius_transform_definition(this->definition);
 			if (operation_type == operation_type_t::addition){
 				efficient_mobius_inversion<inclusion, mobius_tranformation<inclusion, addition<T>, N, T>, N, T >::execute(
 						this->definition,
 						mobius_transform_definition,
 						this->iota_sequence,
+						this->bridge_map,
 						this->scheme_type
 				);
 			} else {
@@ -113,6 +118,7 @@ namespace efficient_DST{
 						this->definition,
 						mobius_transform_definition,
 						this->iota_sequence,
+						this->bridge_map,
 						this->scheme_type
 				);
 			}
@@ -188,7 +194,8 @@ namespace efficient_DST{
 				>::autoset_and_build(
 						support,
 						this->definition,
-						this->iota_sequence
+						this->iota_sequence,
+						this->bridge_map
 				);
 				efficient_mobius_inversion<
 					inclusion, zeta_tranformation<inclusion, operation_type, N, T>, N, T
@@ -196,6 +203,7 @@ namespace efficient_DST{
 						support,
 						this->definition,
 						this->iota_sequence,
+						this->bridge_map,
 						this->scheme_type
 				);
 			}else{
@@ -206,7 +214,8 @@ namespace efficient_DST{
 						>::EMT_with_semilattice(
 								support,
 								this->definition,
-								this->iota_sequence
+								this->iota_sequence,
+								this->bridge_map
 						);
 						break;
 					case scheme_type_t::lattice:
@@ -258,6 +267,35 @@ namespace efficient_DST{
 				for (size_t i = 0; i < focal_log_elements.size(); ++i){
 					if(focal_log_elements[i]->set != normalizing_set){
 						focal_log_elements[i]->value *= normalizing_value;
+					}
+				}
+				if (this->definition[normalizing_set] >= this->definition.number_of_nodes()){
+					switch (this->scheme_type){
+						case scheme_type_t::semilattice:
+							efficient_mobius_inversion<
+								inclusion, zeta_tranformation<inclusion, addition<T>, N, T>, N, T
+							>::update_semilattice_support(
+									this->definition,
+									this->definition,
+									{normalizing_set},
+									normalizing_value
+							);
+							break;
+						case scheme_type_t::lattice:
+							efficient_mobius_inversion<
+								inclusion, zeta_tranformation<inclusion, addition<T>, N, T>, N, T
+							>::update_truncated_lattice_support(
+									this->iota_sequence,
+									this->definition,
+									{normalizing_set},
+									normalizing_value
+							);
+							break;
+						case scheme_type_t::reduced_FMT:
+							std::cout << "Not implemented !\n";
+							break;
+						default:
+							break;
 					}
 				}
 				this->definition.update_or_insert(normalizing_set, normalizing_value);

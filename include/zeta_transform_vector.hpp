@@ -140,7 +140,7 @@ namespace efficient_DST{
 		void core_reduction(const std::vector<T>& support){
 			this->zero = augmented_zero(support);
 			this->core = reduced_core(support);
-			std::cout << "Core = " << this->core << "\n";
+//			std::cout << "Core = " << this->core << "\n";
 			size_t n = std::bitset<N>(this->core ^ this->zero).count();
 			this->definition = std::vector<T>(1 << n, this->default_value);
 			size_t j = 0;
