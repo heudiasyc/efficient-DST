@@ -67,7 +67,7 @@ namespace efficient_DST{
 			std::vector<subset >& sequence
 		){
 			// meet-irreducible elements of the lattice support
-			support.print();
+//			support.print();
 			std::unordered_set<subset > manifest;
 			manifest.reserve(N);
 			std::map<size_t, std::vector<subset >, std::greater<size_t> > iota_elements_card_map;
@@ -810,7 +810,7 @@ namespace efficient_DST{
 					}
 				}
 			}
-			truncated_lattice_support.print();
+//			truncated_lattice_support.print();
 		}
 
 		static void execute_EMT_with_lattice(
@@ -819,7 +819,7 @@ namespace efficient_DST{
 		) {
 			std::cout << "Executing EMT with lattice\n";
 			const std::vector<set_N_value<N, T> const * >& lattice_support_elements = lattice_support.elements();
-			lattice_support.print();
+//			lattice_support.print();
 //			std::cout << "IOTA ELEMENTS:\n";
 //			std::cout << iota_sequence[0] << "\n";
 //			for (size_t i = 1; i < iota_sequence.size(); ++i){
@@ -829,13 +829,12 @@ namespace efficient_DST{
 			size_t nb_iota = iota_sequence.size()-1;
 //			size_t iota_index;
 			for (size_t i = 0; i < iota_sequence.size(); ++i){
-				// TODO: voir pourquoi emptyset dansles meet irreducibles
 //				if (transform_type == transform_type_t::Mobius)
 //					iota_index = i;
 //				else
 //					iota_index = nb_iota - i;
 				const size_t& iota_index = transformation::subgraph_index(nb_iota, i);
-				std::cout << "Iota " << iota_sequence[iota_index] << " and iota_index " << iota_index << " generate:\n";
+//				std::cout << "Iota " << iota_sequence[iota_index] << " and iota_index " << iota_index << " generate:\n";
 
 				for (size_t e = 0; e < lattice_support_elements.size(); ++e){
 //					const subset& set_B = lattice_support_elements[e]->set | iota_sequence[iota_index];
@@ -845,7 +844,7 @@ namespace efficient_DST{
 					if (set_B != lattice_support_elements[e]->set){
 						size_t B = lattice_support[set_B];
 						if (B < lattice_support.number_of_nodes()){
-							std::cout << "\tSet = " << lattice_support._node(B).set << ", Target = " << lattice_support_elements[e]->set << "\n";
+//							std::cout << "\tSet = " << lattice_support._node(B).set << ", Target = " << lattice_support_elements[e]->set << "\n";
 //							std::cout << "\t\t" << B->set << " - " << lattice_support_elements[e]->set << "\n";
 							transformation::value_inplace_operation(lattice_support._node(B).value, lattice_support_elements[e]->value);
 						}

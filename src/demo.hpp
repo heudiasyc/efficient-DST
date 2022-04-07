@@ -15,12 +15,13 @@
 //#include <rule_dempster.hpp>
 //#include <rule_dubois_prade.hpp>
 #include <powerset_vector.hpp>
+#include <benchmarking.hpp>
 
 
 void demo(){
     using namespace efficient_DST;
     typedef float T;
-    scheme_type_t scheme_type = scheme_type_t::lattice;
+    scheme_type_t scheme_type = scheme_type_t::semilattice;
     const bool adaptive_uncertainty = true;
 
     const size_t N = 8;
@@ -34,12 +35,27 @@ void demo(){
 
     std::cout << "\n============================================\n";
 
-    w0.assign_emptyset(0.82);
-    w0.assign({"1"}, 0.67);
-    w0.assign({"1", "2"}, 0.14286);
-    w0.assign({"1", "5"}, 0.02381);
-    w0.assign({"1", "6"}, 0.03571);
-    w0.assign({"0", "1", "4", "7"}, 0.125);
+//    w0.assign_emptyset(0.82);
+//    w0.assign({"1"}, 0.67);
+//    w0.assign({"1", "2"}, 0.14286);
+//    w0.assign({"1", "5"}, 0.02381);
+//    w0.assign({"1", "6"}, 0.03571);
+//    w0.assign({"0", "1", "4", "7"}, 0.125);
+
+    mass_function<N, T> m000(outcomes);
+
+    int seed = -1;
+    benchmarking<N, T>().generate_random_mass_function(
+		m000,
+		mass_family_t::random,
+		1,
+		6,
+		seed
+	);
+    const std::vector<set_N_value<N, T> const * >& elements = m000.get_definition().elements();
+    for (size_t i = 0; i < elements.size(); ++i){
+    	w0.assign(elements[i]->set, elements[i]->value);
+    }
 
     std::cout << "\nConjunctive decomposition in w0" << std::endl;
 

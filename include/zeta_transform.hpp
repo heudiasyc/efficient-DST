@@ -269,7 +269,9 @@ namespace efficient_DST{
 						focal_log_elements[i]->value *= normalizing_value;
 					}
 				}
-				if (this->definition[normalizing_set] >= this->definition.number_of_nodes()){
+				bool insertion = (this->definition[normalizing_set] >= this->definition.number_of_nodes());
+				this->definition.update_or_insert(normalizing_set, normalizing_value);
+				if (insertion){
 					switch (this->scheme_type){
 						case scheme_type_t::semilattice:
 							efficient_mobius_inversion<
@@ -280,8 +282,22 @@ namespace efficient_DST{
 									{normalizing_set},
 									normalizing_value
 							);
+							this->iota_sequence.clear();
+							inclusion::compute_iota_elements_dual(
+									this->definition,
+									this->iota_sequence
+							);
+							this->bridge_map.clear();
+							efficient_mobius_inversion<
+								inclusion, zeta_tranformation<inclusion, addition<T>, N, T>, N, T
+							>::build_bridge_map(this->bridge_map, this->definition, this->iota_sequence);
 							break;
 						case scheme_type_t::lattice:
+							iota_sequence.clear();
+							inclusion::compute_iota_elements(
+									this->definition,
+									this->iota_sequence
+							);
 							efficient_mobius_inversion<
 								inclusion, zeta_tranformation<inclusion, addition<T>, N, T>, N, T
 							>::update_truncated_lattice_support(
@@ -298,7 +314,6 @@ namespace efficient_DST{
 							break;
 					}
 				}
-				this->definition.update_or_insert(normalizing_set, normalizing_value);
 			}
 		}
 	};

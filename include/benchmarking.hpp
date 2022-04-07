@@ -1,3 +1,6 @@
+#ifndef EFFICIENT_DST_BENCHMARKING_HPP
+#define EFFICIENT_DST_BENCHMARKING_HPP
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -27,7 +30,7 @@ namespace efficient_DST{
 	enum class transform_type_t: bool { zeta, Mobius };
 
 	template <size_t N, typename T = float>
-	class benchmark {
+	class benchmarking {
 	public:
 		typedef std::bitset<N> subset;
 		std::random_device rd;
@@ -35,7 +38,7 @@ namespace efficient_DST{
 		std::string outcome_labels[N];
 		std::array<std::bitset<N>, (1 << N)> subsets;
 
-		benchmark() : gen(rd())
+		benchmarking() : gen(rd())
 		{
 			for (size_t i = 0; i < (1 << N); ++i){
 				subsets[i] = std::bitset<N>(i);
@@ -50,7 +53,8 @@ namespace efficient_DST{
 //				mass_function<N, T>& m,
 				const mass_family_t mass_family,
 				const float proportion,
-				const size_t fixed_size = 0
+				const size_t fixed_size = 0,
+				int seed = -1
 		){
 			size_t size;
 			T mass;
@@ -114,8 +118,14 @@ namespace efficient_DST{
 				exit(1);
 			}
 			if (n < size){
-				unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-				shuffle(subsets.begin(), subsets.end(), std::default_random_engine(seed));
+				unsigned seed_;
+				if (seed < 0){
+					seed_ = std::chrono::system_clock::now().time_since_epoch().count();
+				}else{
+					seed_ = seed;
+				}
+				std::cout << "Seed = " << seed_ << "\n";
+				shuffle(subsets.begin(), subsets.end(), std::default_random_engine(seed_));
 				for (size_t i = 0; n < size; ++i){
 					m.assign(subsets[i], mass);
 					++n;
@@ -300,25 +310,6 @@ namespace efficient_DST{
 			}
 		}
 	};
+} // namespace efficient_DST
 
-
-	static void benchmark_main(){
-		using namespace efficient_DST;
-
-		typedef float T;
-		//constexpr static size_t fod_sizes[] = {16, 17, 20, 22, 24, 25, 26};
-		//constexpr static size_t fod_sizes[] = {50, 100, 200, 400, 800, 1600};
-//		srand(time(NULL));
-
-//		for (size_t n = 0; n < nb_N; ++n){
-//		benchmark<9, T>().run();
-//		benchmark<12, T>().run();
-//		benchmark<15, T>().run();
-//		benchmark<18, T>().run();
-		benchmark<21, T>().run();
-//		benchmark<24, T>().run();
-//		benchmark<27, T>().run();
-//		benchmark<30, T>().run();
-		std::cout << "--- Done." << std::endl;
-	}
-}
+#endif // EFFICIENT_DST_BENCHMARKING_HPP
