@@ -14,21 +14,27 @@
 
 int main(){
     using namespace efficient_DST;
-    demo();
+//    demo();
 //    demo_vector();
 	typedef float T;
-	//constexpr static size_t fod_sizes[] = {16, 17, 20, 22, 24, 25, 26};
-	//constexpr static size_t fod_sizes[] = {50, 100, 200, 400, 800, 1600};
-//		srand(time(NULL));
+//	benchmarking<9, T>().run();
+	benchmarking<10, T>().run();
+	benchmarking<11, T>().run();
+	benchmarking<12, T>().run();
+	benchmarking<13, T>().run();
+	benchmarking<14, T>().run();
+	benchmarking<15, T>().run();
+	benchmarking<16, T>().run();
+	benchmarking<17, T>().run();
+	benchmarking<18, T>().run();
+	benchmarking<19, T>().run();
+	benchmarking<20, T>().run();
+	benchmarking<21, T>().run();
+	benchmarking<22, T>().run();
+	benchmarking<23, T>().run();
+	benchmarking<24, T>().run();
+	benchmarking<25, T>().run();
+	benchmarking<26, T>().run();
 
-//		for (size_t n = 0; n < nb_N; ++n){
-//		benchmark<9, T>().run();
-//		benchmark<12, T>().run();
-//		benchmark<15, T>().run();
-//		benchmark<18, T>().run();
-//	benchmarking<21, T>().run();
-//		benchmark<24, T>().run();
-//		benchmark<27, T>().run();
-//		benchmark<30, T>().run();
 	std::cout << "--- Done." << std::endl;
 }

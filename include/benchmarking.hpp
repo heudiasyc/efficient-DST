@@ -36,12 +36,16 @@ namespace efficient_DST{
 		std::random_device rd;
 		std::mt19937_64 gen;
 		std::string outcome_labels[N];
-		std::array<std::bitset<N>, (1 << N)> subsets;
+		// TODO: le problème vient probablement du fait que la stack ne peut retenir une telle taille
+		// => voir avec vector si c'est possible sur le heap
+		// + remplacer tous les size_t par des uintmax_t (qui représente le plus grand entier possible)
+		std::vector<subset> subsets;
 
 		benchmarking() : gen(rd())
 		{
+			subsets.reserve((1 << N));
 			for (size_t i = 0; i < (1 << N); ++i){
-				subsets[i] = std::bitset<N>(i);
+				subsets.emplace_back(i);
 			}
 			for (size_t i = 0; i < N; ++i){
 				outcome_labels[i] = std::to_string(i);
@@ -127,6 +131,7 @@ namespace efficient_DST{
 				std::cout << "Seed = " << seed_ << "\n";
 				shuffle(subsets.begin(), subsets.end(), std::default_random_engine(seed_));
 				for (size_t i = 0; n < size; ++i){
+//					std::cout << "subset " << i << " " << subsets[i] << "\n";
 					m.assign(subsets[i], mass);
 					++n;
 				}
@@ -219,25 +224,43 @@ namespace efficient_DST{
 
 		void run(){
 			clock_t t;
-			std::vector<mass_family_t> mass_families = {mass_family_t::almost_consonant, mass_family_t::almost_bayesian, mass_family_t::random};
-			std::vector<float> proportions = {0.2, 0.4, 0.6, 0.8, 1};
+			std::vector<mass_family_t> mass_families = {
+//					mass_family_t::almost_consonant,
+//					mass_family_t::almost_bayesian,
+					mass_family_t::random
+			};
+//			std::vector<float> proportions = {0.2, 0.4, 0.6, 0.8, 1};
+			std::vector<float> proportions = {1.2, 1.4, 1.6, 1.8};
 			size_t size = 100;
 			std::vector<order_relation_t> order_relations = {order_relation_t::superset, order_relation_t::subset};
-			std::vector<scheme_type_t> scheme_types = {scheme_type_t::direct, scheme_type_t::semilattice, scheme_type_t::lattice};
+			std::vector<scheme_type_t> scheme_types = {
+//					scheme_type_t::direct,
+					scheme_type_t::semilattice
+//					scheme_type_t::lattice
+			};
 			size_t nb_of_tests = 5;
 
-			std::vector<std::string> scheme_type_labels = {"direct", "EMT_semilattice", "EMT_lattice", "reduced_FMT"};
-			std::vector<std::string> family_labels = {"almost_consonant", "almost_bayesian", "random"};
+			std::vector<std::string> scheme_type_labels = {
+//					"direct",
+					"EMT_semilattice",
+//					"EMT_lattice",
+					"reduced_FMT"
+			};
+			std::vector<std::string> family_labels = {
+//					"almost_consonant",
+//					"almost_bayesian",
+					"random"
+			};
 			std::vector<std::string> order_labels = {"superset", "subset"};
 
 			sample_space<N> outcomes(outcome_labels);
 			mass_function<N, T> m(outcomes);
 			mass_vector<N, T> m_vec(outcomes);
 			std::cout << "--- Benchmark with " << N << " possible outcomes.\n";
-			for (size_t mf = 0; mf < mass_families.size(); ++mf){
-				std::cout << "\nMass family " << family_labels[mf] << std::endl;
-				for (size_t p = 0; p < proportions.size(); ++p){
-					std::cout << "\tProportion " << proportions[p] << std::endl;
+			for (size_t p = 0; p < proportions.size(); ++p){
+				std::cout << "\tProportion " << proportions[p] << std::endl;
+				for (size_t mf = 0; mf < mass_families.size(); ++mf){
+					std::cout << "\nMass family " << family_labels[mf] << std::endl;
 					for (size_t it = 0; it < nb_of_tests; ++it){
 						std::cout << "\t\tIteration " << it << std::endl;
 						generate_random_mass_function(m, mass_families[mf], proportions[p], size);

@@ -24,7 +24,7 @@ void demo(){
     scheme_type_t scheme_type = scheme_type_t::semilattice;
     const bool adaptive_uncertainty = true;
 
-    const size_t N = 8;
+    const size_t N = 20;
     std::string labels[N];
 	for (size_t i = 0; i < N; ++i){
 		labels[i] = std::to_string(i);
@@ -44,6 +44,7 @@ void demo(){
 
     mass_function<N, T> m000(outcomes);
 
+    std::cout << "Mass generation\n";
     int seed = -1;
     benchmarking<N, T>().generate_random_mass_function(
 		m000,

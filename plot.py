@@ -1,85 +1,121 @@
 #!/usr/bin/env python
-
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import csv
 import re
 import os
+import pandas as pd
+import argparse
+import math
 
-families = ["random", "almost_consonant", "almost_bayesian"]
-
-plot_FMT = True
-# plot_FMT = False
-support_size = 26
-family = families[2]
-mobius = True
-# mobius = False
-
-directory = "../DST_experiments/"
+directory = "./benchmark/"
 filelist = os.listdir(directory)
-colors = ["tab:red", "tab:blue", "tab:green", "tab:orange", "tab:gray", "tab:yellow", "tab:black", "tab:brown"]
-fig, ax1 = plt.subplots()
+# families = ["random", "almost_consonant", "almost_bayesian"]
+# order_relations = ["superset", "subset"]
+# proportions = [0.2, 0.4, 0.6, 0.8, 1]
+families = set()
+order_relations = set()
+proportions = set()
+schemes = set()
 
-if mobius:
-    plt.title("Möbius transform\nSupport size = "+ str(support_size) +"\n"+family+" sampling")
-    row_offset = 1
-    base_label = "Möbius with "
-else:
-    plt.title("Zeta transform\nSupport size = "+ str(support_size) +"\n"+family+" sampling")
-    row_offset = 0
-    base_label = "Zeta with "
-
-ax1.set_xlabel('N')
-ax1.set_ylabel('time (sec)')#, color=color)
-
-ax2 = ax1.twinx()
-ax2.set_ylabel("Average scheme support size")
-
-color_index = 0
-max_support_size = 0.
-max_time = 0.
-x = []
-yF = []
+data = []
 for file in filelist:
-    if re.search("^.*support-"+str(support_size)+"_family-"+family+".*.csv$", file) is not None:
-        print(file)
-        with open(directory + file, 'r') as csvfile:
-            plots = csv.reader(csvfile, delimiter=',')
-            x = []
-            yE = []
-            yF = []
-            avg_support_sizes = []
-            for row in plots:
-                x.append(int(row[0]))
-                yF.append(float(row[row_offset+1]))
-                yE.append(float(row[row_offset+3]))
-                avg_support_sizes.append(float(row[5]))
-            max_support_size = max(max_support_size, max(avg_support_sizes))
-            max_time = max(max_time, max(yE))
-            if re.search("^.*_scheme-lattice.*.csv$", file) is not None:
-                label = "lattice scheme"
-            elif re.search("^.*_scheme-semilattice.*.csv$", file) is not None:
-                label = "semilattice scheme"
-            else:
-                label = "direct scheme"
-            ax1.plot(x,yE, label=base_label+label, color=colors[color_index])
-            ax2.plot(x, avg_support_sizes, linestyle="--", label="Average scheme support size", color=colors[color_index])
-            color_index += 1
+    N = int(re.search("(?<=N-)[0-9]+", file).group(0))
+    p = float(re.search("(?<=prop-)[0-9.]+", file).group(0))
+    o = re.search("(?<=order-)[a-z]+", file).group(0)
+    f = re.search("(?<=family-).+(?=_prop)", file).group(0)
+    s = re.search("(?<=scheme-).+(?=_order)", file).group(0)
+    families.add(f)
+    order_relations.add(o)
+    proportions.add(p)
+    schemes.add(s)
+    print(file)
+    with open(directory + file, 'r') as csvfile:
+        plots = csv.reader(csvfile, delimiter=',')
+        z = []
+        m = []
+        for row in plots:
+            z.append(float(row[0]))
+            m.append(float(row[1]))
+        z = np.array(z, dtype=float)
+        m = np.array(m, dtype=float)
+        data.append([N, f, p, s, o, z.mean(), z.std(), m.mean(), m.std()])
 
-if len(x) > 0:
-    if plot_FMT:
-        # max_time = max(max_time, max(yF))
-        avg_support_sizes = []
-        for i in range(len(x)):
-            avg_support_sizes.append(pow(2, x[i]))
-        ax1.plot(x,yF, label=base_label+"FMT", color=colors[color_index])
-        ax2.plot(x, avg_support_sizes, linestyle="--", label="Average scheme support size", color=colors[color_index])
+proportions = list(proportions)
+proportions.sort()
+df = pd.DataFrame(data, columns = ['N', 'mass_family', 'proportion', 'scheme', 'order', 't_zeta', 't_zeta_std', 't_mobius', 't_mobius_std'])
 
-    ax1.set_ylim([0,max_time])
-    ax2.set_ylim([0,int(max_support_size+1)])
-    ax1.set_xlim([min(x), max(x)])
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    ax1.legend()
-    ax2.legend(loc='center left')
-    plt.show()
+argparser = argparse.ArgumentParser()
+argparser.add_argument(
+    '-n',
+    default=None,
+    type=int,
+    help='N max')
+argparser.add_argument(
+    '-f',
+    nargs='+',
+    default=None,
+    type=str,
+    help='Mass families')
+argparser.add_argument(
+    '-o',
+    nargs='+',
+    default=None,
+    type=str,
+    help='Order relations')
+argparser.add_argument(
+    '-p',
+    nargs='+',
+    default=None,
+    type=float,
+    help='Proportions')
+argparser.add_argument(
+    '-s',
+    nargs='+',
+    default=None,
+    type=str,
+    help='Schemes')
+
+args = argparser.parse_args()
+
+color_palette = ["red", "blue", "green", "orange", "gray", "black", "brown", "yellow"]
+colors = {}
+for i, f in enumerate(schemes):
+    colors[f] = color_palette[i]
+# fig, ax1 = plt.subplots()
+families = args.f if args.f is not None else families
+order_relations = args.o if args.o is not None else order_relations
+proportions = args.p if args.p is not None else proportions
+schemes = args.s if args.s is not None else schemes
+N_max = args.n if args.n is not None else df.N.max()
+
+for f in families:
+    print(f)
+    for o in order_relations:
+        print(o)
+        plt.clf()
+        plt.xlabel('N')
+        plt.ylabel('time (sec)')#, color=color)
+        for p in proportions:
+            print(p)
+            print("Intersection entre reduced_FMT et EMT_semilattice à environ N =", 3+(4.45 + 5 / (100*p)) * math.log(100*p))
+            df_e = df[
+                (df.mass_family == f) & \
+                (df.proportion == p) & \
+                (df.order == o) & \
+                (df.N <= N_max)
+            ]
+            for s in df_e.scheme.unique():
+                if s in schemes:
+                    print(s)
+                    df_s = df_e[df_e.scheme == s]
+                    df_s = df_s.sort_values(by=['N'])
+                    plt.plot(df_s.N, df_s["t_zeta"], label="t_zeta "+s, color=colors[s], marker='^')
+                    plt.plot(df_s.N, df_s["t_mobius"], label="t_mobius "+s, color=colors[s], marker='v')
+                    plt.fill_between(df_s.N, (df_s.t_zeta-df_s.t_zeta_std), (df_s.t_zeta+df_s.t_zeta_std), color=colors[s], alpha=.1)
+                    plt.fill_between(df_s.N, (df_s.t_mobius-df_s.t_mobius_std), (df_s.t_mobius+df_s.t_mobius_std), color=colors[s], alpha=.1)
+        plt.tight_layout()  # otherwise the right y-label is slightly clipped
+        plt.legend()
+        plt.title(" ".join([f, o, str(p)]))
+        plt.show()
