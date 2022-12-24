@@ -139,11 +139,12 @@ namespace efficient_DST{
 //			m12.normalize();
 		}
 
+		mass_function<N, T> conjunctive_fusion_with(const mass_function<N, T>& m2) const {
+			return natural_fusion_with<up_inclusion<N, T>>(m2);
+		}
 
-		template <class fusion_rule>
-		mass_function<N, T> fuse_with(const mass_function<N, T>& m2) const {
-			const fusion_rule fusion;
-			return fusion(*this, m2);
+		mass_function<N, T> disjunctive_fusion_with(const mass_function<N, T>& m2) const {
+			return natural_fusion_with<down_inclusion<N, T>>(m2);
 		}
 
 		void regularize() {

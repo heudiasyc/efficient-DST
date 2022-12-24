@@ -668,6 +668,15 @@ namespace efficient_DST{
 			}
 		}
 
+		void _subsets_of(const subset& set, std::vector<set_N_value<N, T>* >& subset_values) {
+			if(!nodes[0].is_null){
+				subset_values.emplace_back(&nodes[0]);
+			}
+			if(set != 0){
+				_subsets_of(set, get_final_element_number(set), subset_values, 0, (subset) 1, 1);
+			}
+		}
+
 		void subsets_of(const subset& set, std::vector<set_N_value<N, T> const * >& subset_values) const {
 			if(!nodes[0].is_null){
 				subset_values.emplace_back(&nodes[0]);
@@ -684,6 +693,17 @@ namespace efficient_DST{
 			return subset_values;
 		}
 
+		bool has_any_subset(const subset& set) const {
+			bool has_any_subset = false;
+			if(!nodes[0].is_null){
+				return true;
+			}
+			if(set != 0){
+				any_subset(set, get_final_element_number(set), has_any_subset, 0, (subset) 1, 1);
+			}
+			return has_any_subset;
+		}
+
 		/////////////////////////////////////////
 
 		void supersets_of(const subset& set, std::vector<size_t>& superset_values) const {
@@ -694,6 +714,17 @@ namespace efficient_DST{
 				elements_indices(1, superset_values);
 			}else{
 				supersets_of(set, get_final_element_number(set), superset_values, 0, (subset) 1, (subset) 1, 1);
+			}
+		}
+
+		void _supersets_of(const subset& set, std::vector<set_N_value<N, T>* >& superset_values) {
+			if(set == 0){
+				if(!nodes[0].is_null){
+					superset_values.emplace_back(&nodes[0]);
+				}
+				_elements(1, superset_values);
+			}else{
+				_supersets_of(set, get_final_element_number(set), superset_values, 0, (subset) 1, (subset) 1, 1);
 			}
 		}
 
@@ -713,6 +744,17 @@ namespace efficient_DST{
 			superset_values.reserve(this->size());
 			supersets_of(set, superset_values);
 			return superset_values;
+		}
+
+		bool has_any_superset(const subset& set) const {
+			bool has_any_superset = false;
+			if(set == 0){
+				if(!nodes[0].is_null){
+					return true;
+				}
+			}
+			any_superset(set, get_final_element_number(set), has_any_superset, 0, (subset) 1, (subset) 1, 1);
+			return has_any_superset;
 		}
 
 	protected:
@@ -1116,6 +1158,49 @@ namespace efficient_DST{
 		}
 
 
+		void _subsets_of(
+				const subset& set,
+				const size_t& final_depth,
+				std::vector<set_N_value<N, T>* >& subset_values,
+				size_t depth,
+				subset cursor,
+				const size_t& index) {
+
+			const node<N, T>& leaf = nodes[index];
+			if(depth < leaf.depth){
+				// take skipped depths into account
+				cursor <<= leaf.depth - depth;
+				depth = leaf.depth;
+				if ((leaf.set & (set | cursor)) != leaf.set){
+					// if leaf.set (ignoring current depth) is not a subset of set, then we already know that our search stops here
+					return;
+				}
+			}
+			if((set & cursor) != 0){
+			//if(set[depth]){
+				if(!leaf.is_null){
+					subset_values.emplace_back(&leaf);
+				}
+				if(depth != final_depth){
+					++depth;
+					cursor <<= 1;
+					if(leaf.left){
+						_subsets_of(set, final_depth, subset_values, depth, cursor, leaf.left);
+					}
+					if(leaf.right){
+						_subsets_of(set, final_depth, subset_values, depth, cursor, leaf.right);
+					}
+				}
+			}else {
+				if(leaf.left){
+					++depth;
+					cursor <<= 1;
+					_subsets_of(set, final_depth, subset_values, depth, cursor, leaf.left);
+				}
+			}
+		}
+
+
 		void subsets_of(
 				const subset& set,
 				const size_t& final_depth,
@@ -1158,6 +1243,48 @@ namespace efficient_DST{
 			}
 		}
 
+		void any_subset(
+				const subset& set,
+				const size_t& final_depth,
+				bool& has_any_subset,
+				size_t depth,
+				subset cursor,
+				const size_t& index) const {
+
+			const node<N, T>& leaf = nodes[index];
+			if(depth < leaf.depth){
+				// take skipped depths into account
+				cursor <<= leaf.depth - depth;
+				depth = leaf.depth;
+				if ((leaf.set & (set | cursor)) != leaf.set){
+					// if leaf.set (ignoring current depth) is not a subset of set, then we already know that our search stops here
+					return;
+				}
+			}
+			if((set & cursor) != 0){
+			//if(set[depth]){
+				if(!leaf.is_null){
+					has_any_subset = true;
+					return;
+				}
+				if(depth != final_depth){
+					++depth;
+					cursor <<= 1;
+					if(leaf.left){
+						any_subset(set, final_depth, has_any_subset, depth, cursor, leaf.left);
+					}
+					if(!has_any_subset && leaf.right){
+						any_subset(set, final_depth, has_any_subset, depth, cursor, leaf.right);
+					}
+				}
+			}else {
+				if(leaf.left){
+					++depth;
+					cursor <<= 1;
+					any_subset(set, final_depth, has_any_subset, depth, cursor, leaf.left);
+				}
+			}
+		}
 //		void subsets_of(
 //				const subset& set,
 //				const size_t& final_depth,
@@ -1291,6 +1418,91 @@ namespace efficient_DST{
 		}
 
 
+		void _supersets_of(
+				const subset& set,
+				const size_t& final_depth,
+				std::vector<set_N_value<N, T>* >& superset_values,
+				size_t depth,
+				subset cursor,
+				subset mask,
+				const size_t& index) {
+
+			const node<N, T>& leaf = nodes[index];
+			if(depth < leaf.depth){
+				////////////////////////////
+				// take skipped depths into account
+				size_t mask_length = depth + 1;
+				size_t diff = leaf.depth - depth;
+				cursor <<= diff;
+				while (mask_length <= diff){
+					mask |= mask << mask_length;
+					diff -= mask_length;
+					mask_length *= 2;
+				}
+				mask |= mask << diff;
+
+//				subset mask = (const subset) cursor;
+//				tile_set_bit(mask, depth, leaf.depth);
+//				cursor <<= leaf.depth - depth;
+				if ((mask & set & ~(leaf.set | cursor)) != 0){
+					return;
+				}
+				////////////////////////////
+				// cursor <<= leaf.depth - depth;
+				///////////////////////////
+				depth = leaf.depth;
+			}
+			if(final_depth <= depth){
+				////////////////////////////
+				// Search for elements except the one at leaf.depth that are in set but not in leaf.set
+				//if (set & ~leaf.set != 0){
+				//	return;
+				//}
+				////////////////////////////
+				if(!leaf.is_null){
+					superset_values.emplace_back(&leaf);
+				}
+				if (final_depth != depth || ((set & cursor) == 0)){
+					++depth;
+					cursor <<= 1;
+					mask |= cursor;
+					if(leaf.left){
+						_supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf.left);
+					}
+					if(leaf.right){
+						_supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf.right);
+					}
+				}else{
+					if(leaf.right){
+						++depth;
+						cursor <<= 1;
+						mask |= cursor;
+						_supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf.right);
+					}
+				}
+			}else{
+				if ((set & cursor) == 0){
+					++depth;
+					cursor <<= 1;
+					mask |= cursor;
+					if(leaf.left){
+						_supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf.left);
+					}
+					if(leaf.right){
+						_supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf.right);
+					}
+				}else{
+					if(leaf.right){
+						++depth;
+						cursor <<= 1;
+						mask |= cursor;
+						_supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf.right);
+					}
+				}
+			}
+		}
+
+
 		void supersets_of(
 				const subset& set,
 				const size_t& final_depth,
@@ -1370,6 +1582,91 @@ namespace efficient_DST{
 						cursor <<= 1;
 						mask |= cursor;
 						supersets_of(set, final_depth, superset_values, depth, cursor, mask, leaf.right);
+					}
+				}
+			}
+		}
+
+		void any_superset(
+				const subset& set,
+				const size_t& final_depth,
+				bool& has_any_superset,
+				size_t depth,
+				subset cursor,
+				subset mask,
+				const size_t& index) const {
+
+			const node<N, T>& leaf = nodes[index];
+			if(depth < leaf.depth){
+				////////////////////////////
+				// take skipped depths into account
+				size_t mask_length = depth + 1;
+				size_t diff = leaf.depth - depth;
+				cursor <<= diff;
+				while (mask_length <= diff){
+					mask |= mask << mask_length;
+					diff -= mask_length;
+					mask_length *= 2;
+				}
+				mask |= mask << diff;
+
+//				subset mask = (const subset) cursor;
+//				tile_set_bit(mask, depth, leaf.depth);
+//				cursor <<= leaf.depth - depth;
+				if ((mask & set & ~(leaf.set | cursor)) != 0){
+					return;
+				}
+				////////////////////////////
+				// cursor <<= leaf.depth - depth;
+				///////////////////////////
+				depth = leaf.depth;
+			}
+			if(final_depth <= depth){
+				////////////////////////////
+				// Search for elements except the one at leaf.depth that are in set but not in leaf.set
+				//if (set & ~leaf.set != 0){
+				//	return;
+				//}
+				////////////////////////////
+				if(!leaf.is_null){
+					has_any_superset = true;
+					return;
+				}
+				if (final_depth != depth || ((set & cursor) == 0)){
+					++depth;
+					cursor <<= 1;
+					mask |= cursor;
+					if(leaf.left){
+						any_superset(set, final_depth, has_any_superset, depth, cursor, mask, leaf.left);
+					}
+					if(!has_any_superset && leaf.right){
+						any_superset(set, final_depth, has_any_superset, depth, cursor, mask, leaf.right);
+					}
+				}else{
+					if(leaf.right){
+						++depth;
+						cursor <<= 1;
+						mask |= cursor;
+						any_superset(set, final_depth, has_any_superset, depth, cursor, mask, leaf.right);
+					}
+				}
+			}else{
+				if ((set & cursor) == 0){
+					++depth;
+					cursor <<= 1;
+					mask |= cursor;
+					if(leaf.left){
+						any_superset(set, final_depth, has_any_superset, depth, cursor, mask, leaf.left);
+					}
+					if(!has_any_superset && leaf.right){
+						any_superset(set, final_depth, has_any_superset, depth, cursor, mask, leaf.right);
+					}
+				}else{
+					if(leaf.right){
+						++depth;
+						cursor <<= 1;
+						mask |= cursor;
+						any_superset(set, final_depth, has_any_superset, depth, cursor, mask, leaf.right);
 					}
 				}
 			}

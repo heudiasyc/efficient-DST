@@ -71,23 +71,98 @@ namespace efficient_DST{
 			}
 		}
 
-//		std::ostream& print() const {
-//			std::vector<set_N_value<N, T>* > values = this->definition.elements();
-//			std::cout << std::endl;
-//			for (size_t i = 0; i < values.size(); ++i) {
-//				std::cout << set_N_value<N, T>::to_string(values[i]->value) + "\t <- " + this->outcomes.to_string(values[i]->set) << std::endl;
-//			}
-//
-//			return std::cout;
-//		}
+		template<class inclusion>
+		weight_function<N, T> natural_fusion_with(const weight_function<N, T>& w2) const {
+			size_t max_def_size = std::max(this->definition.size(), w2.definition.size());
+			weight_function<N, T> w12;
+			subset core;
+			if (w2.definition.size() == max_def_size){
+				w12 = weight_function<N, T>(w2);
+				natural_fusion<inclusion>(
+					this->definition,
+					w2.definition,
+					w12,
+					core
+				);
+			} else {
+				w12 = weight_function<N, T>(*this);
+				natural_fusion<inclusion>(
+					w2.definition,
+					this->definition,
+					w12,
+					core
+				);
+			}
+			return w12;
+		}
 
-//		void remove_negligible_values() {
-//			remove_negligible_values(this->definition);
-//		}
-//
-//		static void remove_negligible_values(powerset_btree<N, T>& definition) {
-//			mobius_transform<N, T>::remove_negligible_values(definition, 1);
-//		}
+		weight_function<N, T> conjunctive_fusion_with(const weight_function<N, T>& w2) const {
+			return natural_fusion_with<up_inclusion<N, T>>(w2);
+		}
+
+		weight_function<N, T> disjunctive_fusion_with(const weight_function<N, T>& w2) const {
+			return natural_fusion_with<down_inclusion<N, T>>(w2);
+		}
+
+//	protected:
+
+		template<class inclusion>
+		static std::vector<subset> natural_fusion(
+			const powerset_btree<N, T>& w1_definition,
+			const powerset_btree<N, T>& w2_definition,
+			powerset_btree<N, T>& w12_definition,
+			subset& core
+		){
+			const std::vector<set_N_value<N, T> const * >& focal_points_w1 = w1_definition.elements();
+			const std::vector<set_N_value<N, T> const * >& focal_points_w2 = w2_definition.elements();
+			core = inclusion::absorbing_set_for_operation();
+			subset core2 = inclusion::absorbing_set_for_operation();
+			for (size_t i = 0; i < focal_points_w1.size(); ++i) {
+				core = inclusion::set_dual_operation(core, focal_points_w1[i]->set);
+			}
+			for (size_t i = 0; i < focal_points_w2.size(); ++i) {
+				core2 = inclusion::set_dual_operation(core2, focal_points_w2[i]->set);
+			}
+			core = inclusion::set_operation(core, core2);
+			bool all_included = inclusion::has_any_element_related(w2_definition, core);
+			std::unordered_set<subset> manifest;
+			std::vector<subset> new_sets;
+			T val;
+			for (size_t i = 0; i < focal_points_w1.size(); ++i) {
+				subset& set = focal_points_w1[i]->set;
+				if (inclusion::set_dual_operation(core, set) == core){
+					auto occurrence = manifest.find(set);
+					if (occurrence == manifest.end()){
+						manifest.emplace(set);
+						val = focal_points_w1[i]->value;
+						const size_t& assignment_index = w2_definition[set];
+						if (assignment_index < w2_definition.number_of_nodes()){
+							val *= w2_definition.get_node(assignment_index).value;
+						} else if (all_included || inclusion::has_any_element_related(w2_definition, set)){
+							new_sets.emplace_back(set);
+						} else {
+							continue;
+						}
+//						if (!powerset_function<N, T>::is_equivalent_to_zero(val - 1))
+						w12_definition.update_or_insert(set, val);
+					}
+				}
+			}
+			all_included = inclusion::has_any_element_related(w1_definition, core);
+			for (size_t i = 0; i < focal_points_w2.size(); ++i) {
+				subset& set = focal_points_w2[i]->set;
+				if (inclusion::set_dual_operation(core, set) == core){
+					auto occurrence = manifest.find(set);
+					if (occurrence == manifest.end()){
+						manifest.emplace(set);
+						if (!all_included && !inclusion::has_any_element_related(w1_definition, set)){
+							w12_definition.nullify(w12_definition[set]);
+						}
+					}
+				}
+			}
+			return new_sets;
+		}
 	};
 
 } // namespace efficient_DST

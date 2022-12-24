@@ -181,12 +181,24 @@ namespace efficient_DST{
 			tree.supersets_of(set, elements);
 		}
 
+		static inline void _elements_related_to(powerset_btree<N, T>& tree, const subset& set, std::vector<set_N_value<N, T>* >& elements){
+			tree._supersets_of(set, elements);
+		}
+
 		static inline void addresses_related_to(const powerset_btree<N, set_N_value<N, T>* >& tree, const subset& set, std::vector<set_N_value<N, set_N_value<N, T>* > const * >& addresses){
 			tree.supersets_of(set, addresses);
 		}
 
+		static inline bool has_any_element_related(const powerset_btree<N, set_N_value<N, T>* >& tree, const subset& set){
+			return tree.has_any_superset(set);
+		}
+
 		static inline void elements_dually_related_to(const powerset_btree<N, T>& tree, const subset& set, std::vector<set_N_value<N, T> const * >& elements){
 			tree.subsets_of(set, elements);
+		}
+
+		static inline void element_indices_dually_related_to(const powerset_btree<N, T>& tree, const subset& set, std::vector<size_t>& indices){
+			tree.subsets_of(set, indices);
 		}
 
 		static inline void sets_dually_related_to(const powerset_btree<N, bool>& tree, const subset& set, std::vector<size_t>& sets){
@@ -272,12 +284,24 @@ namespace efficient_DST{
 			tree.subsets_of(set, elements);
 		}
 
+		static inline void _elements_related_to(powerset_btree<N, T>& tree, const subset& set, std::vector<set_N_value<N, T>* >& elements){
+			tree._subsets_of(set, elements);
+		}
+
 		static inline void addresses_related_to(const powerset_btree<N, set_N_value<N, T>* >& tree, const subset& set, std::vector<set_N_value<N, set_N_value<N, T>* > const * >& addresses){
 			tree.subsets_of(set, addresses);
 		}
 
+		static inline bool has_any_element_related(const powerset_btree<N, set_N_value<N, T>* >& tree, const subset& set){
+			return tree.has_any_subset(set);
+		}
+
 		static inline void elements_dually_related_to(const powerset_btree<N, T>& tree, const subset& set, std::vector<set_N_value<N, T> const * >& elements){
 			tree.supersets_of(set, elements);
+		}
+
+		static inline void element_indices_dually_related_to(const powerset_btree<N, T>& tree, const subset& set, std::vector<size_t>& indices){
+			tree.supersets_of(set, indices);
 		}
 
 		static inline void sets_dually_related_to(const powerset_btree<N, bool>& tree, const subset& set, std::vector<size_t>& sets){
@@ -887,14 +911,12 @@ namespace efficient_DST{
 		}
 
 		static void update_semilattice_support(
-				const powerset_btree<N, T>& support,
+				const std::vector<set_N_value<N, T> const * >& support_elements,
 				powerset_btree<N, T>& focal_points_tree,
 				std::vector<subset > focal_points,
 				T default_value
 		) {
 			std::cout << "Updating semilattice support\n";
-			const std::vector<set_N_value<N, T> const * >& support_elements = support.elements();
-
 			size_t newly_inserted_index;
 
 			for (size_t i = 0; i < support_elements.size(); ++i){
@@ -915,10 +937,10 @@ namespace efficient_DST{
 		static void build_bridge_map(
 				std::unordered_map<subset, size_t>& bridge_map,
 				powerset_btree<N, T>& focal_points_tree,
-				const std::vector<subset >& iota_sequence
+				const std::vector<subset >& iota_sequence,
+				const std::vector<size_t>& focal_points
 		) {
 			std::cout << "Building bridge map\n";
-			const std::vector<size_t>& focal_points = focal_points_tree.elements_indices();
 
 			powerset_btree<N, bool> proxies_missing_targets(iota_sequence.size());
 			size_t i;
@@ -988,25 +1010,49 @@ namespace efficient_DST{
 			std::cout << "--- Built\n";
 		}
 
+		static void build_bridge_map(
+				std::unordered_map<subset, size_t>& bridge_map,
+				powerset_btree<N, T>& focal_points_tree,
+				const std::vector<subset >& iota_sequence
+		) {
+			build_bridge_map(bridge_map, focal_points_tree, iota_sequence, focal_points_tree.elements_indices());
+		}
 
-		static void execute_EMT_with_semilattice(
+		static void build_subspace_bridge_map(
+				std::unordered_map<subset, size_t>& bridge_map,
 				powerset_btree<N, T>& focal_points_tree,
 				const std::vector<subset >& iota_sequence,
-				std::unordered_map<subset, size_t> bridge_map
+				const subset& subspace
 		) {
-			//clock_t t;
-			std::cout << "Executing EMT with semilattice\n";
+			std::vector<size_t> focal_points;
+			inclusion::element_indices_dually_related_to(focal_points_tree, subspace, focal_points);
+			build_bridge_map(bridge_map, focal_points_tree, iota_sequence, focal_points);
+		}
 
-			if (iota_sequence.size() == 0)
-				return;
-
-			std::vector<subset > sync_sequence;
+		static void build_sync_sequence(
+				const std::vector<subset >& iota_sequence,
+				std::vector<subset >& sync_sequence
+		){
 			sync_sequence.reserve(iota_sequence.size());
 			sync_sequence.emplace_back(iota_sequence[0]);
 			for (size_t i = 1; i < iota_sequence.size(); ++i){
 //				sync_sequence.emplace_back(sync_sequence[i-1] | iota_sequence[i]);
 				sync_sequence.emplace_back(inclusion::set_dual_operation(sync_sequence[i-1], iota_sequence[i]));
 			}
+		}
+
+		static void execute_EMT_with_semilattice(
+				powerset_btree<N, T>& focal_points_tree,
+				const std::vector<subset >& iota_sequence,
+				const std::vector<subset >& sync_sequence,
+				std::unordered_map<subset, size_t> bridge_map,
+				const std::vector<set_N_value<N, T>* >& focal_points
+		) {
+			//clock_t t;
+			std::cout << "Executing EMT with semilattice\n";
+
+			if (iota_sequence.size() == 0)
+				return;
 //			std::unordered_map<subset, set_N_value<N, T> const * > bridge_map;
 //			build_bridge_map(bridge_map, focal_points_tree, iota_sequence);
 //			std::cout << "Bridge built\n";
@@ -1014,7 +1060,6 @@ namespace efficient_DST{
 			//t = clock();
 			size_t nb_iota = iota_sequence.size()-1;
 //			size_t iota_index;
-			const std::vector<set_N_value<N, T>* >& focal_points = focal_points_tree._elements();
 			for (size_t i = 0; i < iota_sequence.size(); ++i){
 //				if (transform_type == transform_type_t::zeta)
 //					iota_index = i;
@@ -1047,10 +1092,30 @@ namespace efficient_DST{
 			std::cout << "--- Done\n";
 		}
 
+		static void execute_EMT_with_semilattice(
+				powerset_btree<N, T>& focal_points_tree,
+				const std::vector<subset >& iota_sequence,
+				const std::vector<subset >& sync_sequence,
+				std::unordered_map<subset, size_t> bridge_map
+		) {
+			execute_EMT_with_semilattice(focal_points_tree, iota_sequence, sync_sequence, bridge_map, focal_points_tree._elements());
+		}
+
+		static void execute_EMT_with_semilattice_in_subspace(
+				powerset_btree<N, T>& focal_points_tree,
+				const std::vector<subset >& iota_sequence,
+				const std::vector<subset >& sync_sequence,
+				std::unordered_map<subset, size_t> bridge_map,
+				const subset& subspace
+		) {
+			execute_EMT_with_semilattice(focal_points_tree, iota_sequence, sync_sequence, bridge_map, inclusion::_elements_related_to(focal_points_tree, subspace));
+		}
+
 		static scheme_type_t autoset_and_build(
 				const powerset_btree<N, T>& support,
 				powerset_btree<N, T>& focal_points_tree,
 				std::vector<subset >& iota_sequence,
+				std::vector<subset >& sync_sequence,
 				std::unordered_map<subset, size_t>& bridge_map
 		){
 			// check if original_structure is almost Bayesian
@@ -1085,6 +1150,7 @@ namespace efficient_DST{
 								support,
 								iota_sequence
 							);
+							build_sync_sequence(iota_sequence, sync_sequence);
 							build_bridge_map(bridge_map, focal_points_tree, iota_sequence);
 							return scheme_type_t::semilattice;
 						}
@@ -1109,6 +1175,7 @@ namespace efficient_DST{
 			const powerset_btree<N, T>& support,
 			powerset_btree<N, T>& focal_points_tree,
 			const std::vector<subset >& iota_sequence,
+			const std::vector<subset >& sync_sequence,
 			const std::unordered_map<subset, size_t>& bridge_map,
 			const scheme_type_t& scheme_type
 		) {
@@ -1131,6 +1198,7 @@ namespace efficient_DST{
 					execute_EMT_with_semilattice(
 						focal_points_tree,
 						iota_sequence,
+						sync_sequence,
 						bridge_map
 					);
 					break;
@@ -1232,6 +1300,7 @@ namespace efficient_DST{
 			const powerset_btree<N, T>& support,
 			powerset_btree<N, T>& focal_points_tree,
 			std::vector<subset >& iota_sequence,
+			std::vector<subset >& sync_sequence,
 			std::unordered_map<subset, size_t>& bridge_map
 		) {
 //			powerset_btree<N, T> focal_points_tree(support.size());
@@ -1244,10 +1313,12 @@ namespace efficient_DST{
 				support,
 				iota_sequence
 			);
+			build_sync_sequence(iota_sequence, sync_sequence);
 			build_bridge_map(bridge_map, focal_points_tree, iota_sequence);
 			execute_EMT_with_semilattice(
 					focal_points_tree,
 					iota_sequence,
+					sync_sequence,
 					bridge_map
 			);
 		}

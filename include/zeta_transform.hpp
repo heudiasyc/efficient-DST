@@ -22,6 +22,7 @@ namespace efficient_DST{
 
 		scheme_type_t scheme_type;
 		std::vector<subset > iota_sequence;
+		std::vector<subset > sync_sequence;
 		std::unordered_map<subset, size_t> bridge_map;
 		std::map<size_t, powerset_btree<N, set_N_value<N, T>* > > definition_by_cardinality;
 
@@ -31,6 +32,8 @@ namespace efficient_DST{
 			powerset_function<N, T>(z.outcomes, z.definition, z.default_value),
 			scheme_type(z.scheme_type),
 			iota_sequence(z.iota_sequence),
+			sync_sequence(z.sync_sequence),
+			bridge_map(z.bridge_map),
 			definition_by_cardinality(z.definition_by_cardinality)
 		{}
 
@@ -56,6 +59,17 @@ namespace efficient_DST{
 		 * - transform_operation is the operation of the zeta transform (e.g. in DST, we usually use the addition on the mass function
 		 * and the multiplication on the conjunctive/disjunctive weight function).
 		 */
+		// TODO: ajouter la possibilité de modifier les iota elements, la bridhe map, etc
+		// ou faire ne méthode qui renvoie une zeta transform dans le subspace demandé.
+		// Dans rule_conjunctive, calculer la fusion (n'ajouter que les éléments en plus de powerset1) et
+		// renvoyer le core, ainsi qu'un vecteur contenant tous les subsets ajoutés
+		// (ceux-ci auront déjà été intégrés dans l'arbre powerset12,
+		// mais seront utilisés pour calculer l'update du semilattice et de la bridge_map).
+		// => à faire dans la fusion de commonalités (de zeta_transforms plus généralement).
+		// Dans le même block, on calculera les nouveaux iota elements par simple intersection des iota de chaque
+		// Déplacer la méthode de fusion de poids dans weight_function (comme pour celle de mass_function)
+		// Le truc avec la zeta transform in subspace ne doit avoir lieu que dans zeta transform en soi, où l'on souhaite
+		// fusionner deux zeta transform (et où donc on a accès au semilattices et co)
 		zeta_transform(
 			const sample_space<N>& outcomes,
 			const powerset_btree<N, T>& support,
@@ -110,6 +124,7 @@ namespace efficient_DST{
 						this->definition,
 						mobius_transform_definition,
 						this->iota_sequence,
+						this->sync_sequence,
 						this->bridge_map,
 						this->scheme_type
 				);
@@ -118,6 +133,32 @@ namespace efficient_DST{
 						this->definition,
 						mobius_transform_definition,
 						this->iota_sequence,
+						this->sync_sequence,
+						this->bridge_map,
+						this->scheme_type
+				);
+			}
+			return mobius_transform_definition;
+		}
+
+		powerset_btree<N, T> inversion_in_subspace(const operation_type_t& operation_type, subset subspace) const {
+			std::cout << "INVERSION\n";
+			powerset_btree<N, T> mobius_transform_definition(this->definition);
+			if (operation_type == operation_type_t::addition){
+				efficient_mobius_inversion<inclusion, mobius_tranformation<inclusion, addition<T>, N, T>, N, T >::execute(
+						this->definition,
+						mobius_transform_definition,
+						this->iota_sequence,
+						this->sync_sequence,
+						this->bridge_map,
+						this->scheme_type
+				);
+			} else {
+				efficient_mobius_inversion<inclusion, mobius_tranformation<inclusion, multiplication<T>, N, T>, N, T >::execute(
+						this->definition,
+						mobius_transform_definition,
+						this->iota_sequence,
+						this->sync_sequence,
 						this->bridge_map,
 						this->scheme_type
 				);
@@ -143,6 +184,142 @@ namespace efficient_DST{
 				return this->definition.get_node(index).value;
 			}
 			return this->find_non_focal_point_image(set);
+		}
+
+		zeta_transform<inclusion, N, T> natural_fusion_with(const zeta_transform<inclusion, N, T>& z2) const {
+			size_t max_def_size = std::max(this->definition.size(), z2.definition.size());
+			zeta_transform<inclusion, N, T> z12(this->outcomes, this->default_value);
+			powerset_btree<N, T> w12_definition;
+			subset core;
+			std::vector<subset> new_sets;
+			if (z2.definition.size() == max_def_size){
+				z12.scheme_type = z2.scheme_type;
+//				z12.sync_sequence = z2.sync_sequence;
+//				z12.bridge_map = z2.bridge_map;
+//				z12.definition_by_cardinality = z2.definition_by_cardinality;
+				const powerset_btree<N, T>& w2 = z2.inversion(operation_type_t::multiplication);
+				w12_definition = w2;
+				new_sets = weight_function<N, T>::template natural_fusion<inclusion>(
+					this->inversion(operation_type_t::multiplication),
+					w2,
+					w12_definition,
+					core
+				);
+			} else {
+				z12.scheme_type = this->scheme_type;
+//				z12.sync_sequence = this->sync_sequence;
+//				z12.bridge_map = this->bridge_map;
+//				z12.definition_by_cardinality = this->definition_by_cardinality;
+				const powerset_btree<N, T>& w1 = this->inversion(operation_type_t::multiplication);
+				w12_definition = w1;
+				new_sets = weight_function<N, T>::template natural_fusion<inclusion>(
+					z2.inversion(operation_type_t::multiplication),
+					w1,
+					w12_definition,
+					core
+				);
+			}
+			z12.definition = w12_definition;
+			powerset_btree<N, T> iota_elements(N);
+			for (size_t i = 0; i < this->iota_sequence; ++i){
+				iota_elements.update_or_insert(this->iota_sequence, 0);
+			}
+			for (size_t i = 0; i < z2.iota_sequence; ++i){
+				iota_elements.update_or_insert(z2.iota_sequence, 0);
+			}
+			switch (z12.scheme_type){
+				case scheme_type_t::semilattice:
+					inclusion::compute_iota_elements_dual(
+						iota_elements,
+						z12.iota_sequence
+					);
+					efficient_mobius_inversion<
+						inclusion, zeta_tranformation<inclusion, multiplication<T>, N, T>, N, T
+					>::build_sync_sequence(z12.iota_sequence, z12.sync_sequence);
+					efficient_mobius_inversion<
+						inclusion, zeta_tranformation<inclusion, multiplication<T>, N, T>, N, T
+					>::update_semilattice_support(
+						z12.definition.elements(),
+						z12.definition,
+						new_sets,
+						1
+					);
+					efficient_mobius_inversion<
+						inclusion, zeta_tranformation<inclusion, multiplication<T>, N, T>, N, T
+					>::build_subspace_bridge_map(
+						z12.bridge_map,
+						z12.definition,
+						z12.iota_sequence,
+						core
+					);
+					efficient_mobius_inversion<
+						inclusion, zeta_tranformation<inclusion, multiplication<T>, N, T>, N, T
+					>::execute_EMT_with_semilattice(
+							z12.definition,
+							z12.iota_sequence,
+							z12.sync_sequence,
+							z12.bridge_map
+					);
+					break;
+				case scheme_type_t::lattice:
+					inclusion::compute_iota_elements(
+						iota_elements,
+						z12.iota_sequence
+					);
+					efficient_mobius_inversion<
+						inclusion, zeta_tranformation<inclusion, multiplication<T>, N, T>, N, T
+					>::update_truncated_lattice_support(
+						z12.iota_sequence,
+						z12.definition,
+						new_sets,
+						1
+					);
+					efficient_mobius_inversion<
+						inclusion, zeta_tranformation<inclusion, multiplication<T>, N, T>, N, T
+					>::execute_EMT_with_lattice(
+							z12.definition,
+							z12.iota_sequence
+					);
+					break;
+				case scheme_type_t::reduced_FMT:
+					efficient_mobius_inversion<
+						inclusion, zeta_tranformation<inclusion, multiplication<T>, N, T>, N, T
+					>::FMT_reduced_to_core(
+							support,
+							z12.definition,
+							z12.iota_sequence
+					);
+					break;
+				default:
+					efficient_mobius_inversion<
+						inclusion, zeta_tranformation<inclusion, multiplication<T>, N, T>, N, T
+					>::direct_transformation(
+							support,
+							z12.definition,
+							z12.scheme_type
+					);
+					break;
+			}
+			z12.set_definition_by_cardinality();
+//			weight_function<N, T> w12(w1.get_sample_space(), w12_definition);
+//			powerset_btree<N, T>& w12_definition = w12.definition_();
+//			set_N_value<N, T>* node;
+//			T val;
+//			for (const auto& set : manifest) {
+////				w12.assign(set, w1[set] * w2[set]);
+//				val = 1;
+//				node = w1_definition[set];
+//				if (node){
+//					val = node->value;
+//				}
+//				node = w2_definition[set];
+//				if (node){
+//					val *= node->value;
+//				}
+//				if (!powerset_function<N, T>::is_equivalent_to_zero(val - 1))
+//					w12_definition.insert(set, val);
+//			}
+			return z12;
 		}
 
 	protected:
@@ -195,6 +372,7 @@ namespace efficient_DST{
 						support,
 						this->definition,
 						this->iota_sequence,
+						this->sync_sequence,
 						this->bridge_map
 				);
 				efficient_mobius_inversion<
@@ -203,6 +381,7 @@ namespace efficient_DST{
 						support,
 						this->definition,
 						this->iota_sequence,
+						this->sync_sequence,
 						this->bridge_map,
 						this->scheme_type
 				);
@@ -215,6 +394,7 @@ namespace efficient_DST{
 								support,
 								this->definition,
 								this->iota_sequence,
+								this->sync_sequence,
 								this->bridge_map
 						);
 						break;
@@ -277,7 +457,7 @@ namespace efficient_DST{
 							efficient_mobius_inversion<
 								inclusion, zeta_tranformation<inclusion, addition<T>, N, T>, N, T
 							>::update_semilattice_support(
-									this->definition,
+									this->definition.elements(),
 									this->definition,
 									{normalizing_set},
 									normalizing_value
