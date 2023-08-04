@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2019-2023  Maxime Chaveroche (maxime.chaveroche@gmail.com)
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the CeCILL License, either version 2.1 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * CeCILL License for more details.
+ * 
+ * You should have received a copy of the CeCILL License
+ * along with this program. If not, see <http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html>.
+ */
+
 #ifndef EFFICIENT_DST_BENCHMARKING_HPP
 #define EFFICIENT_DST_BENCHMARKING_HPP
 
@@ -36,9 +52,6 @@ namespace efficient_DST{
 		std::random_device rd;
 		std::mt19937_64 gen;
 		std::string outcome_labels[N];
-		// TODO: le problème vient probablement du fait que la stack ne peut retenir une telle taille
-		// => voir avec vector si c'est possible sur le heap
-		// + remplacer tous les size_t par des uintmax_t (qui représente le plus grand entier possible)
 		std::vector<subset> subsets;
 
 		benchmarking() : gen(rd())
