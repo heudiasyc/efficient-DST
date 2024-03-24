@@ -15,7 +15,17 @@ For example, if you have a powerset function defined on a powerset of size 2^160
 The SVG file `class_diagram.svg` contains a light partial class diagram, giving an overview of the structure of this framework.
 
 # Usage
+## To test it alone
+- Open a terminal in the project root directory
+- Run the following commands in a terminal:
+```
+cd src
+g++ main.cpp -std=c++0x -I"../include" -O0 -g3 -Wall -c -fmessage-length=0
+g++ main.o -o test
+./test
+```
 
+## To use it in your own project
 - Copy the include repository into your C++ project,
 - Link it to your compilation process,
 - See src/demo.hpp to get an example of usage.
